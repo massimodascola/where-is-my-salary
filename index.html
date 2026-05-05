@@ -607,6 +607,100 @@
     line-height: 1.55;
   }
 
+  /* ---------- Sync block ---------- */
+  .sync-block{
+    margin-top: 22px;
+    padding: 16px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-rest);
+  }
+  .sync-head{
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 10px;
+  }
+  .sync-title{
+    font-family: var(--serif); font-style: italic;
+    font-size: 17px; font-weight: 500;
+    letter-spacing: -.012em; color: var(--ink);
+  }
+  .sync-state-pill{
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: var(--radius-pill);
+    letter-spacing: .03em; text-transform: uppercase;
+    background: var(--paper-tint); color: var(--ink-muted);
+    border: 1px solid var(--line);
+  }
+  .sync-state-pill[data-status="idle"]{ background: var(--sage-tint); color: var(--sage); border-color: var(--sage-soft); }
+  .sync-state-pill[data-status="syncing"]{ background: var(--gold-tint); color: var(--gold); border-color: var(--gold-soft); }
+  .sync-state-pill[data-status="error"]{ background: var(--terracotta-tint); color: var(--terracotta); border-color: var(--terracotta-soft); }
+
+  .sync-info{
+    font-size: 12.5px; color: var(--ink-soft);
+    line-height: 1.5; margin-bottom: 12px;
+    font-style: italic; font-family: var(--serif);
+  }
+  .sync-info code{
+    font-family: var(--sans); font-style: normal;
+    background: var(--paper-tint); padding: 1px 6px;
+    border-radius: 4px; font-size: 11.5px;
+    color: var(--ink); border: 1px solid var(--line-soft);
+  }
+  .sync-error{
+    font-size: 12px; color: var(--terracotta);
+    background: var(--terracotta-tint);
+    padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--terracotta-soft);
+    margin-bottom: 10px;
+  }
+
+  .sync-steps{
+    margin: 0 0 0 22px; padding: 0;
+    font-size: 13px; color: var(--ink-soft); line-height: 1.55;
+  }
+  .sync-steps li{ margin-bottom: 8px; }
+  .sync-steps a{ color: var(--sienna); font-weight: 600; }
+  .sync-steps code{
+    font-family: var(--sans);
+    background: var(--paper-tint); padding: 1px 6px;
+    border-radius: 4px; font-size: 12px;
+    color: var(--ink); border: 1px solid var(--line-soft);
+  }
+
+  /* Topbar sync indicator (replaces a regular icon-btn when shown) */
+  #sync-indicator{
+    font-size: 16px; line-height: 1;
+    transition: color .2s, background .2s;
+  }
+  #sync-indicator[data-status="idle"]{ color: var(--sage); }
+  #sync-indicator[data-status="syncing"]{ color: var(--gold); }
+  #sync-indicator[data-status="syncing"] .sync-icon{ animation: pulse 1.2s infinite ease-in-out; display:inline-block; }
+  #sync-indicator[data-status="error"]{ color: var(--terracotta); border-color: var(--terracotta-soft); }
+  @keyframes pulse{
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: .55; transform: scale(.92); }
+  }
+
+  /* ---------- Backup block ---------- */
+  .backup-block{
+    margin-top: 20px;
+    padding: 16px 16px 14px;
+    background: var(--paper-tint);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+  }
+  .backup-title{
+    font-family: var(--serif); font-style: italic;
+    font-size: 17px; font-weight: 500;
+    letter-spacing: -.012em; color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .backup-stats{
+    font-size: 12px; color: var(--ink-muted);
+    font-style: italic; margin-bottom: 4px;
+    min-height: 16px;
+  }
   /* ---------- Help / details ---------- */
   details summary{
     cursor: pointer; padding: 10px 4px;
@@ -683,6 +777,42 @@
 
 <div class="scrim" id="scrim"></div>
 
+<!-- Sync configure sheet -->
+<div class="sheet" id="sync-sheet" role="dialog" aria-labelledby="sync-title">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div class="sheet-title" id="sync-title">Configura sync cloud</div>
+    <button class="icon-btn" data-close-sheet aria-label="Chiudi">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="help" style="margin-bottom:14px">
+      Il sync usa un <strong>gist privato GitHub</strong> come deposito dei tuoi dati. Niente di ciò che inserisci qui esce dal tuo account GitHub.
+    </div>
+
+    <ol class="sync-steps">
+      <li>
+        Apri
+        <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Where%20is%20my%20Salary" target="_blank" rel="noopener">questo link</a>
+        — è la pagina GitHub per creare un Personal Access Token classico, già pre-compilata con scope <code>gist</code> (l'unico necessario).
+      </li>
+      <li>Imposta una scadenza (suggerito: 1 anno) e premi <strong>Generate token</strong> in fondo.</li>
+      <li>Copia il token (inizia con <code>ghp_</code>) e incollalo qui sotto.</li>
+    </ol>
+
+    <div class="field" style="margin-top:14px">
+      <label>Personal Access Token</label>
+      <input type="password" id="sync-pat-input" placeholder="ghp_..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+      <div class="hint">Il token viene salvato solo nel <code>localStorage</code> di questo dispositivo. Se vuoi disattivare il sync, basta premere "Disconnetti" (o revocare il token da GitHub).</div>
+    </div>
+
+    <button class="btn full large" id="btn-sync-connect" type="button">Collega questo dispositivo</button>
+
+    <div class="help" style="margin-top:14px; font-size:12.5px">
+      Se hai già usato il sync su un altro dispositivo, lo stesso token connetterà tutti automaticamente: l'app trova il gist esistente e tira giù i dati.
+    </div>
+  </div>
+</div>
+
 <!-- Settings sheet -->
 <div class="sheet" id="settings-sheet" role="dialog" aria-labelledby="settings-title">
   <div class="sheet-handle"></div>
@@ -693,7 +823,7 @@
   <div class="sheet-body">
     <div class="field">
       <label>Come ti chiami</label>
-      <input type="text" id="set-name" placeholder="Max" />
+      <input type="text" id="set-name" placeholder="il tuo nome" />
     </div>
     <div class="field-row">
       <div class="field">
@@ -727,19 +857,31 @@
       </div>
     </div>
 
-    <details style="margin-top:6px">
-      <summary>Backup e portabilità</summary>
-      <div style="margin-top:10px" class="btn-row">
-        <button class="btn secondary" id="btn-export">Esporta JSON</button>
-        <label class="btn secondary" style="cursor:pointer">
-          Importa
-          <input type="file" id="file-import" accept="application/json,.json" style="display:none" />
-        </label>
+    <div class="sync-block" id="sync-block">
+      <div class="sync-head">
+        <div class="sync-title">Sync tra dispositivi</div>
+        <div class="sync-state-pill" id="sync-state-pill" data-status="off">spento</div>
       </div>
-      <div class="help" style="margin-top:12px">
-        I dati vivono solo nel <strong>browser di questo dispositivo</strong>. Esporta un JSON di tanto in tanto — è il tuo backup, e ti serve anche per portare lo storico su un altro telefono.
+      <div class="sync-body" id="sync-body"></div>
+    </div>
+
+    <div class="backup-block">
+      <div class="backup-title">Backup e sincronizzazione</div>
+      <div class="backup-stats" id="backup-stats"></div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn secondary" id="btn-export" type="button">⬇ Scarica file</button>
+        <button class="btn secondary" id="btn-copy" type="button">⧉ Copia testo</button>
       </div>
-    </details>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn secondary" id="btn-import-file" type="button">⬆ Carica file</button>
+        <button class="btn secondary" id="btn-paste" type="button">⌘V Incolla testo</button>
+      </div>
+      <input type="file" id="file-import" accept="application/json,.json" style="display:none" />
+      <div class="help" style="margin-top:12px; font-size:12.5px">
+        I dati vivono solo nel <strong>browser di questo dispositivo</strong>: né GitHub Pages né nessun altro hosting li sincronizza.
+        Per portare lo storico tra Mac e telefono usa <strong>Scarica file</strong> da una parte e <strong>Carica file</strong> dall'altra (oppure copia/incolla il testo via WhatsApp, Note, AirDrop, ecc.).
+      </div>
+    </div>
 
     <div class="btn-row" style="margin-top:22px">
       <button class="btn danger" id="btn-delete-profile">Elimina profilo</button>
@@ -758,7 +900,7 @@
   <div class="sheet-body">
     <div class="field">
       <label>Come ti chiami</label>
-      <input type="text" id="np-name" placeholder="Max" />
+      <input type="text" id="np-name" placeholder="il tuo nome" />
     </div>
     <div class="field-row">
       <div class="field">
@@ -793,7 +935,7 @@
       <div class="brand-mark">€</div>
       <div class="brand-name">
         Where is my <em>Salary</em>
-        <small>mese per mese</small>
+        <small>mese per mese · <span id="version-tag">v0.4</span></small>
       </div>
     </div>
     <div class="spacer"></div>
@@ -801,6 +943,9 @@
       <div class="avatar" id="avatar">M</div>
       <select id="profile-select" aria-label="Seleziona profilo"></select>
     </div>
+    <button class="icon-btn sync-pill" id="sync-indicator" data-status="off" aria-label="Stato sync cloud" title="Sync cloud" type="button" style="display:none">
+      <span class="sync-icon">☁</span>
+    </button>
     <button class="icon-btn" id="btn-add-profile" aria-label="Aggiungi profilo" title="Aggiungi profilo">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
     </button>
@@ -820,7 +965,12 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
+const VERSION = "0.4";
+console.log("Where is my Salary — version", VERSION, "— build", new Date().toISOString().slice(0,10));
+
 const STORAGE_KEY = "stipendio.v1";
+const SYNC_KEY = "stipendio.sync.v1";
+const GIST_FILENAME = "where-is-my-salary-data.json";
 const MONTHS_IT = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 
 const COMPONENTS = [
@@ -874,8 +1024,17 @@ function loadStore(){
   }catch(e){ console.warn("Storage parse error", e); }
   return { profiles: {}, activeProfile: null, currentYear: new Date().getFullYear() };
 }
-function saveStore(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); }
+function saveStore(){
+  store._lastModified = Date.now();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  // If cloud sync is configured, queue a debounced push.
+  if(typeof schedulePush === "function") schedulePush();
+}
 let store = loadStore();
+
+// Session-only UI state — survives re-renders but not page reloads.
+// Tracks which month accordion is open (one at a time).
+let openMonthIdx = null;
 
 function defaultSettings(){
   return { salary: 0, welfare: 400, fringe: 1000, ticketPerDay: 10, fringeMonth: 12, defaultBonus: 0 };
@@ -1157,7 +1316,12 @@ function renderMain(){
   $("#y-next").onclick = () => { store.currentYear++; saveStore(); render(); };
 
   $$(".month-head").forEach(el => {
-    el.onclick = () => el.parentElement.classList.toggle("open");
+    el.onclick = () => {
+      const m0 = Number(el.parentElement.dataset.m0);
+      // Accordion-style: clicking the open month closes it; clicking another switches.
+      openMonthIdx = (openMonthIdx === m0) ? null : m0;
+      render();
+    };
   });
   $$(".tri button").forEach(btn => {
     btn.onclick = (e) => {
@@ -1248,8 +1412,9 @@ function renderMonthCard(profile, year, m0){
     `;
   }).join("");
 
+  const isOpen = (m0 === openMonthIdx);
   return `
-    <div class="month ${isCurrent ? 'current' : ''}" data-m0="${m0}">
+    <div class="month ${isCurrent ? 'current' : ''} ${isOpen ? 'open' : ''}" data-m0="${m0}">
       <div class="month-head">
         <div class="month-name">${MONTHS_IT[m0]}</div>
         <div class="month-status ${status.cls}">${status.label}</div>
@@ -1320,13 +1485,12 @@ $("#btn-create-profile").onclick = () => {
   store.activeProfile = id;
   saveStore();
   closeSheets();
-  render();
-  // Open current month by default
+  // Open current month by default for the new profile
   const today = new Date();
   if(today.getFullYear() === Number(store.currentYear)){
-    const card = document.querySelector(`[data-m0="${today.getMonth()}"]`);
-    if(card) card.classList.add("open");
+    openMonthIdx = today.getMonth();
   }
+  render();
   toast("Profilo creato");
 };
 
@@ -1342,6 +1506,8 @@ $("#btn-settings").onclick = () => {
   $("#set-bonus").value = p.settings.defaultBonus || 0;
   $("#set-fringe-month").innerHTML = MONTHS_IT.map((m,i) =>
     `<option value="${i+1}" ${i+1===Number(p.settings.fringeMonth)?"selected":""}>${m}</option>`).join("");
+  refreshBackupStats();
+  refreshSyncSection();
   openSheet("settings-sheet");
 };
 $("#btn-save-settings").onclick = () => {
@@ -1379,32 +1545,134 @@ $("#profile-select").onchange = (e) => {
   render();
 };
 
-/* Export / Import */
+/* ============================================================ *
+ *  Backup & sync — file + clipboard, with iOS Safari fallback
+ * ============================================================ */
+
+function backupStatsText(){
+  const profiles = Object.values(store.profiles || {});
+  const nProfiles = profiles.length;
+  let nMonths = 0;
+  for(const p of profiles){
+    for(const y of Object.values(p.years || {})){
+      for(const m of Object.values(y || {})){
+        if(m && Object.values(m).some(v => v && v.state && v.state !== "missing" && v.state !== "not_expected")) nMonths++;
+        else if(m) nMonths++;
+      }
+    }
+  }
+  const stamp = new Date().toLocaleDateString("it-IT", { day:"numeric", month:"short", year:"numeric" });
+  return `${nProfiles} profil${nProfiles === 1 ? "o" : "i"} · aggiornato al ${stamp}`;
+}
+
+function refreshBackupStats(){
+  const el = $("#backup-stats");
+  if(el) el.textContent = backupStatsText();
+}
+
+function applyImportedData(parsed, sourceLabel){
+  if(!parsed || typeof parsed !== "object") throw new Error("Dati non leggibili");
+  if(!parsed.profiles || typeof parsed.profiles !== "object") throw new Error("Manca la sezione 'profiles' nel file");
+  const incomingCount = Object.keys(parsed.profiles).length;
+  if(!confirm(`Sostituire i dati attuali con quelli ${sourceLabel}?\n\nProfili in arrivo: ${incomingCount}\n\nQuesta operazione non è reversibile (a meno di non aver fatto un backup prima).`)) return false;
+  store = parsed;
+  if(!store.currentYear) store.currentYear = new Date().getFullYear();
+  saveStore();
+  closeSheets();
+  render();
+  toast(`Importati ${incomingCount} profil${incomingCount === 1 ? "o" : "i"}`);
+  return true;
+}
+
+/* --- Esporta come file scaricato --- */
 $("#btn-export").onclick = () => {
+  try {
+    const data = JSON.stringify(store, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `where-is-my-salary-${new Date().toISOString().slice(0,10)}.json`;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+    toast("File scaricato — controlla la cartella Download");
+  } catch(err) {
+    console.error(err);
+    alert("Impossibile scaricare il file: " + err.message + "\n\nProva il pulsante 'Copia testo' come alternativa.");
+  }
+};
+
+/* --- Copia tutto il backup negli appunti --- */
+$("#btn-copy").onclick = async () => {
   const data = JSON.stringify(store, null, 2);
-  const blob = new Blob([data], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `stipendio-tracker-${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a); a.click();
-  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(data);
+      toast("Copiato negli appunti — incollalo dove vuoi");
+    } else {
+      // Fallback: textarea hack
+      const ta = document.createElement("textarea");
+      ta.value = data; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      if(ok) toast("Copiato negli appunti");
+      else throw new Error("Clipboard non disponibile");
+    }
+  } catch(err) {
+    console.error(err);
+    alert("Non riesco ad accedere agli appunti.\n\nProva 'Scarica file' come alternativa.");
+  }
+};
+
+/* --- Importa da file --- */
+$("#btn-import-file").onclick = () => {
+  $("#file-import").click();
 };
 $("#file-import").onchange = (e) => {
-  const file = e.target.files[0]; if(!file) return;
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    try{
+    try {
       const data = JSON.parse(reader.result);
-      if(!data.profiles) throw new Error("Formato non valido");
-      if(!confirm("Sovrascrivere i dati attuali con quelli del file?")) return;
-      store = data;
-      if(!store.currentYear) store.currentYear = new Date().getFullYear();
-      saveStore(); closeSheets(); render();
-      toast("Dati importati");
-    }catch(err){ alert("Errore importazione: " + err.message); }
+      applyImportedData(data, `dal file "${file.name}"`);
+    } catch(err) {
+      alert("Errore lettura file: " + err.message);
+    }
   };
+  reader.onerror = () => alert("Impossibile leggere il file.");
   reader.readAsText(file);
+  // reset so the same file can be picked again
+  e.target.value = "";
+};
+
+/* --- Importa incollando dagli appunti --- */
+$("#btn-paste").onclick = async () => {
+  let text = "";
+  try {
+    if(navigator.clipboard && navigator.clipboard.readText){
+      text = await navigator.clipboard.readText();
+    } else {
+      text = prompt("Incolla qui il testo del backup:");
+      if(!text) return;
+    }
+  } catch(err) {
+    text = prompt("Non posso leggere gli appunti automaticamente. Incolla qui il backup:");
+    if(!text) return;
+  }
+  if(!text || !text.trim()){
+    alert("Gli appunti sono vuoti. Copia prima il backup dall'altro dispositivo.");
+    return;
+  }
+  try {
+    const data = JSON.parse(text);
+    applyImportedData(data, "incollati");
+  } catch(err) {
+    alert("Il testo incollato non è un backup valido.\nDeve essere il JSON copiato con 'Copia testo'.");
+  }
 };
 
 /* Toast */
@@ -1422,18 +1690,279 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 }
 
-/* ----- Bootstrap ----- */
-function bootstrap(){
-  render();
-  const today = new Date();
-  if(today.getFullYear() === Number(store.currentYear)){
-    const card = document.querySelector(`[data-m0="${today.getMonth()}"]`);
-    if(card) card.classList.add("open");
+/* ============================================================ *
+ *  Cloud Sync — GitHub Gist as private storage
+ *
+ *  Strategy:
+ *  - User pastes a classic PAT with "gist" scope (one-time setup).
+ *  - On first connect, app finds (or creates) a private gist named
+ *    `where-is-my-salary-data.json` and uses it as the backing store.
+ *  - Every saveStore() schedules a debounced PATCH (~2s) to the gist.
+ *  - On bootstrap, app fetches the gist and replaces local data IF the
+ *    cloud copy has a more recent _lastModified timestamp.
+ *  - The PAT lives only in this device's localStorage. Revoke anytime
+ *    on github.com.
+ * ============================================================ */
+
+let syncState = (() => {
+  try { const r = localStorage.getItem(SYNC_KEY); return r ? JSON.parse(r) : null; }
+  catch(e){ return null; }
+})();
+function saveSyncState(){
+  if(syncState) localStorage.setItem(SYNC_KEY, JSON.stringify(syncState));
+  else          localStorage.removeItem(SYNC_KEY);
+}
+
+let syncStatus = "off";        // off | idle | syncing | error
+let pushTimer  = null;
+let isPushing  = false;
+
+function setSyncStatus(s, errMsg){
+  syncStatus = s;
+  // Topbar pill
+  const pill = $("#sync-indicator");
+  if(pill){
+    pill.dataset.status = s;
+    if(s === "off") pill.style.display = "none";
+    else            pill.style.display = "";
+    const icon = pill.querySelector(".sync-icon");
+    if(icon) icon.textContent = (s === "syncing") ? "⟳" : (s === "error") ? "⚠" : "☁";
+    pill.title = ({
+      off:     "Sync cloud spento",
+      idle:    "Sync attivo · ultimo: " + (syncState && syncState.lastSyncAt ? new Date(syncState.lastSyncAt).toLocaleTimeString("it-IT") : "—"),
+      syncing: "Sincronizzazione in corso…",
+      error:   "Errore sync: " + (errMsg || (syncState && syncState.lastError) || "sconosciuto"),
+    })[s];
   }
+  // Settings sheet pill (if open)
+  const sp = $("#sync-state-pill");
+  if(sp){
+    sp.dataset.status = s;
+    sp.textContent = ({ off:"spento", idle:"attivo", syncing:"sync…", error:"errore" })[s] || s;
+  }
+  refreshSyncSection();
+}
+
+async function ghFetch(path, opts){
+  if(!syncState || !syncState.pat) throw new Error("Token non configurato");
+  const headers = Object.assign({
+    "Authorization": "Bearer " + syncState.pat,
+    "Accept":        "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  }, (opts && opts.headers) || {});
+  const r = await fetch("https://api.github.com" + path, Object.assign({}, opts, { headers }));
+  if(r.status === 401) throw new Error("Token rifiutato (401). Controlla che abbia scope 'gist' e non sia scaduto.");
+  if(r.status === 403) throw new Error("Accesso negato (403). Probabilmente scope mancante.");
+  if(!r.ok){
+    let msg = "GitHub API " + r.status;
+    try { const j = await r.json(); if(j && j.message) msg += ": " + j.message; } catch(e){}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+async function cloudConfigure(pat){
+  pat = (pat || "").trim();
+  if(!pat) throw new Error("Token vuoto.");
+  // Pre-set so ghFetch can use it
+  syncState = { pat };
+  setSyncStatus("syncing");
+  // Verify PAT
+  let user;
+  try { user = await ghFetch("/user"); }
+  catch(err){ syncState = null; saveSyncState(); setSyncStatus("off"); throw err; }
+  // Look for an existing gist
+  let gists;
+  try { gists = await ghFetch("/gists?per_page=100"); }
+  catch(err){ syncState = null; saveSyncState(); setSyncStatus("off"); throw err; }
+  let existing = (gists || []).find(g => g.files && g.files[GIST_FILENAME]);
+  let gist;
+  if(existing){
+    gist = existing;
+  } else {
+    // Create new private gist with current local data
+    try {
+      gist = await ghFetch("/gists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: "Where is my Salary — sync data",
+          public: false,
+          files: { [GIST_FILENAME]: { content: JSON.stringify(store, null, 2) } }
+        })
+      });
+    } catch(err){ syncState = null; saveSyncState(); setSyncStatus("off"); throw err; }
+  }
+  syncState = {
+    pat,
+    gistId: gist.id,
+    user: user.login,
+    lastSyncAt: new Date().toISOString(),
+    lastError: null
+  };
+  saveSyncState();
+  setSyncStatus("idle");
+  // If gist already had data, pull it to merge into local
+  if(existing){
+    await cloudPull(true);
+  }
+  return syncState;
+}
+
+async function cloudPull(replaceLocal){
+  if(!syncState || !syncState.pat || !syncState.gistId) return;
+  setSyncStatus("syncing");
+  try {
+    const gist = await ghFetch("/gists/" + syncState.gistId);
+    const file = gist.files && gist.files[GIST_FILENAME];
+    if(!file || !file.content){ setSyncStatus("idle"); return; }
+    const remote = JSON.parse(file.content);
+    if(!remote || typeof remote !== "object" || !remote.profiles){
+      throw new Error("Il gist non contiene dati validi.");
+    }
+    const localT  = Number(store._lastModified)  || 0;
+    const remoteT = Number(remote._lastModified) || 0;
+    if(replaceLocal || remoteT > localT){
+      store = remote;
+      if(!store.currentYear) store.currentYear = new Date().getFullYear();
+      // Don't trigger a push here — that would be circular.
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+      render();
+      if(remoteT > localT) toast("Aggiornato dal cloud");
+    }
+    syncState.lastSyncAt = new Date().toISOString();
+    syncState.lastError = null;
+    saveSyncState();
+    setSyncStatus("idle");
+  } catch(err){
+    console.error("cloudPull:", err);
+    if(syncState){ syncState.lastError = err.message; saveSyncState(); }
+    setSyncStatus("error", err.message);
+  }
+}
+
+async function cloudPush(){
+  if(!syncState || !syncState.pat || !syncState.gistId) return;
+  if(isPushing) return;
+  isPushing = true;
+  setSyncStatus("syncing");
+  try {
+    await ghFetch("/gists/" + syncState.gistId, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        files: { [GIST_FILENAME]: { content: JSON.stringify(store, null, 2) } }
+      })
+    });
+    syncState.lastSyncAt = new Date().toISOString();
+    syncState.lastError = null;
+    saveSyncState();
+    setSyncStatus("idle");
+  } catch(err){
+    console.error("cloudPush:", err);
+    if(syncState){ syncState.lastError = err.message; saveSyncState(); }
+    setSyncStatus("error", err.message);
+  } finally {
+    isPushing = false;
+  }
+}
+
+function schedulePush(){
+  if(!syncState || !syncState.pat || !syncState.gistId) return;
+  setSyncStatus("syncing");
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => { cloudPush(); }, 1800);
+}
+
+function cloudDisconnect(){
+  if(!confirm("Scollegare il sync cloud?\n\nI tuoi dati restano nel browser ma non saranno più aggiornati con il cloud. Il gist su GitHub non viene cancellato (puoi farlo manualmente dal sito).")) return;
+  syncState = null;
+  saveSyncState();
+  setSyncStatus("off");
+  toast("Sync disconnesso");
+}
+
+/* --- UI of the sync section, rendered into #sync-body --- */
+function refreshSyncSection(){
+  const body = $("#sync-body");
+  if(!body) return;
+  if(!syncState || !syncState.pat || !syncState.gistId){
+    body.innerHTML = `
+      <div class="sync-info">
+        I dati restano nel browser di questo dispositivo. Per averli identici anche sul telefono (e viceversa), collega un gist GitHub privato come deposito comune. <strong>Gratis</strong>, niente nuovi servizi: ti serve solo un Personal Access Token.
+      </div>
+      <button class="btn full" id="btn-sync-configure" type="button">Configura sync con GitHub</button>
+    `;
+    const b = $("#btn-sync-configure");
+    if(b) b.onclick = () => {
+      $("#sync-pat-input").value = "";
+      openSheet("sync-sheet");
+      setTimeout(() => $("#sync-pat-input").focus(), 200);
+    };
+    return;
+  }
+  const last = syncState.lastSyncAt ? new Date(syncState.lastSyncAt).toLocaleString("it-IT", { dateStyle:"medium", timeStyle:"short" }) : "mai";
+  const errBlock = syncState.lastError
+    ? `<div class="sync-error">⚠ ${escapeHtml(syncState.lastError)}</div>` : "";
+  body.innerHTML = `
+    ${errBlock}
+    <div class="sync-info">
+      Connesso come <code>${escapeHtml(syncState.user || "?")}</code> · gist <code>${escapeHtml((syncState.gistId || "").slice(0,8))}</code><br/>
+      Ultimo sync: <strong>${last}</strong>
+    </div>
+    <div class="btn-row">
+      <button class="btn secondary" id="btn-sync-now" type="button">↻ Sincronizza ora</button>
+      <button class="btn secondary" id="btn-sync-disconnect" type="button">Disconnetti</button>
+    </div>
+  `;
+  const sn = $("#btn-sync-now");
+  if(sn) sn.onclick = async () => {
+    sn.disabled = true;
+    try { await cloudPull(false); await cloudPush(); toast("Sincronizzato"); }
+    catch(e){ toast("Errore: " + e.message); }
+    finally { sn.disabled = false; refreshSyncSection(); }
+  };
+  const sd = $("#btn-sync-disconnect");
+  if(sd) sd.onclick = cloudDisconnect;
+}
+
+/* Wire the connect button inside the sync-sheet */
+$("#btn-sync-connect").onclick = async () => {
+  const btn = $("#btn-sync-connect");
+  const inp = $("#sync-pat-input");
+  const pat = (inp.value || "").trim();
+  if(!pat){ alert("Incolla prima il token"); inp.focus(); return; }
+  btn.disabled = true; btn.textContent = "Verifico…";
+  try {
+    await cloudConfigure(pat);
+    closeSheets();
+    toast("Sync attivato");
+  } catch(err){
+    alert("Non sono riuscito a collegarmi:\n" + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Collega questo dispositivo";
+  }
+};
+
+/* ----- Bootstrap ----- */
+async function bootstrap(){
+  // Open the current month by default on first load (if viewing current year).
+  const today = new Date();
+  if(openMonthIdx === null && today.getFullYear() === Number(store.currentYear)){
+    openMonthIdx = today.getMonth();
+  }
+  render();
   // First-time user: open the new-profile form automatically. Bypasses any
   // potential click-handler issue on the welcome card entirely.
-  if(!activeProfile()){
+  if(!activeProfile() && !(syncState && syncState.pat && syncState.gistId)){
     setTimeout(openNewProfile, 250);
+  }
+  // If cloud sync is configured, initialize indicator and pull from cloud.
+  if(syncState && syncState.pat && syncState.gistId){
+    setSyncStatus("idle");
+    cloudPull(false);
+  } else {
+    setSyncStatus("off");
   }
 }
 bootstrap();
