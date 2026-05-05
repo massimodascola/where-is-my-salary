@@ -454,6 +454,47 @@
   .btn-row{ display: flex; gap: 10px; }
   .btn-row > *{ flex: 1; }
 
+  /* ---------- Custom confirm modal ---------- */
+  .confirm-overlay{
+    position: fixed; inset: 0; z-index: 30; /* above scrim (20) and sheet (21) */
+    background: rgba(60, 45, 30, .45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .confirm-overlay.show{ display: flex; }
+  .confirm-card{
+    background: var(--card-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    padding: 22px 22px 18px;
+    max-width: 420px; width: 100%;
+    box-shadow: var(--shadow-warm);
+    animation: confirm-pop .18s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes confirm-pop{
+    from { transform: scale(.94); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+  .confirm-title{
+    font-family: var(--serif); font-style: italic;
+    font-size: 19px; font-weight: 500;
+    letter-spacing: -.012em; color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .confirm-message{
+    font-size: 14.5px; color: var(--ink-soft);
+    line-height: 1.5; margin-bottom: 18px;
+    white-space: pre-line;
+  }
+  .confirm-actions{
+    display: flex; gap: 10px;
+    justify-content: flex-end;
+  }
+  .confirm-actions .btn{ min-width: 110px; }
+
   /* ---------- Sheets / Modals ---------- */
   .scrim{
     position: fixed; inset: 0; z-index: 20;
@@ -797,6 +838,18 @@
 
 <div class="scrim" id="scrim"></div>
 
+<!-- Custom confirm modal (replaces native confirm() to avoid browser/extension quirks) -->
+<div class="confirm-overlay" id="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-message">
+  <div class="confirm-card">
+    <div class="confirm-title" id="confirm-title">Conferma</div>
+    <div class="confirm-message" id="confirm-message"></div>
+    <div class="confirm-actions">
+      <button class="btn secondary" id="confirm-cancel" type="button">Annulla</button>
+      <button class="btn" id="confirm-ok" type="button">Conferma</button>
+    </div>
+  </div>
+</div>
+
 <!-- Sync configure sheet -->
 <div class="sheet" id="sync-sheet" role="dialog" aria-labelledby="sync-title">
   <div class="sheet-handle"></div>
@@ -955,7 +1008,7 @@
       <div class="brand-mark">€</div>
       <div class="brand-name">
         Where is my <em>Salary</em>
-        <small>mese per mese · <span id="version-tag">v0.5</span></small>
+        <small>mese per mese · <span id="version-tag">v0.6</span></small>
       </div>
     </div>
     <div class="spacer"></div>
@@ -985,7 +1038,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "0.5";
+const VERSION = "0.6";
 console.log("Where is my Salary — version", VERSION, "— build", new Date().toISOString().slice(0,10));
 
 const STORAGE_KEY = "stipendio.v1";
@@ -1545,10 +1598,14 @@ $("#btn-save-settings").onclick = () => {
   render();
   toast("Impostazioni salvate");
 };
-$("#btn-delete-profile").onclick = () => {
+$("#btn-delete-profile").onclick = async () => {
   const p = activeProfile();
   if(!p) return;
-  if(!confirm(`Eliminare il profilo "${p.name}"? Tutti i dati saranno persi.`)) return;
+  const ok = await showConfirm(
+    `Verranno cancellati tutti i mesi e le impostazioni del profilo "${p.name}". Questa azione non è reversibile.`,
+    { title: "Eliminare il profilo?", okLabel: "Elimina", danger: true }
+  );
+  if(!ok) return;
   delete store.profiles[store.activeProfile];
   const remaining = Object.keys(store.profiles);
   store.activeProfile = remaining[0] || null;
@@ -1590,11 +1647,15 @@ function refreshBackupStats(){
   if(el) el.textContent = backupStatsText();
 }
 
-function applyImportedData(parsed, sourceLabel){
+async function applyImportedData(parsed, sourceLabel){
   if(!parsed || typeof parsed !== "object") throw new Error("Dati non leggibili");
   if(!parsed.profiles || typeof parsed.profiles !== "object") throw new Error("Manca la sezione 'profiles' nel file");
   const incomingCount = Object.keys(parsed.profiles).length;
-  if(!confirm(`Sostituire i dati attuali con quelli ${sourceLabel}?\n\nProfili in arrivo: ${incomingCount}\n\nQuesta operazione non è reversibile (a meno di non aver fatto un backup prima).`)) return false;
+  const ok = await showConfirm(
+    `Profili in arrivo: ${incomingCount}.\n\nI dati attuali nel browser saranno sostituiti. Se hai dubbi, fai prima un backup con "Scarica file" o "Copia testo".`,
+    { title: `Importare i dati ${sourceLabel}?`, okLabel: "Sostituisci", danger: true }
+  );
+  if(!ok) return false;
   store = parsed;
   if(!store.currentYear) store.currentYear = new Date().getFullYear();
   saveStore();
@@ -1709,6 +1770,41 @@ function toast(msg){
 function escapeHtml(s){
   return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 }
+
+/* ============================================================ *
+ *  Custom confirm modal — replaces native confirm() so that
+ *  browsers / extensions can't swallow our dialogs.
+ *  Promise-based: const ok = await showConfirm("Sicuro?")
+ * ============================================================ */
+let _confirmResolver = null;
+function showConfirm(message, opts){
+  opts = opts || {};
+  $("#confirm-title").textContent = opts.title || "Conferma";
+  $("#confirm-message").textContent = message;
+  const okBtn = $("#confirm-ok");
+  const cancelBtn = $("#confirm-cancel");
+  okBtn.textContent = opts.okLabel || "Conferma";
+  cancelBtn.textContent = opts.cancelLabel || "Annulla";
+  okBtn.classList.toggle("danger", !!opts.danger);
+  $("#confirm-overlay").classList.add("show");
+  setTimeout(() => okBtn.focus(), 60);
+  return new Promise((resolve) => { _confirmResolver = resolve; });
+}
+function _confirmFinish(value){
+  $("#confirm-overlay").classList.remove("show");
+  const r = _confirmResolver; _confirmResolver = null;
+  if(r) r(value);
+}
+$("#confirm-ok").onclick     = () => _confirmFinish(true);
+$("#confirm-cancel").onclick = () => _confirmFinish(false);
+$("#confirm-overlay").addEventListener("click", (e) => {
+  if(e.target.id === "confirm-overlay") _confirmFinish(false);
+});
+document.addEventListener("keydown", (e) => {
+  if(!$("#confirm-overlay").classList.contains("show")) return;
+  if(e.key === "Escape"){ e.preventDefault(); _confirmFinish(false); }
+  if(e.key === "Enter"){ e.preventDefault(); _confirmFinish(true); }
+});
 
 /* ============================================================ *
  *  Cloud Sync — GitHub Gist as private storage
@@ -1894,8 +1990,12 @@ function schedulePush(){
   pushTimer = setTimeout(() => { cloudPush(); }, 1800);
 }
 
-function cloudDisconnect(){
-  if(!confirm("Scollegare il sync cloud?\n\nI tuoi dati restano nel browser ma non saranno più aggiornati con il cloud. Il gist su GitHub non viene cancellato (puoi farlo manualmente dal sito).")) return;
+async function cloudDisconnect(){
+  const ok = await showConfirm(
+    "I tuoi dati restano nel browser ma non saranno più aggiornati con il cloud. Il gist su GitHub non viene cancellato (puoi farlo manualmente dal sito GitHub).",
+    { title: "Scollegare il sync cloud?", okLabel: "Disconnetti" }
+  );
+  if(!ok) return;
   syncState = null;
   saveSyncState();
   setSyncStatus("off");
