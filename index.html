@@ -468,29 +468,35 @@
     background: var(--card-elev);
     border-top-left-radius: 22px; border-top-right-radius: 22px;
     border-top: 1px solid var(--line);
-    max-height: 90dvh; overflow-y: auto;
+    max-height: 92dvh;
+    /* Flex column: head + handle pinned, body scrolls, foot pinned */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     transform: translateY(100%);
     transition: transform .28s cubic-bezier(.2,.8,.2,1);
-    padding-bottom: max(22px, env(safe-area-inset-bottom));
     box-shadow: 0 -10px 40px rgba(125, 105, 75, .18);
   }
   .sheet.show{ transform: translateY(0) }
   @media (min-width: 640px){
     .sheet{
-      max-width: 540px; margin: 0 auto;
+      max-width: 560px; margin: 0 auto;
       bottom: auto; top: 50%;
       transform: translate(0, -50%) scale(.96); opacity: 0;
       border-radius: var(--radius-card);
       border: 1px solid var(--line);
-      left: 18px; right: 18px; max-height: 84vh;
+      left: 18px; right: 18px;
+      max-height: min(86vh, 760px);
     }
     .sheet.show{ transform: translate(0, -50%) scale(1); opacity: 1 }
   }
   .sheet-handle{
+    flex-shrink: 0;
     width: 42px; height: 4px; border-radius: 2px;
     background: var(--line); margin: 10px auto 4px;
   }
   .sheet-head{
+    flex-shrink: 0;
     display: flex; align-items: center; gap: 10px;
     padding: 10px 22px 16px;
     border-bottom: 1px solid var(--line-soft);
@@ -501,7 +507,21 @@
     font-size: 20px; font-weight: 500;
     letter-spacing: -.012em; color: var(--ink);
   }
-  .sheet-body{ padding: 18px 22px; }
+  .sheet-body{
+    /* The scrollable region. min-height: 0 is the magic for flex children to shrink. */
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 22px;
+  }
+  .sheet-foot{
+    flex-shrink: 0;
+    padding: 12px 22px max(16px, env(safe-area-inset-bottom));
+    background: var(--card-elev);
+    border-top: 1px solid var(--line-soft);
+    box-shadow: 0 -6px 14px rgba(125, 105, 75, .04);
+  }
 
   /* ---------- Forms ---------- */
   .field{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
@@ -878,14 +898,14 @@
       </div>
       <input type="file" id="file-import" accept="application/json,.json" style="display:none" />
       <div class="help" style="margin-top:12px; font-size:12.5px">
-        I dati vivono solo nel <strong>browser di questo dispositivo</strong>: né GitHub Pages né nessun altro hosting li sincronizza.
-        Per portare lo storico tra Mac e telefono usa <strong>Scarica file</strong> da una parte e <strong>Carica file</strong> dall'altra (oppure copia/incolla il testo via WhatsApp, Note, AirDrop, ecc.).
+        Se usi il sync cloud (sopra), il backup manuale ti serve solo come misura di sicurezza extra. Altrimenti, è il modo per spostare i dati tra Mac e telefono.
       </div>
     </div>
-
-    <div class="btn-row" style="margin-top:22px">
-      <button class="btn danger" id="btn-delete-profile">Elimina profilo</button>
-      <button class="btn" id="btn-save-settings">Salva</button>
+  </div>
+  <div class="sheet-foot">
+    <div class="btn-row">
+      <button class="btn danger" id="btn-delete-profile" type="button">Elimina profilo</button>
+      <button class="btn" id="btn-save-settings" type="button">Salva</button>
     </div>
   </div>
 </div>
@@ -935,7 +955,7 @@
       <div class="brand-mark">€</div>
       <div class="brand-name">
         Where is my <em>Salary</em>
-        <small>mese per mese · <span id="version-tag">v0.4</span></small>
+        <small>mese per mese · <span id="version-tag">v0.5</span></small>
       </div>
     </div>
     <div class="spacer"></div>
@@ -965,7 +985,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "0.4";
+const VERSION = "0.5";
 console.log("Where is my Salary — version", VERSION, "— build", new Date().toISOString().slice(0,10));
 
 const STORAGE_KEY = "stipendio.v1";
@@ -1946,6 +1966,10 @@ $("#btn-sync-connect").onclick = async () => {
 
 /* ----- Bootstrap ----- */
 async function bootstrap(){
+  // Show the running version in the topbar — survives any HTML caching too.
+  const vt = document.getElementById("version-tag");
+  if(vt) vt.textContent = "v" + VERSION;
+
   // Open the current month by default on first load (if viewing current year).
   const today = new Date();
   if(openMonthIdx === null && today.getFullYear() === Number(store.currentYear)){
