@@ -1048,7 +1048,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "0.6";
+const VERSION = "1.0";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -1157,7 +1157,7 @@ function expectedAmountFor(profile, year, m0, ckey){
   const monthData = ensureYear(profile, year)[m0+1];
   const c = monthData[ckey];
   switch(ckey){
-    case "salary": return s.salary || 0;
+    case "salary": return (c && c.amount != null) ? Number(c.amount) : (s.salary || 0);
     case "welfare": return s.welfare || 0;
     case "fringe": return (m0+1) === Number(s.fringeMonth) ? (s.fringe || 0) : 0;
     case "ticket": {
@@ -1437,7 +1437,13 @@ function renderMain(){
       const ckey = inp.dataset.ckey;
       const profile = activeProfile();
       const data = ensureYear(profile, store.currentYear)[m0+1];
-      data[ckey].amount = inp.value === "" ? 0 : Math.min(1_000_000, Math.max(0, Number(inp.value) || 0));
+      if(inp.value === ""){
+        // For salary, empty input reverts to settings default (null sentinel).
+        // For bonus/refund, empty means "no amount" → 0.
+        data[ckey].amount = ckey === "salary" ? null : 0;
+      } else {
+        data[ckey].amount = Math.min(1_000_000, Math.max(0, Number(inp.value) || 0));
+      }
       saveStore();
       render();
     };
@@ -1470,7 +1476,12 @@ function renderMonthCard(profile, year, m0){
       detail = `${eur(profile.settings.ticketPerDay)} × <input type="number" class="days-input" min="0" max="31" value="${days}" placeholder="${auto}" /> giorni`;
     } else if(c.key === "bonus" || c.key === "refund"){
       detail = `<input type="number" class="amount-input" data-ckey="${c.key}" min="0" step="0.01" value="${cell.amount || ""}" placeholder="0,00" /> €`;
-    } else if(c.key === "salary"){ detail = `${eur(profile.settings.salary)}`; }
+    } else if(c.key === "salary"){
+      // Editable per-month override. Empty = use settings.salary as default.
+      const defaultStr = (profile.settings.salary || 0).toFixed(2).replace(".", ",");
+      const val = cell.amount != null ? cell.amount : "";
+      detail = `<input type="number" class="amount-input" data-ckey="salary" min="0" step="0.01" value="${val}" placeholder="${defaultStr}" /> €`;
+    }
     else if(c.key === "welfare"){ detail = `${eur(profile.settings.welfare)}`; }
 
     let amountClass = "dim";
@@ -1513,6 +1524,9 @@ function renderMonthCard(profile, year, m0){
  *  Sheets
  * ============================================================ */
 function openSheet(id){
+  // Close any other sheet first — equal z-index + DOM order would otherwise
+  // leave the newly opened sheet stacked behind a still-visible one.
+  $$(".sheet").forEach(s => { if(s.id !== id) s.classList.remove("show"); });
   $("#scrim").classList.add("show");
   $("#" + id).classList.add("show");
   document.body.classList.add("modal-open");
@@ -1677,7 +1691,7 @@ const STATE_TO_IT = { received: "ricevuto", missing: "mancante", not_expected: "
 const STATE_FROM_IT = { ricevuto: "received", mancante: "missing", non_atteso: "not_expected" };
 const CSV_SEP = ";";
 const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default"];
-const MONTH_COLS = ["profilo","anno","mese","stipendio","welfare","ticket_stato","ticket_giorni","fringe","bonus_stato","bonus_importo","rimborso_stato","rimborso_importo"];
+const MONTH_COLS = ["profilo","anno","mese","stipendio_stato","stipendio_importo","welfare","ticket_stato","ticket_giorni","fringe","bonus_stato","bonus_importo","rimborso_stato","rimborso_importo"];
 
 function fmtNum(n){
   // Italian decimal, two digits, no thousands separator (avoids extra quoting)
@@ -1747,12 +1761,15 @@ function buildCsv(storeIn){
           if(cell.state !== defState) return false;
           if(c.hasDays && cell.days != null) return false;
           if(c.hasAmount && cell.amount) return false;
+          // Salary has an optional per-month amount override.
+          if(c.key === "salary" && cell.amount != null) return false;
           return true;
         });
         if(allDefault) continue;
         lines.push(csvRow([
           p.name, y, m,
           STATE_TO_IT[md.salary?.state] || "",
+          md.salary?.amount != null ? fmtNum(md.salary.amount) : "",
           STATE_TO_IT[md.welfare?.state] || "",
           STATE_TO_IT[md.ticket?.state] || "",
           md.ticket?.days != null ? md.ticket.days : "",
@@ -1829,7 +1846,7 @@ function parseCsv(text){
         if(!(v in STATE_FROM_IT)) throw new Error(`Stato "${v}" non valido a riga ${lineNo+1} (colonna ${key}). Usa ricevuto / mancante / non_atteso.`);
         m[key].state = STATE_FROM_IT[v];
       };
-      setState("salary", row.stipendio);
+      setState("salary", row.stipendio_stato);
       setState("welfare", row.welfare);
       setState("ticket", row.ticket_stato);
       setState("fringe", row.fringe);
@@ -1837,6 +1854,9 @@ function parseCsv(text){
       setState("refund", row.rimborso_stato);
       const days = (row.ticket_giorni || "").trim();
       m.ticket.days = days === "" ? null : Math.min(31, Math.max(0, Number(days) || 0));
+      // Salary amount override: empty = use settings default (omit field).
+      const sa = (row.stipendio_importo || "").trim();
+      if(sa !== "") m.salary.amount = parseNum(sa);
       m.bonus.amount = parseNum(row.bonus_importo);
       m.refund.amount = parseNum(row.rimborso_importo);
       (monthsByName[name] = monthsByName[name] || {});
