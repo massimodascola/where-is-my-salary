@@ -218,6 +218,16 @@
     font-family: var(--hand); font-size: 22px; color: var(--sienna);
     line-height: 1; transform: translateY(2px);
   }
+  .hero-tagline{
+    font-family: var(--serif); font-style: italic;
+    font-size: 13px; color: var(--ink-faint);
+    margin-top: 10px;
+    letter-spacing: -.005em;
+    max-width: 52ch;
+    line-height: 1.4;
+  }
+  .hero-tagline::before{ content: "\201C"; margin-right: 2px; }
+  .hero-tagline::after{ content: "\201D"; margin-left: 2px; }
   .hero-amount{
     font-family: var(--serif);
     font-size: clamp(40px, 11vw, 56px);
@@ -500,55 +510,9 @@
   }
   .workday-row input{ accent-color: var(--sienna); }
 
-  /* ---------- Ore page ---------- */
-  .ore-hero{
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-card);
-    padding: 22px;
-    margin: 14px 0;
-    box-shadow: var(--shadow-rest);
-  }
-  .ore-hero-title{
-    font-family: var(--serif); font-style: italic;
-    font-size: 22px; font-weight: 500;
-    color: var(--ink);
-    margin-bottom: 14px;
-  }
-  .ore-kpis{
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-  }
-  .ore-kpi{
-    background: var(--paper-tint);
-    border: 1px solid var(--line-soft);
-    border-radius: var(--radius-soft);
-    padding: 12px 14px;
-  }
-  .ore-kpi .k{
-    font-size: 11px; text-transform: uppercase;
-    letter-spacing: .04em;
-    color: var(--ink-muted);
-    margin-bottom: 4px;
-  }
-  .ore-kpi .v{
-    font-family: var(--serif);
-    font-size: 22px; font-weight: 500;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-  .ore-kpi .v.sienna{ color: var(--sienna); }
-  .ore-summary{
-    background: var(--sienna-tint);
-    border: 1px solid var(--sienna-soft);
-    border-radius: var(--radius-soft);
-    padding: 12px 14px;
-    margin-top: 12px;
-    font-size: 13px;
-    color: var(--ink-soft);
-  }
-  .ore-summary strong{ color: var(--sienna-deep); font-weight: 600; }
+  /* ---------- Ore page ----------
+     Hero reuses the .hero / .hero-greeting / .hero-amount / .hero-sub /
+     .hero-stats classes from the stipendio side for visual consistency. */
   .ore-list{ display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
   .ore-card{
     display: flex; align-items: center; gap: 14px;
@@ -1608,7 +1572,7 @@
       <div class="brand-mark">€</div>
       <div class="brand-name">
         Where is my <em>Salary</em>
-        <small>mese per mese · <span id="version-tag">v0.6</span></small>
+        <small>mese per mese · <span id="version-tag">v2.0</span></small>
       </div>
     </div>
     <div class="spacer"></div>
@@ -1648,6 +1612,7 @@
   </button>
 </nav>
 
+<input type="file" id="ore-file-import" accept=".csv,text/csv" style="display:none" />
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1656,7 +1621,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "1.5";
+const VERSION = "2.0";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -1945,6 +1910,53 @@ const $$ = sel => Array.from(document.querySelectorAll(sel));
 
 // Current tab — "stipendio" or "ore".
 let currentTab = "stipendio";
+// Ironic one-liners shown under the hero sub line. Chosen once per page load
+// (refresh for a new one). Two pools — one per tab — so the tone fits.
+const TAGLINES_ORE = [
+  "Le ore non si recuperano. I soldi sì.",
+  "Lavorate tanto. Conta tu, che il datore conta diverso.",
+  "Il tempo è denaro. Soprattutto quando non te lo pagano.",
+  "Anche questo weekend, eh. Bravo. Strano.",
+  "Le 17:30 sono un'invenzione del CCNL.",
+  "Ore in eccesso, stipendio in difetto.",
+  "Hai fatto gli straordinari. Adesso fai anche il sindacato.",
+  "Contati le ore, prima che lo faccia qualcun altro.",
+  "Le ore extra non scaldano la cena.",
+  "Non stai esagerando. Sta esagerando la busta paga.",
+  "Domani esci alle 18. Promesso. Forse.",
+  "Più ore fai, meno tempo ti resta per chiederti perché.",
+  "Un'ora in più qui è un'ora in meno altrove. Pace, almeno con i numeri.",
+  "Se conti i minuti, sei un professionista.",
+  "Lo stipendio si paga a fine mese. Le ore si pagano a memoria — la tua.",
+];
+const TAGLINES_STIPENDIO = [
+  "Il 27 non è una data. È una promessa.",
+  "Lo stipendio è arrivato? Bene. Ricontrolla.",
+  "Non è quanto guadagni. È quanto ti dovrebbero pagare.",
+  "La pazienza è una virtù. L'IBAN no.",
+  "Conta i giorni. Poi i mancati.",
+  "Il padrone ha la memoria corta. Tu, per fortuna, hai questa app.",
+  "Aspettare lo stipendio è l'unica cosa che si fa con costanza.",
+  "Hai diritto di sognare. E di un ticket da 8 euro.",
+  "Più aspetti, più sembra una questione di principio. È matematica.",
+  "Lavori per vivere. Vivere per lavorare era un'altra cosa.",
+  "Ogni euro mancante è una storia da raccontare a qualcuno.",
+  "Buona busta paga è metà del lavoro. L'altra metà è ricordarsela.",
+  "I conti si fanno alla fine. Anche se l'app li fa al 27.",
+  "Non è poco. È quello che c'è. È diverso.",
+  "Il welfare non è facoltativo. Il fringe sì, ma anche meno.",
+];
+let _oreTagline = null;
+let _stipTagline = null;
+function pickOreTagline(){
+  if(_oreTagline == null) _oreTagline = TAGLINES_ORE[Math.floor(Math.random() * TAGLINES_ORE.length)];
+  return _oreTagline;
+}
+function pickStipTagline(){
+  if(_stipTagline == null) _stipTagline = TAGLINES_STIPENDIO[Math.floor(Math.random() * TAGLINES_STIPENDIO.length)];
+  return _stipTagline;
+}
+
 // Ore page state. Top-level views = giorni/settimane/mesi/anni.
 // Sub-views = calendar (after clicking a month/week) and daydetail (after clicking a day).
 let oreView = "mesi";
@@ -1999,13 +2011,72 @@ function renderPageOre(){
     default:           body = renderOreMonthView(p);    activeTab = "mesi"; break;
   }
 
+  // Hero metric: total overtime owed in the current year (past+current months
+  // with state "missing"). In euro when a tariffa is set, otherwise in hours.
+  const tariffa = Number(p.settings.tariffaOraStraord) || 0;
+  const curYear = today.getFullYear();
+  const curM = today.getMonth();
+  let owedHours = 0;
+  for(let m0 = 0; m0 <= curM; m0++){
+    const md = ensureYear(p, curYear)[m0 + 1];
+    if(!md.overtime || md.overtime.state !== "missing") continue;
+    const auto = paidHoursForMonth(events, curYear, m0, p.settings.forfaitOreSett, p.settings.workdays);
+    const paid = md.overtime.hoursOverride != null ? Number(md.overtime.hoursOverride) : auto;
+    owedHours += paid;
+  }
+  const owedAmount = owedHours * tariffa;
+  const isMoney = tariffa > 0;
+  const hasEvents = events.length > 0;
+
+  let heroCls = "", heroSub, amountHtml;
+  if(isMoney){
+    const split = splitEur(owedAmount);
+    amountHtml = `${split.currency} ${split.intPart}<span class="cents">,${split.fracPart}</span>`;
+  } else {
+    const intPart = Math.floor(owedHours);
+    const fracPart = String(Math.round((owedHours - intPart) * 10)).padStart(1, "0");
+    amountHtml = `${intPart}<span class="cents">,${fracPart} h</span>`;
+  }
+  if((isMoney ? owedAmount : owedHours) > 0){
+    heroCls = "danger";
+    heroSub = `Straordinari maturati entro ${MONTHS_IT[curM].toLowerCase()} ${curYear}, ancora da incassare.`;
+  } else if(hasEvents){
+    heroCls = "ok";
+    heroSub = "Tutti gli straordinari segnati come ricevuti. Tutto in ordine.";
+  } else {
+    heroSub = "Aggiungi i tuoi straordinari mese per mese — appariranno qui.";
+  }
+
+  const greet = (() => {
+    const h = today.getHours();
+    if(h < 6) return "buona notte";
+    if(h < 12) return "buongiorno";
+    if(h < 19) return "buon pomeriggio";
+    return "buonasera";
+  })();
+
   main.innerHTML = `
-    <div class="ore-hero">
-      <div class="ore-hero-title">${escapeHtml(p.name)} · ore lavorate</div>
-      <div class="ore-kpis">
-        <div class="ore-kpi"><div class="k">Settimana corrente</div><div class="v">${hStr(weekHours)}</div></div>
-        <div class="ore-kpi"><div class="k">${MONTHS_IT[today.getMonth()]}</div><div class="v">${hStr(thisMonthHours)}</div></div>
-        <div class="ore-kpi"><div class="k">${today.getFullYear()} totale</div><div class="v">${hStr(thisYearHours)}</div></div>
+    <div class="hero">
+      <div class="hero-greeting">
+        <span class="salute">${greet},</span>
+        <span>${escapeHtml(p.name)}.</span>
+      </div>
+      <div class="hero-amount ${heroCls}">${amountHtml}</div>
+      <div class="hero-sub">${heroSub}</div>
+      <div class="hero-tagline">${escapeHtml(pickOreTagline())}</div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="k">Settimana corrente</div>
+          <div class="v">${hStr(weekHours)}</div>
+        </div>
+        <div class="hero-stat">
+          <div class="k">${MONTHS_IT[curM]} ${curYear}</div>
+          <div class="v">${hStr(thisMonthHours)}</div>
+        </div>
+        <div class="hero-stat">
+          <div class="k">${curYear} totale</div>
+          <div class="v">${hStr(thisYearHours)}</div>
+        </div>
       </div>
     </div>
 
@@ -2274,7 +2345,8 @@ function wireOrePage(){
     btn.onclick = () => { oreView = btn.dataset.view; renderPageOre(); };
   });
   // Period picker (year/month).
-  $$(".ore-period-picker button").forEach(btn => {
+  // Scope to #main-ore so we don't clobber the stipendio's own year-picker.
+  $$("#main-ore .year-picker button[data-action]").forEach(btn => {
     const a = btn.dataset.action;
     btn.onclick = () => {
       if(a === "year-prev") oreYear--;
@@ -2356,7 +2428,27 @@ function wireOrePage(){
   });
   const addBtn = $("#btn-ot-add");
   if(addBtn) addBtn.onclick = () => openOvertimeForm(null);
+
 }
+
+// Static handler for the ore file picker (input lives outside the rebuilt
+// page, so wire it once at startup).
+$("#ore-file-import").onchange = (e) => {
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const events = parseCsvOre(reader.result);
+      await applyOreImport(events, `dal file "${file.name}"`);
+    } catch(err){
+      showAlert("Il file non è un CSV ore valido.\n\n" + err.message);
+    }
+  };
+  reader.onerror = () => showAlert("Impossibile leggere il file.");
+  reader.readAsText(file, "UTF-8");
+  e.target.value = "";
+};
 
 function isoWeekToDate(year, week){
   // Returns a JS Date set to the Thursday of the given ISO week (in local time).
@@ -2602,6 +2694,7 @@ function renderMain(){
       </div>
       <div class="hero-amount ${heroClass}">${split.currency} ${split.intPart}<span class="cents">,${split.fracPart}</span></div>
       <div class="hero-sub">${heroSub}</div>
+      <div class="hero-tagline">${escapeHtml(pickStipTagline())}</div>
       <div class="hero-stats">
         <div class="hero-stat ok">
           <div class="k">Incassato</div>
@@ -3256,28 +3349,113 @@ async function applyImportedData(parsed, sourceLabel){
   return true;
 }
 
-/* --- Scarica file (CSV) --- */
-$("#btn-export").onclick = () => {
+/* ============================================================ *
+ *  Ore-only CSV — scoped to a single profile's overtime events.
+ *  Simpler format (no sections): header + rows.
+ * ============================================================ */
+const ORE_COLS = ["profilo","data","inizio","fine","pausa","nota"];
+
+function buildCsvOre(profileName, events){
+  const lines = [ORE_COLS.join(CSV_SEP)];
+  for(const e of (events || [])){
+    lines.push(csvRow([profileName, e.data || "", e.inizio || "", e.fine || "", e.pausa || "", e.nota || ""]));
+  }
+  return "﻿" + lines.join("\r\n") + "\r\n";
+}
+
+function parseCsvOre(text){
+  if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const raw = text.split(/\r?\n/);
+  while(raw.length && raw[raw.length-1].trim() === "") raw.pop();
+  if(raw.length === 0) throw new Error("Il file è vuoto.");
+  const header = parseCsvLine(raw[0]).map(s => s.trim());
+  if(header.length !== ORE_COLS.length || header.some((h,i) => h !== ORE_COLS[i])){
+    throw new Error(`Intestazione non corretta.\nAttesa: ${ORE_COLS.join(CSV_SEP)}\nTrovata: ${header.join(CSV_SEP)}`);
+  }
+  const events = [];
+  for(let i = 1; i < raw.length; i++){
+    const line = raw[i];
+    if(!line.trim()) continue;
+    const f = parseCsvLine(line);
+    if(f.length !== ORE_COLS.length) throw new Error(`Riga ${i+1}: ${f.length} colonne invece di ${ORE_COLS.length}`);
+    const data = f[1].trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Riga ${i+1}: data non valida "${data}"`);
+    const inizio = f[2].trim(), fine = f[3].trim();
+    if(parseHHMM(inizio) == null) throw new Error(`Riga ${i+1}: ora inizio "${inizio}" non valida`);
+    if(parseHHMM(fine) == null) throw new Error(`Riga ${i+1}: ora fine "${fine}" non valida`);
+    events.push({ id: genEventId(), data, inizio, fine, pausa: f[4].trim(), nota: f[5].trim() });
+  }
+  return events;
+}
+
+async function applyOreImport(events, sourceLabel){
+  const p = activeProfile();
+  if(!p){ showAlert("Crea prima un profilo."); return false; }
+  const existing = (p.overtime || []).length;
+  const ok = await showConfirm(
+    `Eventi in arrivo: ${events.length}.\nEventi attuali: ${existing}.\n\nGli straordinari del profilo "${p.name}" saranno sostituiti.`,
+    { title: `Importare ore ${sourceLabel}?`, okLabel: "Sostituisci", danger: true }
+  );
+  if(!ok) return false;
+  p.overtime = events;
+  saveStore();
+  render();
+  toast(`Importati ${events.length} eventi`);
+  return true;
+}
+
+/* --- Helpers per il download di un Blob CSV --- */
+function downloadCsv(filename, data){
+  const blob = new Blob([data], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+}
+
+/* --- Scarica file (CSV) — chiede prima cosa scaricare --- */
+$("#btn-export").onclick = async () => {
+  const choice = await showChoice("Scarica backup", "Quale CSV vuoi scaricare?", [
+    { key: "stipendio", label: "Stipendio (completo)" },
+    { key: "ore", label: "Solo ore lavorate", secondary: true },
+  ]);
+  if(!choice) return;
   try {
-    const data = buildCsv(store);
-    const blob = new Blob([data], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `where-is-my-salary-${new Date().toISOString().slice(0,10)}.csv`;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
-    toast("File scaricato — controlla la cartella Download");
-  } catch(err) {
+    if(choice === "stipendio"){
+      const data = buildCsv(store);
+      downloadCsv(`where-is-my-salary-${new Date().toISOString().slice(0,10)}.csv`, data);
+      toast("File scaricato — controlla la cartella Download");
+    } else {
+      const p = activeProfile();
+      if(!p){ showAlert("Crea prima un profilo."); return; }
+      const events = p.overtime || [];
+      if(events.length === 0){ showAlert("Nessun evento da esportare."); return; }
+      const safe = p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "profilo";
+      downloadCsv(`ore-${safe}-${new Date().toISOString().slice(0,10)}.csv`, buildCsvOre(p.name, events));
+      toast("Ore scaricate");
+    }
+  } catch(err){
     console.error(err);
     showAlert("Impossibile scaricare il file: " + err.message);
   }
 };
 
-/* --- Carica file (CSV) --- */
-$("#btn-import-file").onclick = () => { $("#file-import").click(); };
+/* --- Carica file (CSV) — chiede prima che tipo di file caricherai --- */
+let _importMode = "stipendio"; // remembers user's choice between click and file-pick
+$("#btn-import-file").onclick = async () => {
+  const choice = await showChoice("Carica backup", "Che tipo di CSV stai caricando?", [
+    { key: "stipendio", label: "Stipendio (completo)" },
+    { key: "ore", label: "Solo ore lavorate", secondary: true },
+  ]);
+  if(!choice) return;
+  _importMode = choice;
+  if(choice === "ore") $("#ore-file-import").click();
+  else $("#file-import").click();
+};
+
 $("#file-import").onchange = (e) => {
   const file = e.target.files && e.target.files[0];
   if(!file) return;
@@ -3333,6 +3511,47 @@ function showConfirm(message, opts){
 }
 function showAlert(message, opts){
   return showConfirm(message, Object.assign({ alert: true }, opts || {}));
+}
+
+/* Promise-based two-option chooser. Reuses the confirm overlay, but swaps in
+ * a temporary action row with one button per choice. Returns the chosen key,
+ * or null on dismiss (Esc / overlay click). Restores the original buttons
+ * afterwards so showConfirm/showAlert keep working. */
+function showChoice(title, message, options){
+  $("#confirm-title").textContent = title || "Scegli";
+  $("#confirm-message").textContent = message || "";
+  const card = $("#confirm-overlay .confirm-card");
+  const origActions = card.querySelector(".confirm-actions");
+  origActions.style.display = "none";
+  const temp = document.createElement("div");
+  temp.className = "confirm-actions choice";
+  for(const opt of options){
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn" + (opt.secondary ? " secondary" : "");
+    b.textContent = opt.label;
+    b.dataset.choice = opt.key;
+    temp.appendChild(b);
+  }
+  card.appendChild(temp);
+  $("#confirm-overlay").classList.add("show");
+  return new Promise(resolve => {
+    const cleanup = (value) => {
+      $("#confirm-overlay").classList.remove("show");
+      temp.remove();
+      origActions.style.display = "";
+      $("#confirm-overlay").removeEventListener("click", overlayDismiss);
+      document.removeEventListener("keydown", escDismiss);
+      resolve(value);
+    };
+    const overlayDismiss = (e) => { if(e.target.id === "confirm-overlay") cleanup(null); };
+    const escDismiss = (e) => { if(e.key === "Escape"){ e.preventDefault(); cleanup(null); } };
+    temp.querySelectorAll("button").forEach(b => {
+      b.onclick = () => cleanup(b.dataset.choice);
+    });
+    $("#confirm-overlay").addEventListener("click", overlayDismiss);
+    document.addEventListener("keydown", escDismiss);
+  });
 }
 function _confirmFinish(value){
   $("#confirm-overlay").classList.remove("show");
