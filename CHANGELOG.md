@@ -6,6 +6,137 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.3] — 2026-05-14
+
+Release stabile che consolida il ciclo di lavoro su **Overtime** iniziato in 3.1. Niente nuove feature rispetto alla 3.2.4: solo un bump di versione che chiude la sequenza di 5 iterazioni (`3.2 → 3.2.4`) e segnala la fine del rework.
+
+### Riepilogo del ciclo 3.1 → 3.3
+
+| Versione  | Intervento principale                                                |
+|-----------|----------------------------------------------------------------------|
+| 3.1       | Hero overtime con metrica doppia (euro + ore), default `missing` per overtime, KPI annuo "Straord. {anno}" |
+| 3.2       | Ore promosse a `.hero-amount` (stessa scala dell'euro), migration retro-attiva `v3_1_overtime_default` |
+| 3.2.1     | `.hero-amounts` flex inline                                          |
+| 3.2.2     | `justify-content: space-between` (poi rifiutato)                     |
+| 3.2.3     | `justify-content: center` (poi rifiutato)                            |
+| 3.2.4     | Grid asimmetrico `1fr auto 1fr` con ore a sinistra e euro al centro  |
+| **3.3**   | **Consolidamento. Stessa codebase di 3.2.4, bump di versione.**      |
+
+### Audit pre-release
+
+- `node --check` su JS estratto: **PASS**.
+- Grep di riferimenti morti (`empty-mark`, `salaryMultiplierFor`, `profile-pill`, `cal-grid`, etc.): **0 hit** in codice attivo (solo 1 commento esplicativo).
+- Migration `v3_1_overtime_default` invariata dalla 3.2 — già provata sul profilo dell'utente con esito ok.
+
+### Internals
+
+- Versione bumped a `3.3`.
+
+---
+
+## [3.2.4] — 2026-05-14
+
+### Overtime — layout asimmetrico ore/euro
+
+- **`.hero-amounts` passa da flex a grid 3-colonne (`1fr auto 1fr`).** Le due metriche non sono più *sibling* in un layout simmetrico — ora vivono in posizioni semanticamente distinte: le ore (`.secondary`) stanno in col 1 left-aligned, l'importo in euro (`.primary`) sta in col 2 centrato. Il `1fr` di col 3 funziona da mirror invisibile che mantiene la primary visivamente al centro dell'hero anche quando la secondary è presente.
+- Quando non c'è tariffa (no euro da mostrare), la primary contiene direttamente le ore — il layout grid resta valido perché la primary in col 2 con due 1fr ai lati è già centrata.
+- Stesso pattern Quiet Ledger: la cifra "che conta" (al centro) ha la posizione di rilievo, l'altra le sta accanto come margine annotato.
+
+### Internals
+
+- Versione bumped a `3.2.4`.
+
+---
+
+## [3.2.3] — 2026-05-14
+
+### Overtime — coppia centrata con aria
+
+- **`.hero-amounts` passa da `justify-content: space-between` a `center` con `gap: 8px 48px`.** Le due cifre stanno al centro del box, separate da un gap generoso ma fisso. Non più ancorate ai bordi del hero — l'effetto "estremi" risultava troppo squilibrato visivamente. Centrate con respiro in mezzo si leggono come una coppia bilanciata.
+
+### Internals
+
+- Versione bumped a `3.2.3`.
+
+---
+
+## [3.2.2] — 2026-05-14
+
+### Overtime — euro a sinistra, ore a destra
+
+- **`.hero-amounts` ottiene `justify-content: space-between`.** Le due cifre ora vivono agli estremi del box hero (importo in euro a sinistra, ore a destra), l'aria in mezzo dà respiro al ritmo della pagina e riprende il pattern *Quiet Ledger* "margini come silenzi scelti". Gap orizzontale ridotto da 22px a 16px perché tanto è `space-between` a determinare lo spazio reale.
+
+### Internals
+
+- Versione bumped a `3.2.2`.
+
+---
+
+## [3.2.1] — 2026-05-14
+
+### Overtime — euro + ore sulla stessa riga
+
+- **Le due cifre del hero passano da stacked a side-by-side.** In 3.2 erano state messe una sopra l'altra (regola `.hero-amount + .hero-amount { margin-top: 4px }`) ma la lettura risultava verticale, quasi come "principale + appendice". Adesso le due metriche stanno sulla **stessa riga** dentro un wrapper `.hero-amounts` (flex con `align-items: baseline` e `gap: 8px 22px`).
+- `flex-wrap: wrap` mantiene il fallback per viewport molto stretti (sotto ~340px): se le due cifre non entrano su una riga sola, vanno a capo automaticamente con un gap minore. Su qualsiasi schermo > 340px stanno una accanto all'altra come voleva il design.
+- Il margin-top del primo `.hero-amount` viene azzerato dentro `.hero-amounts` (è il wrapper a tenere il margin-top di 14px verso il greeting sopra).
+
+### Internals
+
+- Versione bumped a `3.2.1`.
+
+---
+
+## [3.2] — 2026-05-14
+
+Correzioni alle scelte fatte in 3.1: la gerarchia visiva nel hero Overtime non comunicava la pariteticità delle due metriche, e la nuova default su `overtime` non si applicava ai profili già esistenti rendendola di fatto invisibile.
+
+### Overtime — ore e euro entrambe protagoniste
+
+- **Le ore non pagate sono ora un secondo `.hero-amount` a piena scala**, non un sub-text. In 3.1 erano renderizzate in `.hero-amount-aux` (serif italic 15px) — leggibili ma chiaramente "didascalia". Adesso entrambi i numeri usano la stessa classe `.hero-amount`, stessa size `clamp(40px, 11vw, 56px)`, stesso peso, stessa logica `intero + ,decimali` con `.cents` ridotto. Comunica visivamente che "soldi dovuti" e "ore non pagate" hanno la stessa importanza.
+- Helper `buildHoursHtml(h)` per generare lo stesso mark-up `123<span class="cents">,5 h</span>` usato sia quando le ore stanno in primo piano (no tariffa) sia quando stanno sotto l'importo in euro.
+- Regola CSS `.hero-amount + .hero-amount { margin-top: 4px }` tiene i due numeri stretti come una coppia, non come headline+nota.
+- Rimossa la vecchia classe `.hero-amount-aux` (non più referenziata).
+
+### Migration retro-attiva — overtime default
+
+- **`runMigrations()` introdotta come step di bootstrap subito dopo `loadStore()`.** In 3.1 il nuovo default `expectedDefault:true` su `overtime` valeva solo per i mesi *mai creati*, ma `ensureYear` crea già tutti i 12 mesi dell'anno appena visiti la pagina — quindi un utente v3.0 che aveva già aperto l'app si trovava 12 mesi con `state: "not_expected"` salvati nel localStorage, immuni al cambio di default. La nuova feature era invisibile.
+- **Migration `v3_1_overtime_default`** scorre tutti i mesi di tutti i profili e converte a `"missing"` *solo* le celle overtime che soddisfano due condizioni: `state === "not_expected"` AND `hoursOverride == null`. La seconda condizione tutela le scelte attive dell'utente: se aveva impostato manualmente un override (magari proprio per controllare quel mese), il "not_expected" è una scelta consapevole e resta.
+- Il flag `store._migrations.v3_1_overtime_default = true` viene salvato la prima volta che la migration gira — al reload successivo non viene riapplicata. Niente effetti collaterali, niente loop infiniti.
+- Pattern estensibile: per migrazioni future basta aggiungere un nuovo `if(!store._migrations.<nome>)` dentro `runMigrations()`.
+
+### Internals
+
+- Versione bumped a `3.2`.
+
+---
+
+## [3.1] — 2026-05-14
+
+Tre interventi sulla pagina Overtime e sulla voce straordinari della pagina Salary, motivati dall'uso reale: la metrica principale era unilaterale, il default rendeva difficile vedere i conti, e mancava un totale annuale di straordinari.
+
+### Overtime — metrica doppia nel box principale
+
+- **Sotto l'importo in euro, riga con le ore non pagate.** Quando è impostata una tariffa, l'hero mostrava solo `€ 1.200,00`. Adesso accanto mostra anche `123,5 ore di straordinario non pagate`. La doppia metrica risponde a due domande diverse con una sola occhiata: *quanto* mi devono (euro) e *cosa* è stato lavorato senza compenso (ore). Nuovo stile `.hero-amount-aux` — serif italic 15px, ink-soft, tabular-nums.
+- Quando non c'è tariffa il box resta com'era (solo ore in primo piano).
+- Quando non c'è nulla da pagare, la riga aux scompare automaticamente.
+
+### Salary — default straordinari "missing"
+
+- **`expectedDefault` su `overtime` passa da `false` a `true`**. Prima i nuovi mesi nascevano con stato `non spettato` per gli straordinari: l'utente doveva ogni volta passare a "mancante" manualmente affinché i conti della pagina Overtime considerassero quelle ore come da pagare. Adesso il default è *non ancora pagato* — coerente col fatto che, in questa app, lo straordinario è qualcosa che presumi di non aver ancora incassato finché non lo segni come ricevuto.
+- Migration `ensureYear` aggiornata di conseguenza per coerenza con la nuova default.
+- I mesi v3.0 esistenti restano col loro stato (l'utente potrebbe averli messi consapevolmente a "non spettato"). La nuova default vale solo per i mesi mai aperti.
+
+### Overtime — KPI annuo dedicato
+
+- **Terzo `.hero-stat` cambiato da "ore lavorate anno" (gross) a "Straord. {anno}" (paid).** Il valore precedente sommava *tutte* le ore loggate nell'anno — informazione di servizio ma non aiuta a rispondere alla domanda chiave dell'app ("quanti straordinari ho fatto?"). Ora il KPI somma le ore *oltre soglia* mese per mese: il numero reale di ore di straordinario annuale, indipendentemente da quante siano state ricevute.
+
+### Internals
+
+- Nuovo calcolo locale `thisYearOvertimeHours` in `renderPageOre` — itera `paidHoursForMonth` sui 12 mesi dell'anno corrente. Costo trascurabile, render già ricalcola tutto a ogni interazione.
+- Versione bumped a `3.1`.
+
+---
+
 ## [3.0.1] — 2026-05-14
 
 Patch tipografica: una tagline dell'hero "Salary" conteneva un valore hard-coded che non rispecchiava più le impostazioni dell'utente.

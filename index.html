@@ -213,6 +213,30 @@
     font-size: .55em; font-weight: 500;
     color: var(--ink-muted); letter-spacing: -.01em;
   }
+  /* Asymmetric pair of hero amounts (Overtime page):
+       column 1 (1fr)  → secondary metric, hugged to the left
+       column 2 (auto) → primary metric, centered in the hero
+       column 3 (1fr)  → empty mirror that keeps column 2 visually centered
+     If only the primary is rendered (no tariffa set → just hours), it still
+     sits centered because the two 1fr columns balance it. */
+  .hero-amounts{
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: baseline;
+    margin-top: 14px;
+    gap: 8px;
+  }
+  .hero-amounts .hero-amount{
+    margin-top: 0;
+  }
+  .hero-amounts .hero-amount.secondary{
+    grid-column: 1;
+    justify-self: start;
+  }
+  .hero-amounts .hero-amount.primary{
+    grid-column: 2;
+    justify-self: center;
+  }
   .hero-sub{
     font-family: var(--serif); font-style: italic;
     font-size: 14.5px; color: var(--ink-soft);
@@ -1716,7 +1740,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.0.1";
+const VERSION = "3.3";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -1737,7 +1761,7 @@ const COMPONENTS = [
   { key:"fringe",   label:"Fringe benefit", icon:"🎁", expectedDefault:false, hasAmount:false, hasDays:false },
   { key:"bonus",    label:"Bonus",          icon:"⭐", expectedDefault:false, hasAmount:true,  hasDays:false },
   { key:"refund",   label:"Rimborso spese", icon:"🧾", expectedDefault:false, hasAmount:true,  hasDays:false },
-  { key:"overtime", label:"Straordinari",   icon:"🕐", expectedDefault:false, hasAmount:false, hasDays:false },
+  { key:"overtime", label:"Straordinari",   icon:"🕐", expectedDefault:true,  hasAmount:false, hasDays:false },
 ];
 
 // Fixed default months for extra salary payments (13a, 14a, 15a).
@@ -1885,6 +1909,46 @@ function saveStore(){
 }
 let store = loadStore();
 
+// One-shot data migrations. Each entry runs once per device — we mark it
+// done in `store._migrations` so reloads don't re-apply it. Migrations only
+// touch values that are *clearly* defaults left over from older app
+// versions; anything the user has actively customized stays untouched.
+function runMigrations(){
+  store._migrations = store._migrations || {};
+  let changed = false;
+
+  // v3.1 — overtime default changed from "not_expected" to "missing".
+  // Months created before 3.1 (or backfilled by older `ensureYear`) have
+  // overtime.state="not_expected" even when the user never touched them.
+  // Convert *only* the untouched ones (no hoursOverride): if the user
+  // explicitly marked a month as "non spettato" they likely had no
+  // override either, but we treat the absence of override as the signal
+  // for "this is still the default value, safe to flip".
+  if(!store._migrations.v3_1_overtime_default){
+    for(const pid in (store.profiles || {})){
+      const p = store.profiles[pid];
+      if(!p || !p.years) continue;
+      for(const y in p.years){
+        const yd = p.years[y];
+        if(!yd) continue;
+        for(const m in yd){
+          const md = yd[m];
+          if(!md || !md.overtime) continue;
+          if(md.overtime.state === "not_expected" && md.overtime.hoursOverride == null){
+            md.overtime.state = "missing";
+            changed = true;
+          }
+        }
+      }
+    }
+    store._migrations.v3_1_overtime_default = true;
+    changed = true; // ensure the flag itself is persisted
+  }
+
+  if(changed) saveStore();
+}
+runMigrations();
+
 // Session-only UI state — survives re-renders but not page reloads.
 // Tracks which month accordion is open (one at a time).
 let openMonthIdx = null;
@@ -1947,7 +2011,7 @@ function ensureYear(profile, year){
     const md = profile.years[year][m];
     if(!md){ profile.years[year][m] = defaultMonth(); continue; }
     // Backfill cells for components added after this month was stored.
-    if(!md.overtime) md.overtime = { state: "not_expected", hoursOverride: null };
+    if(!md.overtime) md.overtime = { state: "missing", hoursOverride: null };
     if(!md.salary13) md.salary13 = { state: "missing", amount: null };
     else if(md.salary13.amount === undefined) md.salary13.amount = null;
     if(!md.salary14) md.salary14 = { state: "missing", amount: null };
@@ -2177,7 +2241,13 @@ function renderPageOre(){
     return (iy === thisWeekYear && iw === thisWeekNum) ? s + eventHours(e) : s;
   }, 0);
   const thisMonthHours = grossHoursForMonth(events, today.getFullYear(), today.getMonth());
-  const thisYearHours = eventsInYear(events, today.getFullYear()).reduce((s, e) => s + eventHours(e), 0);
+  // Yearly total of *paid* overtime hours (above contract + forfait threshold).
+  // More meaningful than gross hours for the Overtime page — answers "quanti
+  // straordinari ho fatto quest'anno", not "quante ore ho loggato in totale".
+  let thisYearOvertimeHours = 0;
+  for(let m0 = 0; m0 < 12; m0++){
+    thisYearOvertimeHours += paidHoursForMonth(events, today.getFullYear(), m0, p.settings.forfaitOreSett, p.settings.workdays, p.settings.oreContrattoSett);
+  }
 
   let body, activeTab;
   switch(oreView){
@@ -2207,14 +2277,21 @@ function renderPageOre(){
   const isMoney = tariffa > 0;
   const hasEvents = events.length > 0;
 
-  let heroCls = "", heroSub, amountHtml;
+  let heroCls = "", heroSub, amountHtml, hoursHtml = "";
+  // Compose the hours figure with the same shape as the money figure
+  // (integer big + decimal small) so when both are shown they look like
+  // siblings, not headline + caption.
+  const buildHoursHtml = (h) => {
+    const hi = Math.floor(h);
+    const lo = String(Math.round((h - hi) * 10)).padStart(1, "0");
+    return `${hi}<span class="cents">,${lo} h</span>`;
+  };
   if(isMoney){
     const split = splitEur(owedAmount);
     amountHtml = `${split.currency} ${split.intPart}<span class="cents">,${split.fracPart}</span>`;
+    hoursHtml = buildHoursHtml(owedHours);
   } else {
-    const intPart = Math.floor(owedHours);
-    const fracPart = String(Math.round((owedHours - intPart) * 10)).padStart(1, "0");
-    amountHtml = `${intPart}<span class="cents">,${fracPart} h</span>`;
+    amountHtml = buildHoursHtml(owedHours);
   }
   if((isMoney ? owedAmount : owedHours) > 0){
     heroCls = "danger";
@@ -2222,8 +2299,10 @@ function renderPageOre(){
   } else if(hasEvents){
     heroCls = "ok";
     heroSub = "Tutti gli straordinari segnati come ricevuti. Tutto in ordine.";
+    hoursHtml = "";
   } else {
     heroSub = "Aggiungi i tuoi straordinari — appariranno qui.";
+    hoursHtml = "";
   }
 
   const greet = (() => {
@@ -2240,7 +2319,10 @@ function renderPageOre(){
         <span class="salute">${greet},</span>
         <span>${escapeHtml(p.name)}.</span>
       </div>
-      <div class="hero-amount ${heroCls}">${amountHtml}</div>
+      <div class="hero-amounts">
+        ${hoursHtml ? `<div class="hero-amount ${heroCls} secondary">${hoursHtml}</div>` : ""}
+        <div class="hero-amount ${heroCls} primary">${amountHtml}</div>
+      </div>
       <div class="hero-sub">${heroSub}</div>
       <div class="hero-tagline">${escapeHtml(pickOreTagline())}</div>
       <div class="hero-stats">
@@ -2253,8 +2335,8 @@ function renderPageOre(){
           <div class="v">${hStr(thisMonthHours)}</div>
         </div>
         <div class="hero-stat">
-          <div class="k">${curYear} totale</div>
-          <div class="v">${hStr(thisYearHours)}</div>
+          <div class="k">Straord. ${curYear}</div>
+          <div class="v">${hStr(thisYearOvertimeHours)}</div>
         </div>
       </div>
     </div>
