@@ -3,7 +3,7 @@
  * sugli asset statici. Quando l'utente è online vede sempre l'ultima
  * versione; offline ricade sulla copia cacheata.
  */
-const CACHE = 'wims-v3.4.2';
+const CACHE = 'wims-v3.4.3';
 const PRECACHE = ['./', './index.html', './manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

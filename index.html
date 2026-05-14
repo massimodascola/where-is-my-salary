@@ -902,6 +902,22 @@
     font-size: 16px; color: var(--sienna);
     font-variant-numeric: tabular-nums;
   }
+  /* Event flagged "notOvertime": dimmed card + small badge near hours,
+     to make the exclusion from the overtime total visually explicit
+     without hiding the event itself (still a legitimate worked day). */
+  .dd-event.not-overtime{ opacity: .62; background: var(--card-elev); }
+  .dd-event.not-overtime .dd-event-hours{ color: var(--ink-muted); }
+  .dd-event-badge{
+    display: inline-block;
+    font-family: var(--serif); font-style: italic;
+    font-size: 11px; color: var(--ink-muted);
+    margin-left: 6px;
+    padding: 1px 6px;
+    border: 1px dashed var(--line);
+    border-radius: 999px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
 
   /* Calendar grid (compact, centered). Headers and day cells share one grid
      container so the vertical rhythm between rows is consistent — using two
@@ -1119,17 +1135,50 @@
   }
   .field input[type="text"],
   .field input[type="number"],
+  .field input[type="date"],
+  .field input[type="time"],
   .field select{
     background: var(--paper); border: 1px solid var(--line);
     border-radius: 10px; padding: 11px 13px;
     font-family: var(--sans); font-size: 15px;
     width: 100%; color: var(--ink);
-    transition: border-color .15s, background .15s;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  /* Numbers and date/time get tabular figures so vertical alignment between
+     two side-by-side fields (Ora inizio / Ora fine) stays clean. */
+  .field input[type="number"],
+  .field input[type="date"],
+  .field input[type="time"]{
+    font-variant-numeric: tabular-nums;
   }
   .field input:focus, .field select:focus{
     outline: none; border-color: var(--sienna);
     background: var(--card-elev);
     box-shadow: 0 0 0 3px var(--sienna-soft);
+  }
+  /* WebKit's native calendar/clock picker indicator: tone it down so it
+     reads as part of the warm-paper palette, not a black system widget.
+     Firefox has no equivalent pseudo and renders a discreet dropdown
+     arrow that already fits well enough. */
+  .field input[type="date"]::-webkit-calendar-picker-indicator,
+  .field input[type="time"]::-webkit-calendar-picker-indicator{
+    opacity: .45;
+    cursor: pointer;
+    filter: sepia(.5) hue-rotate(-12deg) saturate(.85);
+    transition: opacity .15s;
+  }
+  .field input[type="date"]:hover::-webkit-calendar-picker-indicator,
+  .field input[type="time"]:hover::-webkit-calendar-picker-indicator,
+  .field input[type="date"]:focus::-webkit-calendar-picker-indicator,
+  .field input[type="time"]:focus::-webkit-calendar-picker-indicator{
+    opacity: .85;
+  }
+  /* iOS quirk: empty date/time inputs render the placeholder ("--:--",
+     "gg/mm/aaaa") in a darker tone than other muted text. Soften it to
+     match `.field .hint` so empty state feels intentional, not broken. */
+  .field input[type="date"]:invalid,
+  .field input[type="time"]:invalid{
+    color: var(--ink-muted);
   }
   .field-row{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -1183,6 +1232,23 @@
   }
   .settings-toggle input:checked + .toggle-track::after{
     transform: translateX(16px);
+  }
+  /* Toggle as a full-width form row: label on the left, switch on the right.
+     Used inside .field blocks (e.g. the "non contare come straordinario"
+     row in the event form). */
+  .settings-toggle.field-toggle{
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .settings-toggle.field-toggle .field-toggle-label{
+    flex: 1;
   }
 
   /* ---------- Empty state (entire card is clickable) ---------- */
@@ -1742,6 +1808,14 @@
       <label>Nota (opzionale)</label>
       <input type="text" id="ot-nota" placeholder="es. trasferta Milano" maxlength="120" />
     </div>
+    <div class="field">
+      <label class="settings-toggle field-toggle">
+        <span class="field-toggle-label">Non contare come straordinario</span>
+        <input type="checkbox" id="ot-not-overtime" />
+        <span class="toggle-track"></span>
+      </label>
+      <div class="hint">Le ore restano registrate come lavorate, ma non confluiscono nel totale straordinari del mese.</div>
+    </div>
     <div id="ot-hours-preview" class="help" style="margin-top:8px"></div>
   </div>
   <div class="sheet-foot">
@@ -1800,7 +1874,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.4.2";
+const VERSION = "3.4.3";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -1931,12 +2005,18 @@ function paidHoursForMonth(events, year, m0, forfaitWeek, workdays, contractWeek
   // the threshold are absorbed by salary; only hours above count as paid
   // overtime. Non-workday hours (weekend/holidays per user settings) are 100%
   // paid (no absorption).
+  //
+  // Events flagged `notOvertime` are skipped entirely: the user explicitly
+  // decided those hours should not contribute to the overtime total, even
+  // if they're on a weekend or push the week over the threshold. They still
+  // exist in the calendar (gross hours), they just don't get paid out.
   const inMonth = eventsInMonth(events, year, m0);
   if(inMonth.length === 0) return 0;
   const wd = (workdays && workdays.length) ? workdays : [1,2,3,4,5];
   const workByWeek = {};
   let nonWorkHours = 0;
   for(const e of inMonth){
+    if(e.notOvertime) continue;
     const h = eventHours(e);
     if(isWorkday(e.data, wd)){
       const [iy, iw] = isoWeek(e.data);
@@ -2355,7 +2435,11 @@ function render(){
 //   - if the user was on the Overtime page, we snap back to Salary
 function renderOvertimeVisibility(){
   const p = activeProfile();
-  const enabled = !p || p.settings.overtimeEnabled !== false;
+  // Tabbar is hidden in two cases:
+  //   1. No active profile yet — the welcome / new-profile flow shouldn't
+  //      offer a switch between two pages that don't apply yet.
+  //   2. The user explicitly turned Overtime off in settings.
+  const enabled = !!p && p.settings.overtimeEnabled !== false;
   const tabbar = $("#tabbar");
   if(tabbar) tabbar.style.display = enabled ? "" : "none";
   if(!enabled && currentTab === "ore"){
@@ -2729,10 +2813,10 @@ function renderOreDayDetail(p){
       <button class="btn full" id="dd-add" type="button" style="margin-top:10px">+ Aggiungi evento qui</button>`;
   } else {
     eventsHtml = events.map(e => `
-      <div class="dd-event" data-id="${escapeHtml(e.id)}">
+      <div class="dd-event${e.notOvertime ? " not-overtime" : ""}" data-id="${escapeHtml(e.id)}">
         <div class="dd-event-times">${escapeHtml(e.inizio)} → ${escapeHtml(e.fine)}${e.pausa ? ` · pausa ${escapeHtml(e.pausa)}` : ""}</div>
         ${e.nota ? `<div class="dd-event-note">${escapeHtml(e.nota)}</div>` : ""}
-        <div class="dd-event-hours">${hStr(eventHours(e))}</div>
+        <div class="dd-event-hours">${hStr(eventHours(e))}${e.notOvertime ? ` <span class="dd-event-badge">non strord.</span>` : ""}</div>
       </div>`).join("") + `<button class="btn secondary full" id="dd-add" type="button" style="margin-top:12px">+ Aggiungi un altro evento</button>`;
   }
 
@@ -2938,12 +3022,14 @@ function openOvertimeForm(eventId){
     $("#ot-fine").value = ev.fine || "";
     $("#ot-pausa").value = ev.pausa || "";
     $("#ot-nota").value = ev.nota || "";
+    $("#ot-not-overtime").checked = !!ev.notOvertime;
   } else {
     $("#ot-data").value = new Date().toISOString().slice(0, 10);
     $("#ot-inizio").value = "";
     $("#ot-fine").value = "";
     $("#ot-pausa").value = "";
     $("#ot-nota").value = "";
+    $("#ot-not-overtime").checked = false;
   }
   updateOvertimePreview();
   openSheet("ot-event-sheet");
@@ -2968,12 +3054,14 @@ $("#btn-ot-save").onclick = () => {
   if(startM == null || endM == null){ showAlert("Orari non validi"); return; }
   if(endM <= startM){ showAlert("L'ora di fine deve essere dopo l'ora di inizio.\n\nGli eventi a cavallo della mezzanotte non sono supportati: registra due eventi separati."); return; }
   if(!Array.isArray(p.overtime)) p.overtime = [];
+  const notOvertime = !!$("#ot-not-overtime").checked;
   if(editingEventId){
     const ev = p.overtime.find(e => e.id === editingEventId);
     if(ev){
       ev.data = data; ev.inizio = inizio; ev.fine = fine;
       ev.pausa = $("#ot-pausa").value || "";
       ev.nota = ($("#ot-nota").value || "").trim();
+      ev.notOvertime = notOvertime;
     }
   } else {
     p.overtime.push({
@@ -2981,6 +3069,7 @@ $("#btn-ot-save").onclick = () => {
       data, inizio, fine,
       pausa: $("#ot-pausa").value || "",
       nota: ($("#ot-nota").value || "").trim(),
+      notOvertime,
     });
   }
   editingEventId = null;
@@ -3556,7 +3645,7 @@ const STATE_FROM_IT = { ricevuto: "received", mancante: "missing", non_atteso: "
 const CSV_SEP = ";";
 const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default","forfait_settimana","tariffa_ora","giorni_lavorativi","contratto_settimana","mensilita","pay_giorno","pay_mese_dopo","overtime_abilitato"];
 const MONTH_COLS = ["profilo","anno","mese","stipendio_stato","stipendio_importo","welfare","ticket_stato","ticket_giorni","fringe","bonus_stato","bonus_importo","rimborso_stato","rimborso_importo","straord_stato","straord_ore_pagare","salary13_stato","salary14_stato","salary15_stato","salary13_importo","salary14_importo","salary15_importo"];
-const STRAORD_COLS = ["profilo","data","inizio","fine","pausa","nota"];
+const STRAORD_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario"];
 
 function fmtNum(n){
   // Italian decimal, two digits, no thousands separator (avoids extra quoting)
@@ -3672,7 +3761,7 @@ function buildCsv(storeIn){
   for(const [, p] of Object.entries(storeIn.profiles || {})){
     const events = (p.overtime || []).slice().sort((a, b) => (a.data || "").localeCompare(b.data || ""));
     for(const e of events){
-      lines.push(csvRow([p.name, e.data || "", e.inizio || "", e.fine || "", e.pausa || "", e.nota || ""]));
+      lines.push(csvRow([p.name, e.data || "", e.inizio || "", e.fine || "", e.pausa || "", e.nota || "", e.notOvertime ? "1" : "0"]));
     }
   }
   return "﻿" + lines.join("\r\n") + "\r\n";
@@ -3806,11 +3895,14 @@ function parseCsv(text){
       const fine = (row.fine || "").trim();
       if(parseHHMM(inizio) == null) throw new Error(`Ora inizio non valida a riga ${lineNo+1}: "${inizio}"`);
       if(parseHHMM(fine) == null) throw new Error(`Ora fine non valida a riga ${lineNo+1}: "${fine}"`);
+      const notOvRaw = (row.non_straordinario || "").trim().toLowerCase();
+      const notOvertime = notOvRaw === "1" || notOvRaw === "sì" || notOvRaw === "si" || notOvRaw === "true";
       (overtimeByName[name] = overtimeByName[name] || []).push({
         id: genEventId(),
         data, inizio, fine,
         pausa: (row.pausa || "").trim(),
         nota: (row.nota || "").trim(),
+        notOvertime,
       });
     }
   }
@@ -3860,12 +3952,24 @@ async function applyImportedData(parsed, sourceLabel){
  *  Ore-only CSV — scoped to a single profile's overtime events.
  *  Simpler format (no sections): header + rows.
  * ============================================================ */
-const ORE_COLS = ["profilo","data","inizio","fine","pausa","nota"];
+// `non_straordinario` (v3.4.3) is appended at the end so files exported by
+// older versions still match as a header *prefix* — parseCsvOre below uses a
+// tolerant comparison that requires the leading columns to match but accepts
+// trailing columns being absent (older files) or extra (forward compat).
+const ORE_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario"];
 
 function buildCsvOre(profileName, events){
   const lines = [ORE_COLS.join(CSV_SEP)];
   for(const e of (events || [])){
-    lines.push(csvRow([profileName, e.data || "", e.inizio || "", e.fine || "", e.pausa || "", e.nota || ""]));
+    lines.push(csvRow([
+      profileName,
+      e.data || "",
+      e.inizio || "",
+      e.fine || "",
+      e.pausa || "",
+      e.nota || "",
+      e.notOvertime ? "1" : "0",
+    ]));
   }
   return "﻿" + lines.join("\r\n") + "\r\n";
 }
@@ -3876,7 +3980,10 @@ function parseCsvOre(text){
   while(raw.length && raw[raw.length-1].trim() === "") raw.pop();
   if(raw.length === 0) throw new Error("Il file è vuoto.");
   const header = parseCsvLine(raw[0]).map(s => s.trim());
-  if(header.length !== ORE_COLS.length || header.some((h,i) => h !== ORE_COLS[i])){
+  // Tolerant header: require the leading columns to match ORE_COLS in order,
+  // but allow the file to stop short (older exports without notOvertime).
+  const minCols = 6; // profilo..nota
+  if(header.length < minCols || ORE_COLS.slice(0, header.length).some((h,i) => h !== header[i])){
     throw new Error(`Intestazione non corretta.\nAttesa: ${ORE_COLS.join(CSV_SEP)}\nTrovata: ${header.join(CSV_SEP)}`);
   }
   const events = [];
@@ -3884,13 +3991,15 @@ function parseCsvOre(text){
     const line = raw[i];
     if(!line.trim()) continue;
     const f = parseCsvLine(line);
-    if(f.length !== ORE_COLS.length) throw new Error(`Riga ${i+1}: ${f.length} colonne invece di ${ORE_COLS.length}`);
+    if(f.length !== header.length) throw new Error(`Riga ${i+1}: ${f.length} colonne invece di ${header.length}`);
     const data = f[1].trim();
     if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Riga ${i+1}: data non valida "${data}"`);
     const inizio = f[2].trim(), fine = f[3].trim();
     if(parseHHMM(inizio) == null) throw new Error(`Riga ${i+1}: ora inizio "${inizio}" non valida`);
     if(parseHHMM(fine) == null) throw new Error(`Riga ${i+1}: ora fine "${fine}" non valida`);
-    events.push({ id: genEventId(), data, inizio, fine, pausa: f[4].trim(), nota: f[5].trim() });
+    const notOvertimeRaw = (f[6] || "").trim().toLowerCase();
+    const notOvertime = notOvertimeRaw === "1" || notOvertimeRaw === "sì" || notOvertimeRaw === "si" || notOvertimeRaw === "true";
+    events.push({ id: genEventId(), data, inizio, fine, pausa: f[4].trim(), nota: f[5].trim(), notOvertime });
   }
   return events;
 }

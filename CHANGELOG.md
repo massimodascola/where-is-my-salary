@@ -6,6 +6,53 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.4.3] — 2026-05-14
+
+Due interventi UX legati all'onboarding e al controllo fine-grained sugli straordinari.
+
+### Generale — tabbar nascosta nel welcome
+
+- **`renderOvertimeVisibility` ora nasconde la tabbar anche quando non c'è un profilo attivo**, non solo quando l'utente ha disattivato Overtime. Prima la condizione era `!p || p.settings.overtimeEnabled !== false`: senza profilo il booleano cadeva sul ramo "abilitato" e la tabbar `Salary · Overtime` restava visibile sopra alla card di benvenuto e al modulo "Iniziamo da te", offrendo uno switch tra due pagine che non hanno senso prima della creazione del profilo. Adesso `!!p && settings.overtimeEnabled !== false` → tabbar mostrata solo se *entrambe* le condizioni sono vere.
+- Effetto secondario voluto: la prima impressione dell'app è più pulita — solo titolo, modulo, settings.
+
+### Overtime — flag per-evento "non straordinario"
+
+- **Nuovo campo `notOvertime: boolean` sugli eventi.** Quando true, l'evento è completamente escluso dal calcolo straordinari (`paidHoursForMonth` salta l'iterazione con un `continue` prima di accumulare nel bucket settimanale o weekend), ma resta presente nel calendario e contribuisce ai totali "ore lorde" del mese/anno. È la risposta a "ho lavorato quel giorno, ma non voglio segnarlo come straordinario" — sia per sforamenti feriali oltre soglia che per ore weekend volontariamente regalate.
+- **Toggle iOS-style nel form di edit evento** (`#ot-event-sheet`), sotto il campo Nota. Stile coerente con il toggle di disattivazione Overtime nelle settings, riusando `.settings-toggle` con un modificatore `.field-toggle` per renderlo full-width come una riga di campo. Hint sotto: "Le ore restano registrate come lavorate, ma non confluiscono nel totale straordinari del mese".
+- **Feedback visivo nel day detail**: la card dell'evento marcato come `notOvertime` ha opacità ridotta (0.62), background `--card-elev` e un piccolo badge testuale `non strord.` (serif italic, bordo tratteggiato) accanto al totale ore. La dimensione e la posizione delle ore restano invariate, così la lettura della durata non cambia.
+- **Comportamento del calcolo** preservato per gli altri eventi: la soglia settimanale `oreContratto + forfait` continua a operare normalmente sulle ore feriali NON marcate; gli eventi `notOvertime` non incrementano il bucket settimanale, quindi non "consumano" parte della soglia per altri giorni della stessa settimana. Esempio: 4 giorni feriali da 10h + 1 giorno da 10h marcato `notOvertime` → calcolo limitato a 4 giorni × 10h = 40h ≤ soglia 45h → 0h pagate (corretto: l'utente ha esplicitamente sottratto le 10h dal computo).
+
+### Form evento — input date/time integrati nel design system
+
+- **Selettori CSS `.field input[type="text"|"number"]` estesi a `type="date"` e `type="time"`.** Le tre righe del form evento (Data, Ora inizio/fine, Pausa) cadevano sui default del browser — bordo grigio sottile, font system, padding inconsistente, icona del picker nera — perché la regola di styling non li intercettava. Adesso ricevono lo stesso trattamento Quiet Ledger degli altri campi: paper bg, bordo `--line`, padding 11/13, focus state sienna con box-shadow soft.
+- **`font-variant-numeric: tabular-nums`** aggiunto su `number`/`date`/`time` per allineamento verticale pulito quando due campi tempo stanno fianco a fianco (Ora inizio / Ora fine nel `.field-row`).
+- **`::-webkit-calendar-picker-indicator` ammorbidito** con `opacity .45` + `filter sepia(.5) hue-rotate(-12deg) saturate(.85)`, così l'icona calendario/orologio non legge come widget di sistema nero ma come piccolo accento warm-paper. Hover/focus la portano a opacity .85.
+- **`:invalid` su date/time** abbassato a colore `--ink-muted`: i placeholder nativi (`gg/mm/aaaa`, `--:--`) prima erano più scuri del resto degli hint, sembrava un bug. Adesso l'empty state sembra intenzionale.
+- Firefox non ha pseudo-elementi equivalenti per l'icona del picker ma il rendering nativo della dropdown è già discreto, quindi non serve override.
+
+### Decisione di design — `hoursOverride` resta
+
+- L'override mensile `overtime.hoursOverride` è ortogonale a `notOvertime`: il primo dice "ignora il calcolo automatico e usa questo totale per il mese", il secondo dice "non contare questo specifico giorno". I due meccanismi coesistono per ora. Rimozione di `hoursOverride` non in agenda finché la nuova feature non è stata usata abbastanza per giudicare se l'override mensile è ancora utile o ridondante.
+
+### Backup CSV — copertura nuovo campo
+
+- **Colonna `non_straordinario` (0/1) aggiunta in coda alle sezioni `STRAORDINARI` (CSV completo) e nel CSV-only-ore (`buildCsvOre`).** Posizionata come ultima colonna così CSV v3.4.2 sono ancora parsabili come *prefisso* dell'header atteso.
+- **`parseCsvOre` rilassato**: richiede solo le prime 6 colonne (`profilo..nota`) come prefisso obbligatorio, accetta header più corti o più lunghi (forward-compat). La validazione del numero di campi per riga adesso usa `header.length` invece di `ORE_COLS.length`, così ogni file viene parsato in base al suo proprio header.
+- Parser tollerante anche sui valori: accetta `0/1`, `sì/no`, `true/false`. Default: `false` se la colonna manca o è vuota.
+
+### Audit pre-release
+
+- jsdom run di v3.4.3 a confronto con v3.4.2: welcome card renderizzata correttamente, version tag "v3.4.3", zero errori.
+- `paidHoursForMonth` verificato manualmente con eventi misti (feriali oltre soglia + weekend + uno marcato `notOvertime`): il giorno marcato salta entrambi i bucket, le altre ore feriali della stessa settimana mantengono il loro contributo normale alla soglia.
+- Verifica edge case CSV: import di un file v3.4.2 (senza colonna `non_straordinario`) → tutti gli eventi entrano con `notOvertime: false`. Re-export → la colonna ora c'è, popolata a `0`.
+
+### Internals
+
+- Versione bumped a `3.4.3`.
+- Cache key del service worker bumped a `wims-v3.4.3` per invalidare la 3.4.2 al primo activate.
+
+---
+
 ## [3.4.2] — 2026-05-14
 
 Fix critico di un bug ereditato dalla v3.1 e rimasto nascosto fino a oggi. La pagina si caricava completamente vuota (solo topbar + tabbar, niente hero, niente welcome card, niente version tag) su qualunque dispositivo — desktop, Safari mobile, Chrome mobile, finestre private — perché un'eccezione module-level interrompeva l'esecuzione dello script *prima* che `bootstrap()` venisse chiamato.
