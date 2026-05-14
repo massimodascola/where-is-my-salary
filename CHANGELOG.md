@@ -6,6 +6,22 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.0.1] — 2026-05-14
+
+Patch tipografica: una tagline dell'hero "Salary" conteneva un valore hard-coded che non rispecchiava più le impostazioni dell'utente.
+
+### Copy
+
+- **Tagline "Hai diritto di sognare. E di un ticket da {ticket}." resa dinamica.** Prima leggeva `"… ticket da 8 euro"` indipendentemente dal valore effettivo nelle impostazioni — battuta che perdeva il punto se l'utente aveva un ticket diverso. Adesso il valore arriva da `settings.ticketPerDay` del profilo attivo. La frase nell'array contiene `{ticket}` come placeholder, risolto a render-time.
+
+### Internals
+
+- **Nuova helper `ticketPhrase(n)`** — formatta il numero per stare bene dentro una frase: `10` → `"10 euro"`, `8.50` → `"8,50 euro"`. Non si usa `eur()` perché `"€ 10,00"` rompe il ritmo della battuta.
+- **Nuova helper `interpolateTagline(text)`** — applica le sostituzioni di placeholder leggendo dal profilo attivo. Wrappa sia `pickStipTagline()` che `pickOreTagline()`, così future tagline su entrambe le pagine possono usare `{ticket}` (e altri placeholder che aggiungeremo) senza toccare la logica del picker.
+- Versione bumped a `3.0.1`.
+
+---
+
 ## [3.0] — 2026-05-14
 
 Release stabile che chiude il ciclo di rework partito dalla 2.0. Niente nuove feature rispetto alla 2.5: solo un fix critico, una pulizia di codice morto e il consolidamento del design system come documento ufficiale. Il bump a 3.0 segnala che le sette iterazioni 2.x sono ormai integrate, l'UI è stata ridisegnata end-to-end (tab in inglese, sezioni settings, mensilità configurabili, calendario rifatto, input dinamici, logo rinforzato) e l'app è considerata pronta per l'uso quotidiano.

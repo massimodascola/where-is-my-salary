@@ -1716,7 +1716,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.0";
+const VERSION = "3.0.1";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -2099,7 +2099,7 @@ const TAGLINES_STIPENDIO = [
   "Conta i giorni. Poi i mancati.",
   "Il padrone ha la memoria corta. Tu, per fortuna, hai questa app.",
   "Aspettare lo stipendio è l'unica cosa che si fa con costanza.",
-  "Hai diritto di sognare. E di un ticket da 8 euro.",
+  "Hai diritto di sognare. E di un ticket da {ticket}.",
   "Più aspetti, più sembra una questione di principio. È matematica.",
   "Lavori per vivere. Vivere per lavorare era un'altra cosa.",
   "Ogni euro mancante è una storia da raccontare a qualcuno.",
@@ -2110,13 +2110,30 @@ const TAGLINES_STIPENDIO = [
 ];
 let _oreTagline = null;
 let _stipTagline = null;
+// Format the ticket value the way it appears in a sentence — drop trailing
+// zero cents so "10 euro" reads natural and "8,50 euro" keeps its decimals.
+function ticketPhrase(n){
+  const v = Number(n) || 0;
+  const body = v === Math.floor(v) ? String(v) : v.toFixed(2).replace(".", ",");
+  return `${body} euro`;
+}
+// Replace `{ticket}` (and any future placeholders) with values from the
+// active profile's settings. Kept in a separate helper so taglines stay
+// declarative in their array and we can grow placeholders without touching
+// the picker logic.
+function interpolateTagline(text){
+  if(!text || text.indexOf("{") === -1) return text;
+  const p = activeProfile();
+  const ticket = p ? p.settings.ticketPerDay : 0;
+  return text.replace(/\{ticket\}/g, ticketPhrase(ticket));
+}
 function pickOreTagline(){
   if(_oreTagline == null) _oreTagline = TAGLINES_ORE[Math.floor(Math.random() * TAGLINES_ORE.length)];
-  return _oreTagline;
+  return interpolateTagline(_oreTagline);
 }
 function pickStipTagline(){
   if(_stipTagline == null) _stipTagline = TAGLINES_STIPENDIO[Math.floor(Math.random() * TAGLINES_STIPENDIO.length)];
-  return _stipTagline;
+  return interpolateTagline(_stipTagline);
 }
 
 // Ore page state. Top-level views = giorni/settimane/mesi/anni.
