@@ -213,29 +213,20 @@
     font-size: .55em; font-weight: 500;
     color: var(--ink-muted); letter-spacing: -.01em;
   }
-  /* Asymmetric pair of hero amounts (Overtime page):
-       column 1 (1fr)  → secondary metric, hugged to the left
-       column 2 (auto) → primary metric, centered in the hero
-       column 3 (1fr)  → empty mirror that keeps column 2 visually centered
-     If only the primary is rendered (no tariffa set → just hours), it still
-     sits centered because the two 1fr columns balance it. */
+  /* Pair of hero amounts (Overtime page): euro on the left, hours next to
+     it, both aligned to the start of the row. Same size and weight — both
+     are first-class metrics. Wraps to two lines on viewports so narrow
+     that they truly can't fit on one. */
   .hero-amounts{
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
     align-items: baseline;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px 28px;
     margin-top: 14px;
-    gap: 8px;
   }
   .hero-amounts .hero-amount{
     margin-top: 0;
-  }
-  .hero-amounts .hero-amount.secondary{
-    grid-column: 1;
-    justify-self: start;
-  }
-  .hero-amounts .hero-amount.primary{
-    grid-column: 2;
-    justify-self: center;
   }
   .hero-sub{
     font-family: var(--serif); font-style: italic;
@@ -1150,8 +1141,48 @@
     padding-bottom: 6px;
     border-bottom: 1px dashed var(--line);
     letter-spacing: -.005em;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
   }
   .settings-section-title:first-child{ margin-top: 4px; }
+
+  /* iOS-style toggle, lives inside a section title (e.g. to switch the
+     Overtime feature on/off). The native checkbox is invisible but
+     accessible; visual state is driven by the sibling .toggle-track. */
+  .settings-toggle{
+    position: relative;
+    display: inline-flex;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .settings-toggle input{
+    position: absolute; opacity: 0; pointer-events: none;
+  }
+  .settings-toggle .toggle-track{
+    display: inline-block;
+    width: 38px; height: 22px;
+    border-radius: 999px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    transition: background .18s ease, border-color .18s ease;
+    position: relative;
+  }
+  .settings-toggle .toggle-track::after{
+    content: "";
+    position: absolute; top: 1px; left: 1px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--card-elev);
+    box-shadow: 0 1px 3px rgba(125,105,75,.25);
+    transition: transform .18s ease;
+  }
+  .settings-toggle input:checked + .toggle-track{
+    background: var(--sienna);
+    border-color: var(--sienna);
+  }
+  .settings-toggle input:checked + .toggle-track::after{
+    transform: translateX(16px);
+  }
 
   /* ---------- Empty state (entire card is clickable) ---------- */
   .empty{
@@ -1496,8 +1527,23 @@
       <input type="number" id="set-bonus" min="0" step="0.01" />
       <div class="hint">Si applica se segni un bonus come atteso senza specificarne l'importo.</div>
     </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Giorno di pagamento</label>
+        <input type="number" id="set-payday" min="1" max="28" step="1" />
+        <div class="hint">Giorno del mese in cui arriva lo stipendio (1–28).</div>
+      </div>
+      <div class="field">
+        <label>Mese di pagamento</label>
+        <select id="set-payday-month">
+          <option value="0">Stesso mese</option>
+          <option value="1">Mese successivo</option>
+        </select>
+        <div class="hint">Per presenze sfalsate, lo stipendio di maggio arriva a giugno.</div>
+      </div>
+    </div>
 
-    <div class="settings-section-title">Overtime</div>
+    <div class="settings-section-title">Overtime <label class="settings-toggle"><input type="checkbox" id="set-overtime-enabled" /><span class="toggle-track"></span></label></div>
     <div class="field">
       <label>Giorni lavorativi</label>
       <div class="workday-row" id="set-workdays">
@@ -1614,8 +1660,21 @@
       <input type="number" id="np-bonus" min="0" step="0.01" value="0" />
       <div class="hint">Si applica se segni un bonus come atteso senza specificarne l'importo.</div>
     </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Giorno di pagamento</label>
+        <input type="number" id="np-payday" min="1" max="28" step="1" value="27" />
+      </div>
+      <div class="field">
+        <label>Mese di pagamento</label>
+        <select id="np-payday-month">
+          <option value="0">Stesso mese</option>
+          <option value="1">Mese successivo</option>
+        </select>
+      </div>
+    </div>
 
-    <div class="settings-section-title">Overtime</div>
+    <div class="settings-section-title">Overtime <label class="settings-toggle"><input type="checkbox" id="np-overtime-enabled" checked /><span class="toggle-track"></span></label></div>
     <div class="field">
       <label>Giorni lavorativi</label>
       <div class="workday-row" id="np-workdays">
@@ -1698,7 +1757,7 @@
   <div class="topbar">
     <div class="brand">
       <div class="brand-name">
-        Where is my <em>Salary</em>
+        where is my <em>salary</em>
       </div>
     </div>
     <div class="spacer"></div>
@@ -1740,7 +1799,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.3";
+const VERSION = "3.4";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -1960,6 +2019,11 @@ function defaultSettings(){
     // Extra months (13a/14a/15a) are paid in fixed default months — see
     // EXTRA_SALARY_DEFAULT_MONTHS (declared next to COMPONENTS).
     mensilita: 12,
+    // Pay-cycle definition: day of the month the salary lands, and whether
+    // it's the same month as the work period or the next (typical for
+    // "presenze sfalsate" contracts where May's salary arrives mid-June).
+    payDay: 27,
+    payDayNextMonth: false,
     // Weekly contract hours. Together with `forfaitOreSett` they define the
     // weekly threshold: hours worked in workdays below (contract + forfait) are
     // covered by the base salary; only hours above count as paid overtime.
@@ -1970,7 +2034,23 @@ function defaultSettings(){
     // ISO weekday numbers that count as workdays. 1=Mon..7=Sun. Non-workday hours
     // are 100% paid (no absorption).
     workdays: [1,2,3,4,5],
+    // If false, the entire Overtime section is hidden: no tabbar, no
+    // "Straordinari" row inside month cards, no Overtime-only settings.
+    overtimeEnabled: true,
   };
+}
+
+// Pay date for the salary that compensates work in (year, m0). Honors the
+// optional one-month offset (presenze sfalsate). Clamps payDay to 1..28 so
+// February doesn't silently roll over.
+function paymentDateFor(year, m0, settings){
+  const payDay = Math.min(28, Math.max(1, Number(settings.payDay) || 27));
+  const offset = settings.payDayNextMonth ? 1 : 0;
+  return new Date(year, m0 + offset, payDay);
+}
+function isPaymentDue(year, m0, settings, now){
+  const today = now || new Date();
+  return today >= paymentDateFor(year, m0, settings);
 }
 
 function defaultMonth(){
@@ -1999,6 +2079,9 @@ function ensureProfile(id){
     if(p.settings.tariffaOraStraord == null) p.settings.tariffaOraStraord = 0;
     if(p.settings.oreContrattoSett == null) p.settings.oreContrattoSett = 40;
     if(p.settings.mensilita == null) p.settings.mensilita = 12;
+    if(p.settings.payDay == null) p.settings.payDay = 27;
+    if(p.settings.payDayNextMonth == null) p.settings.payDayNextMonth = false;
+    if(p.settings.overtimeEnabled == null) p.settings.overtimeEnabled = true;
     if(!Array.isArray(p.settings.workdays) || p.settings.workdays.length === 0){
       p.settings.workdays = [1,2,3,4,5];
     }
@@ -2065,6 +2148,10 @@ function expectedAmountFor(profile, year, m0, ckey){
     case "bonus": return Number(c.amount || 0) || (s.defaultBonus || 0);
     case "refund": return Number(c.amount || 0);
     case "overtime": {
+      // When the Overtime feature is disabled the row is hidden and must not
+      // contribute to monthly totals or "missing" labels either, regardless
+      // of stored state.
+      if(s.overtimeEnabled === false) return 0;
       const ov = monthData.overtime || {};
       const auto = paidHoursForMonth(profile.overtime || [], year, m0, s.forfaitOreSett, s.workdays, s.oreContrattoSett);
       const paid = ov.hoursOverride != null ? Number(ov.hoursOverride) : auto;
@@ -2078,25 +2165,26 @@ function computeYearTotals(profile, year){
   const data = ensureYear(profile, year);
   let expected = 0, received = 0, missing = 0;
   const today = new Date();
-  const isThisYear = today.getFullYear() === Number(year);
-  const cm = today.getMonth();
 
   const perComponent = {};
   for(const c of COMPONENTS){ perComponent[c.key] = { expected:0, received:0, missing:0 }; }
 
   for(let m0=0; m0<12; m0++){
     const month = data[m0+1];
+    // The salary for month m0 is considered "due" once the configured pay
+    // date has passed (default 27th of the same month; can be the 15th of
+    // the next month for "presenze sfalsate" contracts).
+    const due = isPaymentDue(year, m0, profile.settings, today);
     for(const c of COMPONENTS){
       const cell = month[c.key];
       const exp = expectedAmountFor(profile, year, m0, c.key);
-      const isPastOrCurrent = !isThisYear || m0 <= cm || (Number(year) < today.getFullYear());
 
       if(cell.state === "received"){
         received += exp; expected += exp;
         perComponent[c.key].received += exp; perComponent[c.key].expected += exp;
       } else if(cell.state === "missing"){
         expected += exp; perComponent[c.key].expected += exp;
-        if(isPastOrCurrent){ missing += exp; perComponent[c.key].missing += exp; }
+        if(due){ missing += exp; perComponent[c.key].missing += exp; }
       }
     }
   }
@@ -2106,26 +2194,28 @@ function computeYearTotals(profile, year){
 function monthStatus(profile, year, m0){
   const data = ensureYear(profile, year)[m0+1];
   const today = new Date();
-  const isThisYear = today.getFullYear() === Number(year);
-  const isPast = (Number(year) < today.getFullYear()) || (isThisYear && m0 < today.getMonth());
-  const isCurrent = isThisYear && m0 === today.getMonth();
-  const isFuture = !isPast && !isCurrent;
+  // "Due" = the payment date for this month has already passed (or is today).
+  // Replaces the old past/current/future split, which assumed pay day = end
+  // of month. Now it follows the user-configured pay cycle.
+  const due = isPaymentDue(year, m0, profile.settings, today);
 
   let expected = 0, received = 0, missingPast = 0;
   for(const c of COMPONENTS){
     const cell = data[c.key];
     const exp = expectedAmountFor(profile, year, m0, c.key);
     if(cell.state === "received"){ received += exp; expected += exp; }
-    else if(cell.state === "missing"){ expected += exp; if(isPast || isCurrent) missingPast += exp; }
+    else if(cell.state === "missing"){ expected += exp; if(due) missingPast += exp; }
   }
   let label, cls;
   if(expected === 0){ label = "non spettava"; cls = ""; }
   else if(received >= expected - 0.01){ label = "tutto incassato"; cls = "ok"; }
   else if(received > 0 && missingPast > 0){ label = `manca ${eur(missingPast)}`; cls = "warn"; }
   else if(missingPast > 0){ label = `da ricevere ${eur(missingPast)}`; cls = "danger"; }
-  else if(isFuture){ label = "in arrivo"; cls = "future"; }
+  else if(!due){ label = "in arrivo"; cls = "future"; }
   else { label = "in attesa"; cls = "warn"; }
-  return { label, cls, expected, received, missingPast, isPast, isCurrent, isFuture };
+  // isPast/isCurrent/isFuture kept in the return shape for callers that
+  // still use them for color hints (renderMonthCard's comp-amount class).
+  return { label, cls, expected, received, missingPast, isPast: due, isCurrent: false, isFuture: !due };
 }
 
 /* ============================================================ *
@@ -2154,9 +2244,25 @@ const TAGLINES_ORE = [
   "Un'ora in più qui è un'ora in meno altrove. Pace, almeno con i numeri.",
   "Se conti i minuti, sei un professionista.",
   "Lo stipendio si paga a fine mese. Le ore si pagano a memoria — la tua.",
+  // — raddoppio v3.4 —
+  "Stai costruendo il futuro. Ti pagheranno nel passato.",
+  "Le ore in più sono come i regali natalizi: nessuno se le aspetta, tutti le tengono.",
+  "Anche oggi hai dato il 110%. Domani vedrai cosa rimane del 100.",
+  "Un'ora in più? Per il padrone è un'ora di troppo da pagarti.",
+  "Le ore extra sono un investimento. Sul tuo capo, non su di te.",
+  "Ti chiamano flessibile perché \"sfruttato\" non sta bene in un'email.",
+  "Esistono due tipi di colleghi: quelli che escono in orario e quelli che leggono questa app.",
+  "Lavora di più, e tutto si sistemerà. (Spoiler: solo per chi non sei tu.)",
+  "Le pause caffè non si pagano. Ma neanche tu, sembrerebbe.",
+  "Il sole è già tramontato. Tu no.",
+  "Cinque minuti in più non sono niente. Trenta minuti in più sono il mese scorso.",
+  "Le tue ore non sono il tuo curriculum. Ma di sicuro sono la tua sera.",
+  "Ti stanno facendo un favore? Loro. A loro.",
+  "Le ore non documentate sono quelle che pesano di più.",
+  "Per il padrone sei una risorsa. Per il bilancio, un costo. Per te, un'ora in meno con qualcuno.",
 ];
 const TAGLINES_STIPENDIO = [
-  "Il 27 non è una data. È una promessa.",
+  "Il {payDay} non è una data. È una promessa.",
   "Lo stipendio è arrivato? Bene. Ricontrolla.",
   "Non è quanto guadagni. È quanto ti dovrebbero pagare.",
   "La pazienza è una virtù. L'IBAN no.",
@@ -2168,9 +2274,25 @@ const TAGLINES_STIPENDIO = [
   "Lavori per vivere. Vivere per lavorare era un'altra cosa.",
   "Ogni euro mancante è una storia da raccontare a qualcuno.",
   "Buona busta paga è metà del lavoro. L'altra metà è ricordarsela.",
-  "I conti si fanno alla fine. Anche se l'app li fa al 27.",
+  "I conti si fanno alla fine. Anche se l'app li fa al {payDay}.",
   "Non è poco. È quello che c'è. È diverso.",
   "Il welfare non è facoltativo. Il fringe sì, ma anche meno.",
+  // — raddoppio v3.4 —
+  "Tra il dire e il pagare c'è di mezzo il mese.",
+  "C'è chi conta le pecore per dormire. Tu conti i giorni al {payDay}.",
+  "Aspettare il salario è come aspettare la primavera: tarda, ma arriva.",
+  "Lo stipendio è l'unica cosa che ti rende felice in ritardo.",
+  "Il salario è la prima bugia che ti raccontano, l'ultima che credi.",
+  "Quanto guadagni? Esattamente quello che ti serve, meno una cosa.",
+  "Pagano poco perché credono che basti l'amore per il lavoro. Provateci voi, a pagare l'affitto con l'amore.",
+  "Lo stipendio è un sussurro. Le bollette sono un megafono.",
+  "Se ti senti ricco il {payDay}, hai un problema. Se ti senti povero il 5, ne hai due.",
+  "Ogni mese ricomincia da zero. Anche il conto.",
+  "Il netto è quello che resta dopo che lo Stato ha messo le mani in tasca anche a chi non ce le ha.",
+  "Aumento di stipendio: una parola, due bugie.",
+  "I bei tempi quando il problema era solo il caffè della macchinetta.",
+  "Il fringe è il regalo che ti fai con i soldi che già avevi.",
+  "La 13a si chiama anche \"recupero del furto compiuto durante l'anno\".",
 ];
 let _oreTagline = null;
 let _stipTagline = null;
@@ -2181,15 +2303,18 @@ function ticketPhrase(n){
   const body = v === Math.floor(v) ? String(v) : v.toFixed(2).replace(".", ",");
   return `${body} euro`;
 }
-// Replace `{ticket}` (and any future placeholders) with values from the
-// active profile's settings. Kept in a separate helper so taglines stay
-// declarative in their array and we can grow placeholders without touching
-// the picker logic.
+// Replace `{ticket}` and `{payDay}` (and any future placeholders) with
+// values from the active profile's settings. Kept in a separate helper so
+// taglines stay declarative in their array and we can grow placeholders
+// without touching the picker logic.
 function interpolateTagline(text){
   if(!text || text.indexOf("{") === -1) return text;
   const p = activeProfile();
   const ticket = p ? p.settings.ticketPerDay : 0;
-  return text.replace(/\{ticket\}/g, ticketPhrase(ticket));
+  const payDay = p ? (p.settings.payDay || 27) : 27;
+  return text
+    .replace(/\{ticket\}/g, ticketPhrase(ticket))
+    .replace(/\{payDay\}/g, String(payDay));
 }
 function pickOreTagline(){
   if(_oreTagline == null) _oreTagline = TAGLINES_ORE[Math.floor(Math.random() * TAGLINES_ORE.length)];
@@ -2210,12 +2335,34 @@ let oreDayDetailFrom = "giorni"; // tracks parent view so the back button is cor
 
 function render(){
   renderTopBar();
+  renderOvertimeVisibility();
   renderMain();
   renderPageOre();
 }
 
+// Show/hide the entire Overtime feature based on the active profile's
+// `overtimeEnabled` setting. When off:
+//   - the floating tabbar disappears (only Salary exists, no choice to offer)
+//   - the .comp row for "Straordinari" inside month cards is skipped (see
+//     the filter in renderMonthCard)
+//   - if the user was on the Overtime page, we snap back to Salary
+function renderOvertimeVisibility(){
+  const p = activeProfile();
+  const enabled = !p || p.settings.overtimeEnabled !== false;
+  const tabbar = $("#tabbar");
+  if(tabbar) tabbar.style.display = enabled ? "" : "none";
+  if(!enabled && currentTab === "ore"){
+    switchTab("stipendio");
+  }
+}
+
 function switchTab(name){
   if(name !== "stipendio" && name !== "ore") return;
+  // Guard: forbid switching to Overtime if the feature is disabled.
+  if(name === "ore"){
+    const p = activeProfile();
+    if(p && p.settings.overtimeEnabled === false) return;
+  }
   currentTab = name;
   $$(".page").forEach(p => p.classList.toggle("active", p.dataset.page === name));
   $$(".tabbar .tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
@@ -2320,8 +2467,8 @@ function renderPageOre(){
         <span>${escapeHtml(p.name)}.</span>
       </div>
       <div class="hero-amounts">
-        ${hoursHtml ? `<div class="hero-amount ${heroCls} secondary">${hoursHtml}</div>` : ""}
-        <div class="hero-amount ${heroCls} primary">${amountHtml}</div>
+        <div class="hero-amount ${heroCls}">${amountHtml}</div>
+        ${hoursHtml ? `<div class="hero-amount ${heroCls}">${hoursHtml}</div>` : ""}
       </div>
       <div class="hero-sub">${heroSub}</div>
       <div class="hero-tagline">${escapeHtml(pickOreTagline())}</div>
@@ -3098,7 +3245,11 @@ function renderMonthCard(profile, year, m0){
 
   // Extra-salary voices (13a/14a/15a) only show up in their dedicated month
   // and only when the profile's mensilità count enables them.
-  const visibleComponents = COMPONENTS.filter(c => extraSalaryApplies(c, profile.settings, m0));
+  // The "overtime" row is hidden entirely when the feature is disabled.
+  const overtimeOn = profile.settings.overtimeEnabled !== false;
+  const visibleComponents = COMPONENTS
+    .filter(c => extraSalaryApplies(c, profile.settings, m0))
+    .filter(c => overtimeOn || c.key !== "overtime");
 
   const compRows = visibleComponents.map(c => {
     const cell = data[c.key];
@@ -3272,10 +3423,13 @@ $("#btn-create-profile").onclick = () => {
       defaultBonus: clamp(num("np-bonus", 0), 1_000_000),
       mensilita: Math.min(15, Math.max(12, Number($("#np-mensilita").value) || 12)),
       fringeMonth: Math.min(12, Math.max(1, Number($("#np-fringe-month").value) || 12)),
+      payDay: Math.min(28, Math.max(1, Number($("#np-payday").value) || 27)),
+      payDayNextMonth: $("#np-payday-month").value === "1",
       oreContrattoSett: clamp(num("np-contratto", 40), 168),
       forfaitOreSett: clamp(num("np-forfait", 0), 100),
       tariffaOraStraord: clamp(num("np-tariffa", 0), 1_000),
       workdays: chosenWd.length ? chosenWd : [1,2,3,4,5],
+      overtimeEnabled: $("#np-overtime-enabled").checked,
     },
     years: {},
     overtime: [],
@@ -3303,9 +3457,12 @@ $("#btn-settings").onclick = () => {
   $("#set-ticket").value = p.settings.ticketPerDay;
   $("#set-bonus").value = p.settings.defaultBonus || 0;
   $("#set-mensilita").value = String(Math.min(15, Math.max(12, Number(p.settings.mensilita) || 12)));
+  $("#set-payday").value = p.settings.payDay != null ? p.settings.payDay : 27;
+  $("#set-payday-month").value = p.settings.payDayNextMonth ? "1" : "0";
   $("#set-contratto").value = p.settings.oreContrattoSett != null ? p.settings.oreContrattoSett : 40;
   $("#set-forfait").value = p.settings.forfaitOreSett != null ? p.settings.forfaitOreSett : 0;
   $("#set-tariffa").value = p.settings.tariffaOraStraord || 0;
+  $("#set-overtime-enabled").checked = p.settings.overtimeEnabled !== false;
   const wd = Array.isArray(p.settings.workdays) ? p.settings.workdays : [1,2,3,4,5];
   $$("#set-workdays input").forEach(inp => { inp.checked = wd.includes(Number(inp.value)); });
   $("#set-fringe-month").innerHTML = MONTHS_IT.map((m,i) =>
@@ -3325,9 +3482,12 @@ $("#btn-save-settings").onclick = () => {
   p.settings.ticketPerDay = clamp($("#set-ticket").value, 1_000);
   p.settings.defaultBonus = clamp($("#set-bonus").value, 1_000_000);
   p.settings.mensilita = Math.min(15, Math.max(12, Number($("#set-mensilita").value) || 12));
+  p.settings.payDay = Math.min(28, Math.max(1, Number($("#set-payday").value) || 27));
+  p.settings.payDayNextMonth = $("#set-payday-month").value === "1";
   p.settings.oreContrattoSett = clamp($("#set-contratto").value, 168);
   p.settings.forfaitOreSett = clamp($("#set-forfait").value, 100);
   p.settings.tariffaOraStraord = clamp($("#set-tariffa").value, 1_000);
+  p.settings.overtimeEnabled = $("#set-overtime-enabled").checked;
   const chosen = $$("#set-workdays input:checked").map(i => Number(i.value)).sort();
   p.settings.workdays = chosen.length ? chosen : [1,2,3,4,5];
   p.settings.fringeMonth = Math.min(12, Math.max(1, Number($("#set-fringe-month").value) || 12));
@@ -3387,7 +3547,7 @@ function refreshBackupStats(){
 const STATE_TO_IT = { received: "ricevuto", missing: "mancante", not_expected: "non_atteso" };
 const STATE_FROM_IT = { ricevuto: "received", mancante: "missing", non_atteso: "not_expected" };
 const CSV_SEP = ";";
-const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default","forfait_settimana","tariffa_ora","giorni_lavorativi","contratto_settimana","mensilita"];
+const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default","forfait_settimana","tariffa_ora","giorni_lavorativi","contratto_settimana","mensilita","pay_giorno","pay_mese_dopo","overtime_abilitato"];
 const MONTH_COLS = ["profilo","anno","mese","stipendio_stato","stipendio_importo","welfare","ticket_stato","ticket_giorni","fringe","bonus_stato","bonus_importo","rimborso_stato","rimborso_importo","straord_stato","straord_ore_pagare","salary13_stato","salary14_stato","salary15_stato","salary13_importo","salary14_importo","salary15_importo"];
 const STRAORD_COLS = ["profilo","data","inizio","fine","pausa","nota"];
 
@@ -3446,6 +3606,9 @@ function buildCsv(storeIn){
       fmtNum(s.forfaitOreSett), fmtNum(s.tariffaOraStraord), wd,
       fmtNum(s.oreContrattoSett != null ? s.oreContrattoSett : 40),
       Math.min(15, Math.max(12, Number(s.mensilita) || 12)),
+      Math.min(28, Math.max(1, Number(s.payDay) || 27)),
+      s.payDayNextMonth ? 1 : 0,
+      s.overtimeEnabled === false ? 0 : 1,
     ]));
   }
   lines.push("");
@@ -3561,6 +3724,15 @@ function parseCsv(text){
         .filter(n => Number.isInteger(n) && n >= 1 && n <= 7);
       const contratto = (row.contratto_settimana || "").trim();
       const mensilita = Math.min(15, Math.max(12, Number(row.mensilita) || 12));
+      // New columns (v3.4) — read with safe defaults so v3.3 CSVs still
+      // import cleanly: pay cycle defaults to the 27th of the same month
+      // and overtime stays enabled.
+      const payRaw = (row.pay_giorno || "").trim();
+      const payDay = payRaw === "" ? 27 : Math.min(28, Math.max(1, Number(payRaw) || 27));
+      const payNextRaw = (row.pay_mese_dopo || "").trim();
+      const payDayNextMonth = payNextRaw === "1" || payNextRaw.toLowerCase() === "sì" || payNextRaw.toLowerCase() === "si" || payNextRaw.toLowerCase() === "true";
+      const otRaw = (row.overtime_abilitato || "").trim();
+      const overtimeEnabled = otRaw === "" ? true : !(otRaw === "0" || otRaw.toLowerCase() === "no" || otRaw.toLowerCase() === "false");
       settingsByName[name] = {
         salary: parseNum(row.stipendio),
         welfare: parseNum(row.welfare),
@@ -3573,6 +3745,9 @@ function parseCsv(text){
         workdays: wdRaw.length ? Array.from(new Set(wdRaw)).sort() : [1,2,3,4,5],
         oreContrattoSett: contratto === "" ? 40 : parseNum(contratto),
         mensilita,
+        payDay,
+        payDayNextMonth,
+        overtimeEnabled,
       };
     } else if(section === "months"){
       const name = (row.profilo || "").trim();

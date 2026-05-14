@@ -6,6 +6,60 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.4] — 2026-05-14
+
+Cinque modifiche che ribilanciano la pagina Salary attorno al **ciclo di pagamento reale** dell'utente (non più assunto come "fine mese"), introducono il toggle per disattivare Overtime, abbassano il tono di voce del logo e raddoppiano le tagline ironiche.
+
+### Salary — giorno di pagamento configurabile
+
+- **Due nuovi setting**: `payDay` (1–28, default 27) e `payDayNextMonth` (boolean, default false). Insieme definiscono quando "atterra" lo stipendio del mese N: il `payDay` del mese stesso, oppure il `payDay` del mese successivo (per le presenze sfalsate — es. maggio pagato il 15 giugno).
+- **Nuove funzioni `paymentDateFor(year, m0, settings)` e `isPaymentDue(year, m0, settings, now)`** sostituiscono la vecchia logica "passato vs corrente vs futuro" basata su fine mese. Tutta la pagina Salary ora rispetta il ciclo configurato: `computeYearTotals` somma in "mancante" solo i mesi il cui pay date è passato; `monthStatus` etichetta come "in arrivo" tutto ciò che non è ancora dovuto, anche se siamo nel mese corrente ma prima del pay date.
+- `payDay` clampato a 28 per evitare di "saltare" febbraio (data sempre valida in ogni mese).
+- Migration retro-compatibile via `ensureProfile`: profili pre-3.4 ricevono `payDay: 27, payDayNextMonth: false` (= comportamento storico).
+- UI nelle settings e nel new-profile sheet: due campi nel `.field-row` "Giorno di pagamento" + select "Stesso mese / Mese successivo".
+
+### Salary — toggle Overtime
+
+- **Nuovo setting `overtimeEnabled` (default true).** Quando false:
+  - La tabbar flottante in fondo schermo viene nascosta (niente più switch fra le due pagine).
+  - La voce "Straordinari" nei mesi della pagina Salary scompare dalla lista componenti.
+  - `expectedAmountFor("overtime")` ritorna 0 indipendentemente dallo stato, quindi gli straordinari non contribuiscono né ai totali annuali né al month-status.
+  - Se l'utente era sulla pagina Overtime quando ha disabilitato, viene reindirizzato a Salary.
+- Toggle iOS-style (`.settings-toggle` + `.toggle-track`) accanto al titolo della sezione "Overtime" nelle impostazioni. Visivamente discreto, conferma immediata dello stato.
+- `renderOvertimeVisibility()` introdotta come step del render principale; `switchTab()` rifiuta i passaggi a Overtime quando è disabilitato (difesa in profondità).
+
+### Overtime — hero da sinistra
+
+- **Layout cambia da grid asimmetrico a flex con `justify-content: flex-start`** (gap `6px 28px`). L'importo in euro a sinistra, le ore subito a destra, entrambe ancorate al bordo sinistro del hero. Il pattern "centro asimmetrico" della 3.2.4 non comunicava la priorità di lettura — adesso si legge in modo lineare da sx a dx.
+- Rimosse le classi `.primary` / `.secondary` (il layout non ne ha più bisogno).
+
+### Logo — tutto minuscolo
+
+- **"Where is my *Salary*" → "where is my *salary*"** (iniziali minuscole). Riduce ulteriormente il tono "prodotto" e si avvicina al gesto manoscritto della filosofia *Quiet Ledger*.
+
+### Tagline — `{payDay}` + raddoppio
+
+- **Placeholder `{payDay}` aggiunto** in `interpolateTagline`. Le frasi storiche `"Il 27 non è una data. È una promessa."` e `"I conti si fanno alla fine. Anche se l'app li fa al 27."` ora usano `{payDay}` e si adattano al giorno scelto dall'utente.
+- **Entrambe le liste raddoppiate**: `TAGLINES_ORE` 15 → 30, `TAGLINES_STIPENDIO` 15 → 30. Le nuove frasi continuano il tono ironico-emotivo dell'app (`"Stai costruendo il futuro. Ti pagheranno nel passato."`, `"Il salario è la prima bugia che ti raccontano, l'ultima che credi."`).
+
+### Backup CSV — copertura nuovi setting
+
+- **Tre colonne aggiuntive in `SETTINGS`**: `pay_giorno`, `pay_mese_dopo` (0/1), `overtime_abilitato` (0/1). Il fix è stato trovato in audit pre-release: senza queste colonne, un round-trip export → re-import ripristinava i default v3.3 (27, stesso mese, abilitato), perdendo silenziosamente le scelte dell'utente.
+- Parser tollerante (header *prefisso*) → file v3.3 senza queste colonne si caricano con i default come prima. I valori booleani accettano sia `0/1` che `sì/no` / `true/false` per robustezza.
+
+### Audit pre-release
+
+- `node --check` su JS estratto: **PASS**.
+- Grep di riferimenti morti (`empty-mark`, `salaryMultiplierFor`, `profile-pill`, `cal-grid`, `hero-amount-aux`, `.hero-amount.primary/.secondary`): **0 hit** in codice attivo (solo 1 commento esplicativo).
+- Verificato `paymentDateFor` su edge case mese 12 + offset 1: JS `new Date(year, 12, payDay)` rolla correttamente a gennaio dell'anno successivo. Il calcolo `due` resta coerente attraverso il confine d'anno.
+- Verificato CSV round-trip su un profilo con `payDay=15, payDayNextMonth=true, overtimeEnabled=false`: import preserva i tre valori.
+
+### Internals
+
+- Versione bumped a `3.4`.
+
+---
+
 ## [3.3] — 2026-05-14
 
 Release stabile che consolida il ciclo di lavoro su **Overtime** iniziato in 3.1. Niente nuove feature rispetto alla 3.2.4: solo un bump di versione che chiude la sequenza di 5 iterazioni (`3.2 → 3.2.4`) e segnala la fine del rework.
