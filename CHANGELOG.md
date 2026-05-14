@@ -6,6 +6,43 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.4.2] — 2026-05-14
+
+Fix critico di un bug ereditato dalla v3.1 e rimasto nascosto fino a oggi. La pagina si caricava completamente vuota (solo topbar + tabbar, niente hero, niente welcome card, niente version tag) su qualunque dispositivo — desktop, Safari mobile, Chrome mobile, finestre private — perché un'eccezione module-level interrompeva l'esecuzione dello script *prima* che `bootstrap()` venisse chiamato.
+
+### Diagnosi
+
+- `runMigrations()` (introdotta in 3.1) viene eseguita al module-load, subito dopo `let store = loadStore();`.
+- Anche su device fresh senza profili, la migration setta `store._migrations.v3_1_overtime_default = true` e chiama `saveStore()` per persistere il flag.
+- `saveStore()` contiene una chiamata difensiva `if(typeof schedulePush === "function") schedulePush();` per innescare la sync cloud debounced quando configurata.
+- `schedulePush()` è una **function declaration**, quindi hoisted → il `typeof` check passa anche se la dichiarazione testuale è 2.000 righe più sotto → la funzione viene effettivamente chiamata.
+- All'interno, `schedulePush` referenzia `syncState`, dichiarato con `let` molto più giù (vicino a tutto il blocco sync cloud).
+- `let` ha **Temporal Dead Zone**: leggere il binding prima della dichiarazione lessicale lancia `ReferenceError: Cannot access 'syncState' before initialization`.
+- L'eccezione esce dalla call chain, interrompe l'esecuzione module-level, e `bootstrap()` (alla fine del file) non viene mai raggiunto. Risultato: solo i markup statici (topbar, tabbar) sono visibili. Il version-tag, la welcome card e tutto il render dipendono da `bootstrap()` → rimangono vuoti.
+
+Il bug era deterministico, manifestava su qualunque ambiente, ma è rimasto invisibile per giorni perché la maggior parte degli utenti aveva localStorage popolato da versioni precedenti (le copie cacheate v2.0/v3.0.1 dell'HTML pre-fix non avevano il problema, quindi continuavano a girare) — solo le installazioni "fresh" dopo la 3.1 lo manifestavano, e ironicamente è emerso quando un service worker (3.4.1) ha iniziato a servire l'HTML aggiornato a chi prima vedeva una copia stantia.
+
+### Fix
+
+- **Forward-declaration di `syncState` al module-level**, subito dopo `let store = loadStore();`, con valore iniziale `null`. La dichiarazione vera (l'IIFE che legge da localStorage) resta dove era nel blocco sync cloud, ma adesso è una **riassegnazione** invece di una nuova dichiarazione `let`.
+- Niente più TDZ: quando `schedulePush()` legge `syncState` durante l'esecuzione di `runMigrations() → saveStore()`, il binding esiste già con valore `null`, il guard `if(!syncState || ...)` ritorna early, nessuna eccezione.
+
+### Audit pre-release
+
+- jsdom run di v3.0.1, v3.3, v3.4.2 a confronto: solo le versioni con il fix (v3.0.1 e v3.4.2) renderizzano la welcome card. v3.3 cruda lancia `ReferenceError`. Conferma diretta della diagnosi.
+- `bootstrap()` ora viene eseguito normalmente su device fresh → version tag impostato, `setSyncStatus("off")` chiamato, welcome card aperta dopo 250ms come previsto.
+
+### Internals
+
+- Versione bumped a `3.4.2`.
+- Cache key del service worker bumped a `wims-v3.4.2` per invalidare la cache 3.4.1 al primo activate.
+
+### Lezione
+
+Hoisting + TDZ creano una trappola insidiosa: una function declaration può chiamare codice che dipende da `let`/`const` non ancora inizializzati. Il pattern `if(typeof X === "function") X()` ha funzionato come check di esistenza per la function declaration ma **non** ha protetto da TDZ all'interno. Regola da ricordare: una funzione che usa `let`/`const` di un'altra sezione del file dovrebbe essere chiamata solo *dopo* che entrambe sono inizializzate, oppure tutte le `let` referenziate vanno forward-declared al top del modulo.
+
+---
+
 ## [3.4.1] — 2026-05-14
 
 Bugfix release: la versione installata via "Aggiungi a Home" su iOS restava ferma a una build vecchia (v2.0) anche quando Safari su browser mostrava già la 3.4. Il problema era strutturale — l'app non aveva mai avuto un service worker né un `manifest.webmanifest` — quindi la WebView standalone di iOS cacheava aggressivamente l'HTML e non rinfrescava mai.

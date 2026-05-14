@@ -1800,7 +1800,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.4.1";
+const VERSION = "3.4.2";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -1968,6 +1968,12 @@ function saveStore(){
   if(typeof schedulePush === "function") schedulePush();
 }
 let store = loadStore();
+
+// Forward-declared because saveStore() — called transitively by runMigrations()
+// below — references schedulePush(), which is hoisted and reads `syncState`.
+// The real value is assigned further down where the sync subsystem lives;
+// here we just reserve the binding so the TDZ doesn't trip on a fresh device.
+let syncState = null;
 
 // One-shot data migrations. Each entry runs once per device — we mark it
 // done in `store._migrations` so reloads don't re-apply it. Migrations only
@@ -4088,7 +4094,7 @@ document.addEventListener("keydown", (e) => {
  *    on github.com.
  * ============================================================ */
 
-let syncState = (() => {
+syncState = (() => {
   try { const r = localStorage.getItem(SYNC_KEY); return r ? JSON.parse(r) : null; }
   catch(e){ return null; }
 })();
