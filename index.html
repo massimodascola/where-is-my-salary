@@ -116,35 +116,33 @@
   .topbar{
     position: sticky; top: 0; z-index: 5;
     margin: -18px -18px 22px;
-    padding: 14px 18px 12px;
+    padding: 20px 18px 16px;
     display: flex; align-items: center; gap: 10px;
     background: linear-gradient(180deg, rgba(250,247,242,.95) 70%, rgba(250,247,242,0));
     backdrop-filter: saturate(140%) blur(10px);
     -webkit-backdrop-filter: saturate(140%) blur(10px);
   }
   .brand{ display:flex; align-items:center; gap:10px; }
-  .brand-mark{
-    width: 32px; height: 32px; border-radius: 9px;
-    background: linear-gradient(155deg, var(--sienna) 0%, var(--sienna-deep) 100%);
-    color: #FFF; display: grid; place-items: center;
-    font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 18px;
-    letter-spacing: -.02em;
-    box-shadow: 0 4px 12px rgba(201, 100, 66, .25), inset 0 1px 0 rgba(255,255,255,.18);
-  }
+  /* Logo voice. Larger now that the topbar carries less furniture (no
+     brand-mark, no profile pill, no "+ add profile" button). The Salary
+     accent stays in sienna italic for the same visual signature. */
   .brand-name{
     font-family: var(--serif); font-weight: 500;
-    font-size: 19px; letter-spacing: -.012em; line-height: 1;
+    font-size: clamp(24px, 5vw, 30px);
+    letter-spacing: -.025em; line-height: 1;
     color: var(--ink);
   }
   .brand-name em{
-    font-style: italic; font-weight: 400; color: var(--sienna);
-  }
-  .brand-name small{
-    display:block; font-family: var(--sans); font-weight: 500;
-    color: var(--ink-muted); font-size: 11px; letter-spacing: .02em;
-    margin-top: 2px;
+    font-style: italic; font-weight: 500; color: var(--sienna);
   }
   .topbar .spacer{ flex:1 }
+  .app-version{
+    display: block; text-align: center;
+    margin-top: 18px;
+    font-family: var(--sans); font-weight: 500;
+    color: var(--ink-faint); font-size: 11px;
+    letter-spacing: .04em;
+  }
 
   .icon-btn{
     width: 40px; height: 40px; border-radius: 11px;
@@ -157,33 +155,6 @@
   .icon-btn:hover{ background: var(--card-elev); color: var(--sienna); border-color: var(--line); }
   .icon-btn:active{ transform: scale(.96) }
 
-  /* Profile pill */
-  .profile-pill{
-    display:flex; align-items:center; gap:8px;
-    padding: 4px 12px 4px 4px;
-    background: var(--card); border:1px solid var(--line);
-    border-radius: var(--radius-pill);
-    box-shadow: var(--shadow-rest);
-  }
-  .avatar{
-    width: 30px; height: 30px; border-radius: 50%;
-    display: grid; place-items: center;
-    color: #FFF; font-weight: 600; font-size: 13px;
-    background: linear-gradient(140deg, var(--sienna) 0%, var(--sienna-deep) 100%);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
-    font-family: var(--serif); font-style: italic;
-  }
-  .profile-pill select{
-    appearance: none; -webkit-appearance: none;
-    background: transparent; border: none;
-    padding: 0 16px 0 0;
-    font-family: var(--sans); font-weight: 600; font-size: 14px;
-    color: var(--ink);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23978C7E' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right center;
-    cursor: pointer;
-  }
-  .profile-pill select:focus{ outline: none }
 
   /* ---------- Hero ---------- */
   .hero{
@@ -254,14 +225,20 @@
     padding-top: 18px;
     border-top: 1px dashed var(--line);
   }
+  /* Flex column with the value pushed to the bottom: keeps all three values
+     visually aligned on the same baseline even when labels wrap to 2 lines. */
+  .hero-stat{ display: flex; flex-direction: column; }
   .hero-stat .k{
     font-size: 11px; color: var(--ink-muted);
     text-transform: uppercase; letter-spacing: .08em; font-weight: 600;
+    line-height: 1.3;
   }
   .hero-stat .v{
     font-family: var(--serif);
     font-size: 18px; font-weight: 500;
-    margin-top: 4px; letter-spacing: -.012em;
+    margin-top: auto;
+    padding-top: 4px;
+    letter-spacing: -.012em;
     font-variant-numeric: tabular-nums;
     color: var(--ink);
   }
@@ -369,49 +346,88 @@
   }
   .month.open .month-body{ display: block }
 
-  /* ---------- Component row ---------- */
+  /* ---------- Component row ----------
+     Layout: icon | info (name+detail) | amount | tri-state.
+     On narrow viewports the amount drops below the info to give the name
+     full width and avoid mid-row truncation. */
   .comp{
-    display: flex; align-items: center; gap: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    grid-template-areas: "icon info amount tri";
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 4px;
     padding: 12px 12px;
     border-radius: 12px;
   }
   .comp + .comp{ border-top: 1px dashed var(--line-soft); }
 
   .comp-icon{
+    grid-area: icon;
     width: 38px; height: 38px; flex-shrink: 0;
     border-radius: 11px;
     display: grid; place-items: center; font-size: 18px;
     background: var(--paper-tint);
     border: 1px solid var(--line-soft);
   }
-  .comp-info{ flex: 1; min-width: 0; }
+  .comp-info{ grid-area: info; min-width: 0; }
   .comp-name{
     font-weight: 600; font-size: 14.5px;
     letter-spacing: -.005em; color: var(--ink);
+    line-height: 1.25;
   }
   .comp-detail{
     font-size: 12.5px; color: var(--ink-muted);
-    margin-top: 2px;
+    margin-top: 3px;
+    line-height: 1.35;
   }
   .comp-detail input{
     background: transparent; border: none;
     font: inherit; color: var(--ink);
-    width: 56px; padding: 1px 4px;
+    /* Inline width is set per-input from JS based on value/placeholder so
+       the field hugs its content. Modern browsers also honor `field-sizing`
+       which auto-grows as the user types. Fallback to ~5ch otherwise. */
+    width: 5ch;
+    field-sizing: content;
+    min-width: 3ch;
+    max-width: 14ch;
+    padding: 1px 2px;
     border-bottom: 1px dashed var(--line);
     text-align: left;
     font-variant-numeric: tabular-nums;
   }
   .comp-detail input:focus{ outline: none; border-bottom-color: var(--sienna) }
   .comp-amount{
+    grid-area: amount;
     text-align: right;
     font-family: var(--serif); font-weight: 500;
     font-size: 15px; letter-spacing: -.01em;
     font-variant-numeric: tabular-nums;
-    min-width: 84px; color: var(--ink);
+    min-width: 0; color: var(--ink);
+    white-space: nowrap;
   }
+  .comp-amount:empty{ display: none; }
   .comp-amount.dim{ color: var(--ink-faint); font-weight: 400 }
   .comp-amount.ok{ color: var(--sage) }
   .comp-amount.danger{ color: var(--terracotta) }
+  .tri{ grid-area: tri; }
+
+  /* Mobile: drop the amount under the info on narrow viewports so the
+     row stops trying to cram four columns into ~360 px. */
+  @media (max-width: 480px){
+    .comp{
+      grid-template-columns: auto 1fr auto;
+      grid-template-areas:
+        "icon info  tri"
+        "icon amount tri";
+    }
+    .comp-amount{
+      text-align: left;
+      font-size: 14px;
+      padding-top: 2px;
+    }
+    .comp-amount:empty{ display: none; }
+  }
 
   /* Tri-state */
   .tri{
@@ -486,6 +502,9 @@
     color: var(--sienna-deep);
   }
   .tabbar .tab:hover:not(.active){ color: var(--ink); }
+  /* Hide the floating tabbar whenever a sheet / modal / confirm overlay is open. */
+  body.modal-open .tabbar,
+  body.overlay-open .tabbar{ display: none; }
   /* Leave room above the tab bar so content doesn't get hidden behind it. */
   .app{ padding-bottom: 90px; }
 
@@ -868,7 +887,10 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Calendar grid (compact, centered) */
+  /* Calendar grid (compact, centered). Headers and day cells share one grid
+     container so the vertical rhythm between rows is consistent — using two
+     separate grids made the first row sit closer to the headers than to
+     subsequent rows. */
   .ore-cal{
     background: var(--card);
     border: 1px solid var(--line);
@@ -878,7 +900,7 @@
     max-width: 380px;
     box-shadow: var(--shadow-rest);
   }
-  .cal-header, .cal-grid{
+  .cal-table{
     display: grid;
     /* minmax(0,1fr) lets the tracks shrink below content min-size — without
        it, aspect-ratio cells refuse to shrink and overflow the container. */
@@ -891,7 +913,7 @@
     font-weight: 700;
     color: var(--ink-muted);
     letter-spacing: .06em;
-    padding: 6px 0 8px;
+    padding: 2px 0 6px;
     text-transform: uppercase;
   }
   .cal-h.weekend{ color: var(--ink-faint); }
@@ -909,8 +931,7 @@
     transition: background .12s, transform .08s;
     user-select: none;
   }
-  .cal-c:not(.empty):hover{ background: var(--paper-tint); transform: scale(1.06); }
-  .cal-c.empty{ cursor: default; visibility: hidden; }
+  .cal-c:hover{ background: var(--paper-tint); transform: scale(1.06); }
   .cal-c.weekend{ color: var(--ink-muted); background: var(--paper-tint); }
   .cal-c.has-events{
     background: var(--sienna);
@@ -1096,10 +1117,23 @@
   }
   .field-row{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+  /* Visual separator for settings groups (Salary / Overtime / System). */
+  .settings-section-title{
+    font-family: var(--serif); font-style: italic;
+    font-size: 16px; font-weight: 500;
+    color: var(--sienna);
+    margin: 22px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--line);
+    letter-spacing: -.005em;
+  }
+  .settings-section-title:first-child{ margin-top: 4px; }
+
   /* ---------- Empty state (entire card is clickable) ---------- */
   .empty{
     text-align: center;
-    padding: 40px 24px 36px;
+    padding: 56px 24px 52px;
+    min-height: 360px;
     background: var(--card-elev);
     border: 1px solid var(--line);
     border-radius: var(--radius-card);
@@ -1107,6 +1141,10 @@
     position: relative; overflow: hidden;
     cursor: pointer;
     transition: transform .15s ease, box-shadow .2s ease, border-color .2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
   .empty:hover{
     transform: translateY(-1px);
@@ -1139,17 +1177,6 @@
       radial-gradient(360px 200px at 20% 0%, var(--sienna-soft), transparent 70%),
       radial-gradient(280px 200px at 100% 100%, var(--gold-tint), transparent 70%);
     pointer-events: none;
-  }
-  .empty-mark{
-    position: relative;
-    width: 64px; height: 64px; margin: 0 auto 16px;
-    display: grid; place-items: center;
-    border-radius: 50%;
-    background: var(--card);
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow-soft);
-    font-family: var(--serif); font-style: italic; font-weight: 600;
-    color: var(--sienna); font-size: 30px;
   }
   .empty h2{
     position: relative;
@@ -1402,14 +1429,32 @@
       <label>Come ti chiami</label>
       <input type="text" id="set-name" placeholder="il tuo nome" />
     </div>
+
+    <div class="settings-section-title">Salary</div>
     <div class="field-row">
       <div class="field">
         <label>Stipendio mensile (€)</label>
         <input type="number" id="set-salary" min="0" step="0.01" />
       </div>
       <div class="field">
+        <label>Mensilità annue</label>
+        <select id="set-mensilita">
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+        </select>
+        <div class="hint">13a a dicembre, 14a a giugno, 15a a luglio.</div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
         <label>Welfare mensile (€)</label>
         <input type="number" id="set-welfare" min="0" step="0.01" />
+      </div>
+      <div class="field">
+        <label>Ticket per giorno (€)</label>
+        <input type="number" id="set-ticket" min="0" step="0.01" />
       </div>
     </div>
     <div class="field-row">
@@ -1422,28 +1467,13 @@
         <select id="set-fringe-month"></select>
       </div>
     </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Ticket per giorno (€)</label>
-        <input type="number" id="set-ticket" min="0" step="0.01" />
-      </div>
-      <div class="field">
-        <label>Bonus standard (€)</label>
-        <input type="number" id="set-bonus" min="0" step="0.01" />
-        <div class="hint">Si applica se segni un bonus come atteso senza specificarne l'importo.</div>
-      </div>
+    <div class="field">
+      <label>Bonus standard (€)</label>
+      <input type="number" id="set-bonus" min="0" step="0.01" />
+      <div class="hint">Si applica se segni un bonus come atteso senza specificarne l'importo.</div>
     </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Forfait straord. (h/settimana)</label>
-        <input type="number" id="set-forfait" min="0" step="0.5" />
-        <div class="hint">Ore già coperte dallo stipendio. Si sottraggono dagli straordinari prima del calcolo.</div>
-      </div>
-      <div class="field">
-        <label>Tariffa straord. (€/h)</label>
-        <input type="number" id="set-tariffa" min="0" step="0.01" />
-      </div>
-    </div>
+
+    <div class="settings-section-title">Overtime</div>
     <div class="field">
       <label>Giorni lavorativi</label>
       <div class="workday-row" id="set-workdays">
@@ -1457,7 +1487,25 @@
       </div>
       <div class="hint">Ore fuori da questi giorni (es. weekend) sono 100% straordinario, senza forfait.</div>
     </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Ore contratto (h/settimana)</label>
+        <input type="number" id="set-contratto" min="0" step="0.5" />
+        <div class="hint">Le ore da contratto sono coperte dallo stipendio.</div>
+      </div>
+      <div class="field">
+        <label>Forfait straord. (h/settimana)</label>
+        <input type="number" id="set-forfait" min="0" step="0.5" />
+        <div class="hint">Ore in più oltre il contratto, comunque coperte dallo stipendio.</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Tariffa straord. (€/h)</label>
+      <input type="number" id="set-tariffa" min="0" step="0.01" />
+      <div class="hint">Sopra le (contratto + forfait) ore settimanali contano come straordinari pagati a questa tariffa.</div>
+    </div>
 
+    <div class="settings-section-title">Sistema</div>
     <div class="sync-block" id="sync-block">
       <div class="sync-head">
         <div class="sync-title">Sync tra dispositivi</div>
@@ -1481,7 +1529,7 @@
   </div>
   <div class="sheet-foot">
     <div class="btn-row">
-      <button class="btn danger" id="btn-delete-profile" type="button">Elimina profilo</button>
+      <button class="btn danger" id="btn-delete-profile" type="button">Azzera dati</button>
       <button class="btn" id="btn-save-settings" type="button">Salva</button>
     </div>
   </div>
@@ -1499,14 +1547,32 @@
       <label>Come ti chiami</label>
       <input type="text" id="np-name" placeholder="il tuo nome" />
     </div>
+
+    <div class="settings-section-title">Salary</div>
     <div class="field-row">
       <div class="field">
         <label>Stipendio mensile (€)</label>
         <input type="number" id="np-salary" min="0" step="0.01" placeholder="0,00" />
       </div>
       <div class="field">
+        <label>Mensilità annue</label>
+        <select id="np-mensilita">
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+        </select>
+        <div class="hint">13a a dicembre, 14a a giugno, 15a a luglio.</div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
         <label>Welfare mensile (€)</label>
         <input type="number" id="np-welfare" min="0" step="0.01" value="400" />
+      </div>
+      <div class="field">
+        <label>Ticket per giorno (€)</label>
+        <input type="number" id="np-ticket" min="0" step="0.01" value="10" />
       </div>
     </div>
     <div class="field-row">
@@ -1515,12 +1581,50 @@
         <input type="number" id="np-fringe" min="0" step="0.01" value="1000" />
       </div>
       <div class="field">
-        <label>Ticket per giorno (€)</label>
-        <input type="number" id="np-ticket" min="0" step="0.01" value="10" />
+        <label>Mese del fringe</label>
+        <select id="np-fringe-month"></select>
       </div>
     </div>
+    <div class="field">
+      <label>Bonus standard (€)</label>
+      <input type="number" id="np-bonus" min="0" step="0.01" value="0" />
+      <div class="hint">Si applica se segni un bonus come atteso senza specificarne l'importo.</div>
+    </div>
+
+    <div class="settings-section-title">Overtime</div>
+    <div class="field">
+      <label>Giorni lavorativi</label>
+      <div class="workday-row" id="np-workdays">
+        <label><input type="checkbox" value="1" checked><span>Lun</span></label>
+        <label><input type="checkbox" value="2" checked><span>Mar</span></label>
+        <label><input type="checkbox" value="3" checked><span>Mer</span></label>
+        <label><input type="checkbox" value="4" checked><span>Gio</span></label>
+        <label><input type="checkbox" value="5" checked><span>Ven</span></label>
+        <label><input type="checkbox" value="6"><span>Sab</span></label>
+        <label><input type="checkbox" value="7"><span>Dom</span></label>
+      </div>
+      <div class="hint">Ore fuori da questi giorni (es. weekend) sono 100% straordinario, senza forfait.</div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Ore contratto (h/settimana)</label>
+        <input type="number" id="np-contratto" min="0" step="0.5" value="40" />
+        <div class="hint">Coperte dallo stipendio.</div>
+      </div>
+      <div class="field">
+        <label>Forfait straord. (h/settimana)</label>
+        <input type="number" id="np-forfait" min="0" step="0.5" value="0" />
+        <div class="hint">Extra oltre il contratto, comunque coperte.</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Tariffa straord. (€/h)</label>
+      <input type="number" id="np-tariffa" min="0" step="0.01" value="0" />
+      <div class="hint">Oltre (contratto + forfait) ore settimanali si pagano a questa tariffa.</div>
+    </div>
+
     <button class="btn full large" id="btn-create-profile" style="margin-top:8px">Crea il mio profilo</button>
-    <div class="help" style="margin-top:12px">Tutti questi valori si possono cambiare in seguito dall'icona ⚙️ in alto.</div>
+    <div class="help" style="margin-top:12px">Tutti questi valori si possono cambiare in seguito dall'icona in alto.</div>
   </div>
 </div>
 
@@ -1569,22 +1673,13 @@
   <!-- Top bar -->
   <div class="topbar">
     <div class="brand">
-      <div class="brand-mark">€</div>
       <div class="brand-name">
         Where is my <em>Salary</em>
-        <small>mese per mese · <span id="version-tag">v2.0</span></small>
       </div>
     </div>
     <div class="spacer"></div>
-    <div class="profile-pill" id="profile-pill" style="display:none">
-      <div class="avatar" id="avatar">M</div>
-      <select id="profile-select" aria-label="Seleziona profilo"></select>
-    </div>
     <button class="icon-btn sync-pill" id="sync-indicator" data-status="off" aria-label="Stato sync cloud" title="Sync cloud" type="button" style="display:none">
       <span class="sync-icon">☁</span>
-    </button>
-    <button class="icon-btn" id="btn-add-profile" aria-label="Aggiungi profilo" title="Aggiungi profilo">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
     </button>
     <button class="icon-btn" id="btn-settings" aria-label="Impostazioni" title="Impostazioni">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1A2 2 0 1 1 4.3 16.9l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1A2 2 0 1 1 7.1 4.3l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1A2 2 0 1 1 19.7 7l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -1599,16 +1694,16 @@
       <main id="main-ore"></main>
     </section>
   </div>
+
+  <div class="app-version"><span id="version-tag">v2.0</span></div>
 </div>
 
 <nav class="tabbar" id="tabbar" aria-label="Sezioni">
-  <button class="tab active" type="button" data-tab="stipendio" aria-label="Stipendio">
-    <span class="tab-icon">€</span>
-    <span class="tab-label">Stipendio</span>
+  <button class="tab active" type="button" data-tab="stipendio" aria-label="Salary">
+    <span class="tab-label">Salary</span>
   </button>
-  <button class="tab" type="button" data-tab="ore" aria-label="Ore lavorate">
-    <span class="tab-icon">🕐</span>
-    <span class="tab-label">Ore</span>
+  <button class="tab" type="button" data-tab="ore" aria-label="Overtime">
+    <span class="tab-label">Overtime</span>
   </button>
 </nav>
 
@@ -1621,7 +1716,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "2.0";
+const VERSION = "3.0";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -1630,6 +1725,13 @@ const MONTHS_IT = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Lugl
 
 const COMPONENTS = [
   { key:"salary",   label:"Stipendio",      icon:"💼", expectedDefault:true,  hasAmount:false, hasDays:false },
+  // Extra mensilità — they show up only in the dedicated month when the
+  // profile's `mensilita` setting reaches the threshold. Default state is
+  // "missing" so they count as expected in the right month and remain
+  // invisible otherwise.
+  { key:"salary13", label:"Tredicesima",    icon:"🎄", expectedDefault:true,  hasAmount:false, hasDays:false, extraSalary:13 },
+  { key:"salary14", label:"Quattordicesima",icon:"🌞", expectedDefault:true,  hasAmount:false, hasDays:false, extraSalary:14 },
+  { key:"salary15", label:"Quindicesima",   icon:"✨", expectedDefault:true,  hasAmount:false, hasDays:false, extraSalary:15 },
   { key:"welfare",  label:"Welfare",        icon:"🌿", expectedDefault:true,  hasAmount:false, hasDays:false },
   { key:"ticket",   label:"Buoni pasto",    icon:"🍱", expectedDefault:true,  hasAmount:false, hasDays:true  },
   { key:"fringe",   label:"Fringe benefit", icon:"🎁", expectedDefault:false, hasAmount:false, hasDays:false },
@@ -1637,6 +1739,22 @@ const COMPONENTS = [
   { key:"refund",   label:"Rimborso spese", icon:"🧾", expectedDefault:false, hasAmount:true,  hasDays:false },
   { key:"overtime", label:"Straordinari",   icon:"🕐", expectedDefault:false, hasAmount:false, hasDays:false },
 ];
+
+// Fixed default months for extra salary payments (13a, 14a, 15a).
+// Keyed by mensilità index (13/14/15) → m0+1 (1=Jan..12=Dec).
+const EXTRA_SALARY_DEFAULT_MONTHS = { 13: 12, 14: 6, 15: 7 };
+
+// True when an extra-salary component is paid in the given calendar month
+// for the profile's chosen mensilità count. Used both to filter the month
+// card render and to compute correct yearly totals.
+function extraSalaryApplies(comp, settings, m0){
+  if(!comp.extraSalary) return true;
+  const need = comp.extraSalary;
+  const has = Number(settings.mensilita) || 12;
+  if(has < need) return false;
+  const month = EXTRA_SALARY_DEFAULT_MONTHS[need];
+  return month && (m0 + 1) === month;
+}
 
 /* ----- Italian holidays for working-day count ----- */
 function easterSunday(year){
@@ -1724,9 +1842,11 @@ function isoDayOfWeek(dateStr){
 function isWorkday(dateStr, workdays){
   return (workdays || [1,2,3,4,5]).includes(isoDayOfWeek(dateStr));
 }
-function paidHoursForMonth(events, year, m0, forfaitWeek, workdays){
-  // Workday hours are subject to a weekly forfait (max(0, week_hours - forfait)).
-  // Non-workday hours (weekend/holidays in user settings) are 100% paid.
+function paidHoursForMonth(events, year, m0, forfaitWeek, workdays, contractWeek){
+  // Threshold = contract hours + forfait hours per week. Workday hours below
+  // the threshold are absorbed by salary; only hours above count as paid
+  // overtime. Non-workday hours (weekend/holidays per user settings) are 100%
+  // paid (no absorption).
   const inMonth = eventsInMonth(events, year, m0);
   if(inMonth.length === 0) return 0;
   const wd = (workdays && workdays.length) ? workdays : [1,2,3,4,5];
@@ -1742,9 +1862,9 @@ function paidHoursForMonth(events, year, m0, forfaitWeek, workdays){
       nonWorkHours += h;
     }
   }
-  const forfait = Number(forfaitWeek) || 0;
+  const threshold = (Number(contractWeek) || 0) + (Number(forfaitWeek) || 0);
   let paid = nonWorkHours;
-  for(const k in workByWeek) paid += Math.max(0, workByWeek[k] - forfait);
+  for(const k in workByWeek) paid += Math.max(0, workByWeek[k] - threshold);
   return paid;
 }
 function genEventId(){ return "ev_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 6); }
@@ -1772,19 +1892,33 @@ let openMonthIdx = null;
 function defaultSettings(){
   return {
     salary: 0, welfare: 400, fringe: 1000, ticketPerDay: 10, fringeMonth: 12, defaultBonus: 0,
-    // Overtime: 5h/week absorbed by salary (CCNL forfait); rate applied to remainder.
-    forfaitOreSett: 5, tariffaOraStraord: 0,
+    // Number of yearly salary payments. Standard Italian CCNL: 12, 13, 14 (or 15).
+    // Extra months (13a/14a/15a) are paid in fixed default months — see
+    // EXTRA_SALARY_DEFAULT_MONTHS (declared next to COMPONENTS).
+    mensilita: 12,
+    // Weekly contract hours. Together with `forfaitOreSett` they define the
+    // weekly threshold: hours worked in workdays below (contract + forfait) are
+    // covered by the base salary; only hours above count as paid overtime.
+    oreContrattoSett: 40,
+    // Forfait — extra weekly hours absorbed by salary on top of the contract.
+    forfaitOreSett: 0,
+    tariffaOraStraord: 0,
     // ISO weekday numbers that count as workdays. 1=Mon..7=Sun. Non-workday hours
-    // are 100% paid (no forfait absorption).
+    // are 100% paid (no absorption).
     workdays: [1,2,3,4,5],
   };
 }
+
 function defaultMonth(){
   const m = {};
   for(const c of COMPONENTS){
     m[c.key] = { state: c.expectedDefault ? "missing" : "not_expected" };
     if(c.hasDays) m[c.key].days = null;
     if(c.hasAmount) m[c.key].amount = 0;
+    // Salary and extra mensilità (13a/14a/15a) carry an optional per-month
+    // amount override. `null` is the sentinel for "fall back to the salary
+    // base" — distinct from `0` which would mean "explicitly zero".
+    if(c.key === "salary" || c.extraSalary) m[c.key].amount = null;
   }
   // overtime cell carries an optional per-month hours-to-pay override (null = use auto-calc).
   m.overtime.hoursOverride = null;
@@ -1797,8 +1931,10 @@ function ensureProfile(id){
   // Migration: ensure new fields exist on older profiles.
   if(!Array.isArray(p.overtime)) p.overtime = [];
   if(p.settings){
-    if(p.settings.forfaitOreSett == null) p.settings.forfaitOreSett = 5;
+    if(p.settings.forfaitOreSett == null) p.settings.forfaitOreSett = 0;
     if(p.settings.tariffaOraStraord == null) p.settings.tariffaOraStraord = 0;
+    if(p.settings.oreContrattoSett == null) p.settings.oreContrattoSett = 40;
+    if(p.settings.mensilita == null) p.settings.mensilita = 12;
     if(!Array.isArray(p.settings.workdays) || p.settings.workdays.length === 0){
       p.settings.workdays = [1,2,3,4,5];
     }
@@ -1810,8 +1946,14 @@ function ensureYear(profile, year){
   for(let m=1; m<=12; m++){
     const md = profile.years[year][m];
     if(!md){ profile.years[year][m] = defaultMonth(); continue; }
-    // Backfill the overtime cell for stored months that predate the feature.
+    // Backfill cells for components added after this month was stored.
     if(!md.overtime) md.overtime = { state: "not_expected", hoursOverride: null };
+    if(!md.salary13) md.salary13 = { state: "missing", amount: null };
+    else if(md.salary13.amount === undefined) md.salary13.amount = null;
+    if(!md.salary14) md.salary14 = { state: "missing", amount: null };
+    else if(md.salary14.amount === undefined) md.salary14.amount = null;
+    if(!md.salary15) md.salary15 = { state: "missing", amount: null };
+    else if(md.salary15.amount === undefined) md.salary15.amount = null;
   }
   return profile.years[year];
 }
@@ -1823,6 +1965,15 @@ function activeProfile(){
 const fmtEUR = new Intl.NumberFormat("it-IT", { style:"currency", currency:"EUR" });
 function eur(n){ return fmtEUR.format(Number(n) || 0); }
 
+// Inline width sized to value/placeholder. Returns a `style="width: Nch"`
+// fragment so the input hugs its content without truncating long numbers
+// or leaving a fixed gap before the trailing label / unit. Browsers that
+// support `field-sizing: content` (set in CSS) override this on user input.
+function inputWidthStyle(value, placeholder, min = 4){
+  const len = Math.max(String(value ?? "").length, String(placeholder ?? "").length, min);
+  return `style="width: ${len + 0.5}ch"`;
+}
+
 /* ----- Calculation ----- */
 function expectedAmountFor(profile, year, m0, ckey){
   const s = profile.settings;
@@ -1830,6 +1981,17 @@ function expectedAmountFor(profile, year, m0, ckey){
   const c = monthData[ckey];
   switch(ckey){
     case "salary": return (c && c.amount != null) ? Number(c.amount) : (s.salary || 0);
+    case "salary13":
+    case "salary14":
+    case "salary15": {
+      const comp = COMPONENTS.find(co => co.key === ckey);
+      if(!comp || !extraSalaryApplies(comp, s, m0)) return 0;
+      // Per-month override wins over everything. Fallback chain: cell.amount
+      // → monthly salary override → settings.salary.
+      const cell = monthData[ckey];
+      if(cell && cell.amount != null) return Number(cell.amount);
+      return monthData.salary.amount != null ? Number(monthData.salary.amount) : (s.salary || 0);
+    }
     case "welfare": return s.welfare || 0;
     case "fringe": return (m0+1) === Number(s.fringeMonth) ? (s.fringe || 0) : 0;
     case "ticket": {
@@ -1840,7 +2002,7 @@ function expectedAmountFor(profile, year, m0, ckey){
     case "refund": return Number(c.amount || 0);
     case "overtime": {
       const ov = monthData.overtime || {};
-      const auto = paidHoursForMonth(profile.overtime || [], year, m0, s.forfaitOreSett, s.workdays);
+      const auto = paidHoursForMonth(profile.overtime || [], year, m0, s.forfaitOreSett, s.workdays, s.oreContrattoSett);
       const paid = ov.hoursOverride != null ? Number(ov.hoursOverride) : auto;
       return paid * (Number(s.tariffaOraStraord) || 0);
     }
@@ -2020,7 +2182,7 @@ function renderPageOre(){
   for(let m0 = 0; m0 <= curM; m0++){
     const md = ensureYear(p, curYear)[m0 + 1];
     if(!md.overtime || md.overtime.state !== "missing") continue;
-    const auto = paidHoursForMonth(events, curYear, m0, p.settings.forfaitOreSett, p.settings.workdays);
+    const auto = paidHoursForMonth(events, curYear, m0, p.settings.forfaitOreSett, p.settings.workdays, p.settings.oreContrattoSett);
     const paid = md.overtime.hoursOverride != null ? Number(md.overtime.hoursOverride) : auto;
     owedHours += paid;
   }
@@ -2044,7 +2206,7 @@ function renderPageOre(){
     heroCls = "ok";
     heroSub = "Tutti gli straordinari segnati come ricevuti. Tutto in ordine.";
   } else {
-    heroSub = "Aggiungi i tuoi straordinari mese per mese — appariranno qui.";
+    heroSub = "Aggiungi i tuoi straordinari — appariranno qui.";
   }
 
   const greet = (() => {
@@ -2108,7 +2270,7 @@ function renderOreYearView(p){
   for(const y in byYear){
     let yp = 0;
     for(let m0 = 0; m0 < 12; m0++){
-      yp += paidHoursForMonth(events, Number(y), m0, p.settings.forfaitOreSett, p.settings.workdays);
+      yp += paidHoursForMonth(events, Number(y), m0, p.settings.forfaitOreSett, p.settings.workdays, p.settings.oreContrattoSett);
     }
     byYear[y].paid = yp;
   }
@@ -2131,7 +2293,7 @@ function renderOreMonthView(p){
   const tariffa = Number(p.settings.tariffaOraStraord) || 0;
   const cards = MONTHS_IT.map((name, m0) => {
     const gross = grossHoursForMonth(events, oreYear, m0);
-    const paid = paidHoursForMonth(events, oreYear, m0, p.settings.forfaitOreSett, p.settings.workdays);
+    const paid = paidHoursForMonth(events, oreYear, m0, p.settings.forfaitOreSett, p.settings.workdays, p.settings.oreContrattoSett);
     const has = gross > 0;
     return `<div class="ore-month-card${has ? " has-data" : ""}" data-m0="${m0}">
       <div class="omc-name">${name}</div>
@@ -2162,7 +2324,7 @@ function renderOreMonthView(p){
 function renderOreWeekView(p){
   const events = p.overtime || [];
   const tariffa = Number(p.settings.tariffaOraStraord) || 0;
-  const forfait = Number(p.settings.forfaitOreSett) || 0;
+  const threshold = (Number(p.settings.oreContrattoSett) || 0) + (Number(p.settings.forfaitOreSett) || 0);
   const wd = p.settings.workdays || [1,2,3,4,5];
   const byWeek = {};
   for(const e of events){
@@ -2190,7 +2352,7 @@ function renderOreWeekView(p){
   }
   const rows = weeks.map(w => {
     const gross = w.workH + w.weekendH;
-    const paid = Math.max(0, w.workH - forfait) + w.weekendH;
+    const paid = Math.max(0, w.workH - threshold) + w.weekendH;
     return `<div class="ore-week-row" data-iw="${w.iw}">
       <div class="owr-label">Settimana ${w.iw}</div>
       <div class="owr-stats">
@@ -2207,7 +2369,7 @@ function renderOreWeekView(p){
 function renderOreCalendarView(p){
   const events = p.overtime || [];
   const gross = grossHoursForMonth(events, oreYear, oreMonthIdx);
-  const autoPaid = paidHoursForMonth(events, oreYear, oreMonthIdx, p.settings.forfaitOreSett, p.settings.workdays);
+  const autoPaid = paidHoursForMonth(events, oreYear, oreMonthIdx, p.settings.forfaitOreSett, p.settings.workdays, p.settings.oreContrattoSett);
   const tariffa = Number(p.settings.tariffaOraStraord) || 0;
   const md = ensureYear(p, oreYear)[oreMonthIdx + 1];
   const override = md.overtime.hoursOverride;
@@ -2380,7 +2542,7 @@ function wireOrePage(){
     };
   });
   // Click a calendar cell → daydetail.
-  $$(".ore-cal .cal-c:not(.empty)").forEach(cell => {
+  $$(".ore-cal .cal-c").forEach(cell => {
     cell.onclick = () => {
       const date = cell.dataset.date;
       if(!date) return;
@@ -2478,8 +2640,10 @@ function renderCalendar(year, m0, events, workdays){
   const headerRow = headers.map((h, i) =>
     `<div class="cal-h${i >= 5 ? " weekend" : ""}">${h}</div>`).join("");
 
+  // Place the first day with grid-column-start so empty pre-month cells
+  // aren't needed at all. Empty `aspect-ratio: 1` placeholders were breaking
+  // the first row's height by collapsing to 0 height in some browsers.
   let cells = "";
-  for(let i = 0; i < startOffset; i++) cells += `<div class="cal-c empty"></div>`;
   for(let d = 1; d <= lastDate; d++){
     const dd = String(d).padStart(2, "0");
     const dateStr = `${year}-${mm}-${dd}`;
@@ -2489,12 +2653,12 @@ function renderCalendar(year, m0, events, workdays){
     if(!isWork) cls.push("weekend");
     if(eventDates.has(dateStr)) cls.push("has-events");
     if(dateStr === todayStr) cls.push("today");
-    cells += `<div class="${cls.join(" ")}" data-date="${dateStr}">${d}</div>`;
+    const style = (d === 1 && startOffset > 0) ? ` style="grid-column-start: ${startOffset + 1}"` : "";
+    cells += `<div class="${cls.join(" ")}" data-date="${dateStr}"${style}>${d}</div>`;
   }
 
   return `<div class="ore-cal">
-    <div class="cal-header">${headerRow}</div>
-    <div class="cal-grid">${cells}</div>
+    <div class="cal-table">${headerRow}${cells}</div>
   </div>`;
 }
 
@@ -2605,19 +2769,15 @@ document.addEventListener("click", (e) => {
 });
 
 function renderTopBar(){
-  const profiles = Object.entries(store.profiles);
-  const pill = $("#profile-pill");
-  const sel = $("#profile-select");
-  if(profiles.length === 0){ pill.style.display = "none"; return; }
-  pill.style.display = "flex";
-  sel.innerHTML = profiles.map(([id,p]) =>
-    `<option value="${id}" ${id===store.activeProfile?"selected":""}>${escapeHtml(p.name)}</option>`
-  ).join("");
+  // Ensure the (single) profile pointer is valid even if older multi-profile
+  // data still lives in localStorage. We keep the first profile and ignore
+  // any others; UI for switching/adding has been removed.
+  const ids = Object.keys(store.profiles || {});
+  if(ids.length === 0) return;
   if(!store.activeProfile || !store.profiles[store.activeProfile]){
-    store.activeProfile = profiles[0][0]; saveStore();
+    store.activeProfile = ids[0];
+    saveStore();
   }
-  const p = activeProfile();
-  $("#avatar").textContent = (p.name || "?").trim().charAt(0).toUpperCase() || "?";
 }
 
 /* Utility — split eur formatted string into integer and cents parts */
@@ -2642,9 +2802,8 @@ function renderMain(){
     // The whole card is a click target — no fragile button to fight with.
     main.innerHTML = `
       <div class="empty" id="empty-card" role="button" tabindex="0" aria-label="Crea il mio profilo">
-        <div class="empty-mark">€</div>
         <h2><span class="empty-greet">Ciao,</span><br/>iniziamo a contare.</h2>
-        <p>Tocca qui (o premi Invio) per inserire le tue cifre. Da subito vedrai mese per mese cosa hai ricevuto e cosa ancora ti spetta.</p>
+        <p>Tocca qui (o premi Invio) per inserire le tue cifre. Da subito vedrai cosa hai ricevuto e cosa ancora ti spetta.</p>
         <span class="empty-cta">+ Crea il mio profilo</span>
       </div>
     `;
@@ -2712,7 +2871,7 @@ function renderMain(){
     </div>
 
     <div class="section-head">
-      <div class="section-title">Mese per mese</div>
+      <div class="section-title">L'anno</div>
       <div class="year-picker">
         <button id="y-prev" aria-label="Anno precedente">‹</button>
         <span class="y">${year}</span>
@@ -2758,7 +2917,7 @@ function renderMain(){
       Per bonus e rimborsi inserisci l'importo previsto del mese.
     </div>
 
-    <div class="signature">contato a mano, mese per mese</div>
+    <div class="signature">contato a mano</div>
   `;
 
   main.innerHTML = html;
@@ -2807,10 +2966,11 @@ function renderMain(){
       const ckey = inp.dataset.ckey;
       const profile = activeProfile();
       const data = ensureYear(profile, store.currentYear)[m0+1];
+      // Salary and 13a/14a/15a use `null` as sentinel ("inherit from base").
+      // Bonus/refund use `0` ("explicitly nothing").
+      const isSalaryLike = ckey === "salary" || ckey === "salary13" || ckey === "salary14" || ckey === "salary15";
       if(inp.value === ""){
-        // For salary, empty input reverts to settings default (null sentinel).
-        // For bonus/refund, empty means "no amount" → 0.
-        data[ckey].amount = ckey === "salary" ? null : 0;
+        data[ckey].amount = isSalaryLike ? null : 0;
       } else {
         data[ckey].amount = Math.min(1_000_000, Math.max(0, Number(inp.value) || 0));
       }
@@ -2837,7 +2997,11 @@ function renderMonthCard(profile, year, m0){
   const today = new Date();
   const isCurrent = today.getFullYear() === Number(year) && today.getMonth() === m0;
 
-  const compRows = COMPONENTS.map(c => {
+  // Extra-salary voices (13a/14a/15a) only show up in their dedicated month
+  // and only when the profile's mensilità count enables them.
+  const visibleComponents = COMPONENTS.filter(c => extraSalaryApplies(c, profile.settings, m0));
+
+  const compRows = visibleComponents.map(c => {
     const cell = data[c.key];
     const exp = expectedAmountFor(profile, year, m0, c.key);
     const tri = ["received","missing","not_expected"].map(s => {
@@ -2854,32 +3018,48 @@ function renderMonthCard(profile, year, m0){
     } else if(c.key === "ticket"){
       const auto = workingDaysInMonth(year, m0);
       const days = (cell.days != null && cell.days !== "") ? cell.days : auto;
-      detail = `${eur(profile.settings.ticketPerDay)} × <input type="number" class="days-input" min="0" max="31" value="${days}" placeholder="${auto}" /> giorni`;
+      const w = inputWidthStyle(days, auto, 3);
+      detail = `${eur(profile.settings.ticketPerDay)} × <input type="number" class="days-input" min="0" max="31" value="${days}" placeholder="${auto}" ${w} /> giorni`;
     } else if(c.key === "bonus" || c.key === "refund"){
-      detail = `<input type="number" class="amount-input" data-ckey="${c.key}" min="0" step="0.01" value="${cell.amount || ""}" placeholder="0,00" /> €`;
+      const w = inputWidthStyle(cell.amount || "", "0,00", 4);
+      detail = `<input type="number" class="amount-input" data-ckey="${c.key}" min="0" step="0.01" value="${cell.amount || ""}" placeholder="0,00" ${w} /> €`;
     } else if(c.key === "salary"){
       // Editable per-month override. Empty = use settings.salary as default.
       const defaultStr = (profile.settings.salary || 0).toFixed(2).replace(".", ",");
       const val = cell.amount != null ? cell.amount : "";
-      detail = `<input type="number" class="amount-input" data-ckey="salary" min="0" step="0.01" value="${val}" placeholder="${defaultStr}" /> €`;
+      const w = inputWidthStyle(val, defaultStr, 4);
+      detail = `<input type="number" class="amount-input" data-ckey="salary" min="0" step="0.01" value="${val}" placeholder="${defaultStr}" ${w} /> €`;
+    }
+    else if(c.extraSalary){
+      // 13a/14a/15a — editable per-month override. Empty input falls back to
+      // the salary base for this month (monthly override or settings.salary).
+      const fallback = data.salary.amount != null ? Number(data.salary.amount) : (profile.settings.salary || 0);
+      const defaultStr = fallback.toFixed(2).replace(".", ",");
+      const val = cell.amount != null ? cell.amount : "";
+      const w = inputWidthStyle(val, defaultStr, 4);
+      detail = `<input type="number" class="amount-input" data-ckey="${c.key}" min="0" step="0.01" value="${val}" placeholder="${defaultStr}" ${w} /> €`;
     }
     else if(c.key === "welfare"){ detail = `${eur(profile.settings.welfare)}`; }
     else if(c.key === "overtime"){
       const gross = grossHoursForMonth(profile.overtime || [], year, m0);
-      const autoPaid = paidHoursForMonth(profile.overtime || [], year, m0, profile.settings.forfaitOreSett, profile.settings.workdays);
+      const autoPaid = paidHoursForMonth(profile.overtime || [], year, m0, profile.settings.forfaitOreSett, profile.settings.workdays, profile.settings.oreContrattoSett);
       const overrideVal = cell.hoursOverride != null ? cell.hoursOverride : "";
       const tariffaStr = (profile.settings.tariffaOraStraord || 0).toFixed(2).replace(".", ",");
       const grossStr = gross.toFixed(1).replace(".", ",");
       const autoStr = autoPaid.toFixed(1).replace(".", ",");
-      detail = `${grossStr}h lavorate · <input type="number" class="overtime-hours-input" min="0" max="744" step="0.25" value="${overrideVal}" placeholder="${autoStr}" /> h × ${tariffaStr}€`;
+      const w = inputWidthStyle(overrideVal, autoStr, 3);
+      detail = `${grossStr}h lavorate · <input type="number" class="overtime-hours-input" min="0" max="744" step="0.25" value="${overrideVal}" placeholder="${autoStr}" ${w} /> h × ${tariffaStr}€`;
     }
 
     let amountClass = "dim";
     if(cell.state === "received") amountClass = "ok";
     else if(cell.state === "missing" && (status.isPast || status.isCurrent)) amountClass = "danger";
 
+    // When the voice is not expected for this month, leave the amount blank
+    // (no "—" placeholder) — keeps the row clean and reduces visual noise on
+    // mobile where space is tight.
     let amountStr;
-    if(cell.state === "not_expected") amountStr = "—";
+    if(cell.state === "not_expected") amountStr = "";
     else amountStr = eur(exp);
 
     return `
@@ -2938,21 +3118,31 @@ document.addEventListener("wheel", () => {
 
 function openNewProfile(){
   try {
-    const n = $("#np-name"); if(n) n.value = "";
-    const s = $("#np-salary"); if(s) s.value = "";
-    const w = $("#np-welfare"); if(w) w.value = 400;
-    const f = $("#np-fringe"); if(f) f.value = 1000;
-    const t = $("#np-ticket"); if(t) t.value = 10;
+    const set = (id, v) => { const el = $("#" + id); if(el) el.value = v; };
+    set("np-name", "");
+    set("np-salary", "");
+    set("np-mensilita", "12");
+    set("np-welfare", 400);
+    set("np-ticket", 10);
+    set("np-fringe", 1000);
+    set("np-bonus", 0);
+    set("np-contratto", 40);
+    set("np-forfait", 0);
+    set("np-tariffa", 0);
+    const fm = $("#np-fringe-month");
+    if(fm) fm.innerHTML = MONTHS_IT.map((m,i) =>
+      `<option value="${i+1}" ${i+1===12?"selected":""}>${m}</option>`).join("");
+    // Reset workdays to Mon-Fri.
+    $$("#np-workdays input").forEach(inp => { inp.checked = [1,2,3,4,5].includes(Number(inp.value)); });
     openSheet("new-profile-sheet");
     setTimeout(() => { const x = $("#np-name"); if(x) x.focus(); }, 200);
   } catch(err){ console.error("openNewProfile failed:", err); showAlert("Errore: " + err.message); }
 }
 window.openNewProfile = openNewProfile; // global so inline onclick can reach it
 
-$("#btn-add-profile").onclick = openNewProfile;
-// Document-level event delegation — final safety net for any "Create profile" button
-// that may be (re)inserted into the DOM by a render. This ensures the button works
-// regardless of timing, listener attachment order, or innerHTML replacements.
+// Document-level event delegation — final safety net for the "Create profile"
+// empty-state card. This ensures the click handler survives any innerHTML
+// re-renders that might detach the direct onclick bound in renderMain().
 document.addEventListener("click", (e) => {
   if(!e.target || !e.target.closest) return;
   const trigger = e.target.closest("#empty-card, #btn-empty-create, [data-action='new-profile']");
@@ -2966,14 +3156,27 @@ $("#btn-create-profile").onclick = () => {
   if(!name){ toast("Manca il nome"); $("#np-name").focus(); return; }
   const id = (name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]/g,"") || "user")
              + "-" + Math.random().toString(36).slice(2,6);
+  const num = (id, fallback) => {
+    const v = Number($("#" + id).value);
+    return Number.isFinite(v) ? v : fallback;
+  };
+  const clamp = (v, max) => Math.min(max, Math.max(0, Number(v) || 0));
+  const chosenWd = $$("#np-workdays input:checked").map(i => Number(i.value)).sort();
   store.profiles[id] = {
     name,
     settings: {
       ...defaultSettings(),
-      salary: Number($("#np-salary").value) || 0,
-      welfare: Number($("#np-welfare").value) || 400,
-      fringe: Number($("#np-fringe").value) || 1000,
-      ticketPerDay: Number($("#np-ticket").value) || 10,
+      salary: clamp(num("np-salary", 0), 100_000),
+      welfare: clamp(num("np-welfare", 400), 100_000),
+      fringe: clamp(num("np-fringe", 1000), 100_000),
+      ticketPerDay: clamp(num("np-ticket", 10), 1_000),
+      defaultBonus: clamp(num("np-bonus", 0), 1_000_000),
+      mensilita: Math.min(15, Math.max(12, Number($("#np-mensilita").value) || 12)),
+      fringeMonth: Math.min(12, Math.max(1, Number($("#np-fringe-month").value) || 12)),
+      oreContrattoSett: clamp(num("np-contratto", 40), 168),
+      forfaitOreSett: clamp(num("np-forfait", 0), 100),
+      tariffaOraStraord: clamp(num("np-tariffa", 0), 1_000),
+      workdays: chosenWd.length ? chosenWd : [1,2,3,4,5],
     },
     years: {},
     overtime: [],
@@ -3000,7 +3203,9 @@ $("#btn-settings").onclick = () => {
   $("#set-fringe").value = p.settings.fringe;
   $("#set-ticket").value = p.settings.ticketPerDay;
   $("#set-bonus").value = p.settings.defaultBonus || 0;
-  $("#set-forfait").value = p.settings.forfaitOreSett != null ? p.settings.forfaitOreSett : 5;
+  $("#set-mensilita").value = String(Math.min(15, Math.max(12, Number(p.settings.mensilita) || 12)));
+  $("#set-contratto").value = p.settings.oreContrattoSett != null ? p.settings.oreContrattoSett : 40;
+  $("#set-forfait").value = p.settings.forfaitOreSett != null ? p.settings.forfaitOreSett : 0;
   $("#set-tariffa").value = p.settings.tariffaOraStraord || 0;
   const wd = Array.isArray(p.settings.workdays) ? p.settings.workdays : [1,2,3,4,5];
   $$("#set-workdays input").forEach(inp => { inp.checked = wd.includes(Number(inp.value)); });
@@ -3020,6 +3225,8 @@ $("#btn-save-settings").onclick = () => {
   p.settings.fringe = clamp($("#set-fringe").value, 100_000);
   p.settings.ticketPerDay = clamp($("#set-ticket").value, 1_000);
   p.settings.defaultBonus = clamp($("#set-bonus").value, 1_000_000);
+  p.settings.mensilita = Math.min(15, Math.max(12, Number($("#set-mensilita").value) || 12));
+  p.settings.oreContrattoSett = clamp($("#set-contratto").value, 168);
   p.settings.forfaitOreSett = clamp($("#set-forfait").value, 100);
   p.settings.tariffaOraStraord = clamp($("#set-tariffa").value, 1_000);
   const chosen = $$("#set-workdays input:checked").map(i => Number(i.value)).sort();
@@ -3034,24 +3241,16 @@ $("#btn-delete-profile").onclick = async () => {
   const p = activeProfile();
   if(!p) return;
   const ok = await showConfirm(
-    `Verranno cancellati tutti i mesi e le impostazioni del profilo "${p.name}". Questa azione non è reversibile.`,
-    { title: "Eliminare il profilo?", okLabel: "Elimina", danger: true }
+    `Verranno cancellati tutti i mesi, le impostazioni e gli straordinari. Questa azione non è reversibile.`,
+    { title: "Azzerare i dati?", okLabel: "Azzera", danger: true }
   );
   if(!ok) return;
-  delete store.profiles[store.activeProfile];
-  const remaining = Object.keys(store.profiles);
-  store.activeProfile = remaining[0] || null;
+  store.profiles = {};
+  store.activeProfile = null;
   saveStore();
   closeSheets();
   render();
-  toast("Profilo eliminato");
-};
-
-/* Profile switch */
-$("#profile-select").onchange = (e) => {
-  store.activeProfile = e.target.value;
-  saveStore();
-  render();
+  toast("Dati azzerati");
 };
 
 /* ============================================================ *
@@ -3089,8 +3288,8 @@ function refreshBackupStats(){
 const STATE_TO_IT = { received: "ricevuto", missing: "mancante", not_expected: "non_atteso" };
 const STATE_FROM_IT = { ricevuto: "received", mancante: "missing", non_atteso: "not_expected" };
 const CSV_SEP = ";";
-const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default","forfait_settimana","tariffa_ora","giorni_lavorativi"];
-const MONTH_COLS = ["profilo","anno","mese","stipendio_stato","stipendio_importo","welfare","ticket_stato","ticket_giorni","fringe","bonus_stato","bonus_importo","rimborso_stato","rimborso_importo","straord_stato","straord_ore_pagare"];
+const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default","forfait_settimana","tariffa_ora","giorni_lavorativi","contratto_settimana","mensilita"];
+const MONTH_COLS = ["profilo","anno","mese","stipendio_stato","stipendio_importo","welfare","ticket_stato","ticket_giorni","fringe","bonus_stato","bonus_importo","rimborso_stato","rimborso_importo","straord_stato","straord_ore_pagare","salary13_stato","salary14_stato","salary15_stato","salary13_importo","salary14_importo","salary15_importo"];
 const STRAORD_COLS = ["profilo","data","inizio","fine","pausa","nota"];
 
 function fmtNum(n){
@@ -3146,6 +3345,8 @@ function buildCsv(storeIn){
       p.name, fmtNum(s.salary), fmtNum(s.welfare), fmtNum(s.fringe),
       s.fringeMonth || 12, fmtNum(s.ticketPerDay), fmtNum(s.defaultBonus),
       fmtNum(s.forfaitOreSett), fmtNum(s.tariffaOraStraord), wd,
+      fmtNum(s.oreContrattoSett != null ? s.oreContrattoSett : 40),
+      Math.min(15, Math.max(12, Number(s.mensilita) || 12)),
     ]));
   }
   lines.push("");
@@ -3167,6 +3368,7 @@ function buildCsv(storeIn){
           if(c.hasDays && cell.days != null) return false;
           if(c.hasAmount && cell.amount) return false;
           if(c.key === "salary" && cell.amount != null) return false;
+          if(c.extraSalary && cell.amount != null) return false;
           if(c.key === "overtime" && cell.hoursOverride != null) return false;
           return true;
         });
@@ -3185,6 +3387,12 @@ function buildCsv(storeIn){
           fmtNum(md.refund?.amount),
           STATE_TO_IT[md.overtime?.state] || "",
           md.overtime?.hoursOverride != null ? fmtNum(md.overtime.hoursOverride) : "",
+          STATE_TO_IT[md.salary13?.state] || "",
+          STATE_TO_IT[md.salary14?.state] || "",
+          STATE_TO_IT[md.salary15?.state] || "",
+          md.salary13?.amount != null ? fmtNum(md.salary13.amount) : "",
+          md.salary14?.amount != null ? fmtNum(md.salary14.amount) : "",
+          md.salary15?.amount != null ? fmtNum(md.salary15.amount) : "",
         ]));
       }
     }
@@ -3232,7 +3440,12 @@ function parseCsv(text){
       const expected = section === "settings" ? SETTINGS_COLS
                      : section === "months"  ? MONTH_COLS
                      : STRAORD_COLS;
-      if(header.length !== expected.length || header.some((h,i) => h !== expected[i])){
+      // Backward-compatible: SETTINGS accepts older exports that are missing
+      // newer trailing columns (contratto_settimana, mensilita). The header
+      // must be a prefix of the current SETTINGS_COLS.
+      const isPrefix = header.length <= expected.length
+        && header.every((h,i) => h === expected[i]);
+      if(!isPrefix){
         throw new Error(`Intestazione sezione ${section.toUpperCase()} non corretta a riga ${lineNo+1}.\nAttesa: ${expected.join(CSV_SEP)}\nTrovata: ${header.join(CSV_SEP)}`);
       }
       continue;
@@ -3247,6 +3460,8 @@ function parseCsv(text){
       const wdRaw = (row.giorni_lavorativi || "1,2,3,4,5").split(",")
         .map(s => Number(s.trim()))
         .filter(n => Number.isInteger(n) && n >= 1 && n <= 7);
+      const contratto = (row.contratto_settimana || "").trim();
+      const mensilita = Math.min(15, Math.max(12, Number(row.mensilita) || 12));
       settingsByName[name] = {
         salary: parseNum(row.stipendio),
         welfare: parseNum(row.welfare),
@@ -3257,6 +3472,8 @@ function parseCsv(text){
         forfaitOreSett: parseNum(row.forfait_settimana),
         tariffaOraStraord: parseNum(row.tariffa_ora),
         workdays: wdRaw.length ? Array.from(new Set(wdRaw)).sort() : [1,2,3,4,5],
+        oreContrattoSett: contratto === "" ? 40 : parseNum(contratto),
+        mensilita,
       };
     } else if(section === "months"){
       const name = (row.profilo || "").trim();
@@ -3279,6 +3496,15 @@ function parseCsv(text){
       setState("bonus", row.bonus_stato);
       setState("refund", row.rimborso_stato);
       setState("overtime", row.straord_stato);
+      setState("salary13", row.salary13_stato);
+      setState("salary14", row.salary14_stato);
+      setState("salary15", row.salary15_stato);
+      const s13a = (row.salary13_importo || "").trim();
+      if(s13a !== "") m.salary13.amount = parseNum(s13a);
+      const s14a = (row.salary14_importo || "").trim();
+      if(s14a !== "") m.salary14.amount = parseNum(s14a);
+      const s15a = (row.salary15_importo || "").trim();
+      if(s15a !== "") m.salary15.amount = parseNum(s15a);
       const days = (row.ticket_giorni || "").trim();
       m.ticket.days = days === "" ? null : Math.min(31, Math.max(0, Number(days) || 0));
       const sa = (row.stipendio_importo || "").trim();
@@ -3506,6 +3732,7 @@ function showConfirm(message, opts){
   cancelBtn.style.display = isAlert ? "none" : "";
   okBtn.classList.toggle("danger", !!opts.danger);
   $("#confirm-overlay").classList.add("show");
+  document.body.classList.add("overlay-open");
   setTimeout(() => okBtn.focus(), 60);
   return new Promise((resolve) => { _confirmResolver = resolve; });
 }
@@ -3535,9 +3762,11 @@ function showChoice(title, message, options){
   }
   card.appendChild(temp);
   $("#confirm-overlay").classList.add("show");
+  document.body.classList.add("overlay-open");
   return new Promise(resolve => {
     const cleanup = (value) => {
       $("#confirm-overlay").classList.remove("show");
+      document.body.classList.remove("overlay-open");
       temp.remove();
       origActions.style.display = "";
       $("#confirm-overlay").removeEventListener("click", overlayDismiss);
@@ -3555,6 +3784,7 @@ function showChoice(title, message, options){
 }
 function _confirmFinish(value){
   $("#confirm-overlay").classList.remove("show");
+  document.body.classList.remove("overlay-open");
   const r = _confirmResolver; _confirmResolver = null;
   if(r) r(value);
 }
