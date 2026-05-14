@@ -1,0 +1,26 @@
+{
+  "name": "Where is my Salary",
+  "short_name": "Salary",
+  "description": "Tracking mensile di stipendio, mensilità extra e straordinari.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF7F2",
+  "theme_color": "#FAF7F2",
+  "lang": "it",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23FAF7F2'/%3E%3Ctext x='90' y='116' font-size='102' text-anchor='middle' fill='%23C96442' font-family='Georgia,serif' font-style='italic' font-weight='500'%3EWs%3C/text%3E%3Cline x1='56' y1='138' x2='124' y2='138' stroke='%23C96442' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23FAF7F2'/%3E%3Ctext x='90' y='116' font-size='102' text-anchor='middle' fill='%23C96442' font-family='Georgia,serif' font-style='italic' font-weight='500'%3EWs%3C/text%3E%3Cline x1='56' y1='138' x2='124' y2='138' stroke='%23C96442' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

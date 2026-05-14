@@ -6,6 +6,43 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.4.1] — 2026-05-14
+
+Bugfix release: la versione installata via "Aggiungi a Home" su iOS restava ferma a una build vecchia (v2.0) anche quando Safari su browser mostrava già la 3.4. Il problema era strutturale — l'app non aveva mai avuto un service worker né un `manifest.webmanifest` — quindi la WebView standalone di iOS cacheava aggressivamente l'HTML e non rinfrescava mai.
+
+### Fix — Service worker
+
+- **Nuovo file `sw.js` con strategia network-first sulle navigazioni HTML.** Quando il dispositivo è online, ogni apertura dell'app prende sempre l'ultima `index.html` dal network (`cache: 'no-store'`) e ne aggiorna la copia locale; quando è offline, ricade sulla cache. Per gli asset statici (font Google, icone inline) la strategia è cache-first per non sprecare banda.
+- L'`activate` event cancella tutte le cache con chiave diversa dalla corrente (`wims-v3.4.1`), così ogni bump versione invalida la vecchia cache.
+- `skipWaiting()` + `clients.claim()` per attivare il nuovo SW immediatamente al primo reload utile, senza aspettare la chiusura di tutte le tab.
+
+### Fix — Manifest PWA
+
+- **Nuovo `manifest.webmanifest`** con `name`, `short_name`, `start_url`, `scope`, `display: standalone`, `theme_color` e `background_color` allineati al palette Quiet Ledger (`#FAF7F2` paper). Icone inline come data-URI SVG (sia `any` che `maskable`), così il file resta autocontenuto come il resto del progetto (no asset binari nel repo).
+- Link `<link rel="manifest">` aggiunto in head dopo i meta `apple-mobile-web-app-*`. iOS continuerà a usare `apple-touch-icon` per l'icona home screen (il manifest è ignorato a quello scopo); il manifest serve principalmente a Chrome/Android per l'installazione corretta.
+
+### Fix — Version tag hardcoded
+
+- **Rimosso il fallback `v2.0`** nel tag `#version-tag` (riga 1781): se per qualunque motivo il bootstrap JS non gira prima del primo paint, il numero che vedeva l'utente era 2.0 — fuorviante durante il debug del bug stesso. Adesso il tag è vuoto fino a quando `bootstrap()` non lo riempie con la `VERSION` corrente.
+
+### Note utenti già stuck su versioni vecchie
+
+- Gli utenti che hanno l'app già aggiunta alla home screen con una build pre-SW devono fare **un'unica volta** la rimozione e re-installazione: l'HTML cacheato dalla WebView non contiene la registrazione SW, quindi il nuovo service worker non può essere installato dall'interno della copia stuck. Operazioni: rimuovere l'icona dalla home → aprire Safari sul sito → Impostazioni Safari → Cancella dati per il dominio → ricaricare → Aggiungi a Home.
+- Da questo punto in poi tutti gli update arrivano automaticamente al prossimo lancio (con rete disponibile). Niente più "vedo la 3.4 sul browser ma la 2.0 in app".
+
+### Audit pre-release
+
+- `sw.js` validato con `node --check`: PASS.
+- `manifest.webmanifest` validato come JSON con `node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest'))"`: PASS.
+- Scope SW = `./` (default) → corretto sotto `https://massimodascola.github.io/WhereIsMySalary-/`: il SW intercetta solo le richieste interne al subpath del progetto, non altri repo sotto il dominio `github.io`.
+
+### Internals
+
+- Versione bumped a `3.4.1`.
+- Cache key bumped a `wims-v3.4.1` per invalidare automaticamente eventuali asset cacheati al primo install del SW.
+
+---
+
 ## [3.4] — 2026-05-14
 
 Cinque modifiche che ribilanciano la pagina Salary attorno al **ciclo di pagamento reale** dell'utente (non più assunto come "fine mese"), introducono il toggle per disattivare Overtime, abbassano il tono di voce del logo e raddoppiano le tagline ironiche.
