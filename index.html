@@ -598,38 +598,47 @@
      the FAB. Because the wrap lives inside #page-ore, it inherits the
      parent's display:none when the Salary tab is active (no global
      leak across pages). */
+  /* Circular FAB pinned bottom-right, aligned to the .app right edge
+     (max-width 760 centered, padding 18). On wide viewports the wrap
+     mirrors .app's centering so the FAB stays beside content, not stuck
+     to the viewport edge. No background-masking wrap: the button is
+     small enough that surrounding content can scroll past it without
+     visual conflict (standard Material/iOS FAB pattern). */
   .ore-add-fab-wrap{
     position: fixed;
-    left: 0; right: 0;
-    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 760px;
+    bottom: calc(74px + max(16px, env(safe-area-inset-bottom, 0px)));
     z-index: 20;
     display: flex;
-    justify-content: center;
-    padding: 0 18px calc(58px + max(16px, env(safe-area-inset-bottom, 0px)));
-    background: var(--paper);
-    pointer-events: none;
-  }
-  .ore-add-fab-wrap::before{
-    content: "";
-    position: absolute;
-    left: 0; right: 0;
-    bottom: 100%;
-    height: 72px;
-    background: linear-gradient(180deg,
-      rgba(250,247,242,0)   0%,
-      rgba(250,247,242,.35) 35%,
-      rgba(250,247,242,.85) 70%,
-      var(--paper)         100%);
+    justify-content: flex-end;
+    padding: 0 18px;
     pointer-events: none;
   }
   .ore-add-fab{
-    flex: 0 1 724px;   /* matches .app inner width; shrinks on narrow viewports */
-    width: 100%;
     pointer-events: auto;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--sienna);
+    color: #FFF;
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 18px rgba(201, 100, 66, .32), inset 0 1px 0 rgba(255,255,255,.18);
+    transition: transform .1s, box-shadow .15s, background .15s;
   }
-  /* Reserve space at the bottom of the Overtime page so scrolled content
-     can fully scroll up past the fixed FAB without being trapped behind it. */
-  #main-ore{ padding-bottom: 200px; }
+  .ore-add-fab:hover{ background: var(--sienna-deep); box-shadow: 0 8px 22px rgba(201, 100, 66, .42); }
+  .ore-add-fab:active{ transform: scale(.94); }
+  /* Reserve a bit of space at the bottom of the Overtime page so the last
+     content row isn't visually crowded by the FAB. */
+  #main-ore{ padding-bottom: 140px; }
 
   /* Duration picker — hours / minutes stepper for break length (Pausa).
      Distinct from a clock-time input: starts at 0h 0m and increments. */
@@ -1224,8 +1233,39 @@
     background: var(--paper); border: 1px solid var(--line);
     border-radius: 10px; padding: 11px 13px;
     font-family: var(--sans); font-size: 15px;
-    width: 100%; color: var(--ink);
+    width: 100%; max-width: 100%; min-width: 0;
+    color: var(--ink);
     transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  /* iOS Safari: native <input type="date"|"time"> ship with their own
+     intrinsic min-content width (sized for the embedded native picker).
+     On narrow viewports this min-content exceeds the available .field
+     track inside a .field-row, ignoring `width: 100%` and pushing the
+     box past the sheet's right edge. Forcing appearance:none drops the
+     native widget chrome so the browser respects our explicit width
+     constraints. The picker still opens on tap. */
+  .field input[type="date"],
+  .field input[type="time"]{
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    text-align: center;
+  }
+  /* Restore a small clock/calendar glyph as a background icon, since
+     -webkit-calendar-picker-indicator is hidden after appearance:none.
+     Center text uses padding-right to keep "26 May 2026" optically
+     centered with the icon on the right. */
+  .field input[type="date"]{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A88B6E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+  .field input[type="time"]{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A88B6E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><polyline points='12 6 12 12 16 14'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
   }
   /* Numbers and date/time get tabular figures so vertical alignment between
      two side-by-side fields (Ora inizio / Ora fine) stays clean. */
@@ -1239,22 +1279,17 @@
     background: var(--card-elev);
     box-shadow: 0 0 0 3px var(--sienna-soft);
   }
-  /* WebKit's native calendar/clock picker indicator: tone it down so it
-     reads as part of the warm-paper palette, not a black system widget.
-     Firefox has no equivalent pseudo and renders a discreet dropdown
-     arrow that already fits well enough. */
+  /* Hide WebKit's native calendar/clock picker indicator. We replace it
+     with an inline SVG background icon (sized and positioned in the
+     date/time-specific rules below). Tapping the input itself still
+     opens the native picker on iOS / modern browsers, so removing the
+     indicator chrome doesn't break interaction. Without `display:none`
+     here, the indicator was rendered alongside our SVG → two icons. */
   .field input[type="date"]::-webkit-calendar-picker-indicator,
   .field input[type="time"]::-webkit-calendar-picker-indicator{
-    opacity: .45;
-    cursor: pointer;
-    filter: sepia(.5) hue-rotate(-12deg) saturate(.85);
-    transition: opacity .15s;
-  }
-  .field input[type="date"]:hover::-webkit-calendar-picker-indicator,
-  .field input[type="time"]:hover::-webkit-calendar-picker-indicator,
-  .field input[type="date"]:focus::-webkit-calendar-picker-indicator,
-  .field input[type="time"]:focus::-webkit-calendar-picker-indicator{
-    opacity: .85;
+    display: none;
+    -webkit-appearance: none;
+    appearance: none;
   }
   /* iOS quirk: empty date/time inputs render the placeholder ("--:--",
      "gg/mm/aaaa") in a darker tone than other muted text. Soften it to
@@ -2689,7 +2724,7 @@ function renderPageOre(){
     ${body}
 
     <div class="ore-add-fab-wrap">
-      <button class="btn full large ore-add-fab" id="btn-ot-add" type="button">+ Aggiungi evento</button>
+      <button class="btn ore-add-fab" id="btn-ot-add" type="button" aria-label="Aggiungi evento" title="Aggiungi evento">+</button>
     </div>
   `;
 
