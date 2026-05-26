@@ -591,26 +591,45 @@
     color: var(--ink-muted);
     font-style: italic;
   }
-  /* FAB wrapper — sticky container with gradient fade so scrolling content
-     dissolves into the button area instead of being abruptly covered. */
+  /* FAB wrapper — FIXED to the viewport bottom. Solid paper background
+     covers everything between the FAB and the tabbar so nothing peeks
+     through. A separate ::before pseudo paints the upward fade above
+     the wrap, where scrolling content should dissolve before reaching
+     the FAB. Because the wrap lives inside #page-ore, it inherits the
+     parent's display:none when the Salary tab is active (no global
+     leak across pages). */
   .ore-add-fab-wrap{
-    position: sticky;
-    bottom: 96px;
-    z-index: 10;
-    margin: 18px -18px 0;
-    padding: 36px 18px 14px;
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    padding: 0 18px calc(58px + max(16px, env(safe-area-inset-bottom, 0px)));
+    background: var(--paper);
+    pointer-events: none;
+  }
+  .ore-add-fab-wrap::before{
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 100%;
+    height: 72px;
     background: linear-gradient(180deg,
-      rgba(250,247,242,0) 0%,
-      rgba(250,247,242,.55) 40%,
-      rgba(250,247,242,.92) 75%,
-      var(--paper) 100%);
+      rgba(250,247,242,0)   0%,
+      rgba(250,247,242,.35) 35%,
+      rgba(250,247,242,.85) 70%,
+      var(--paper)         100%);
     pointer-events: none;
   }
   .ore-add-fab{
-    display: block;
-    margin: 0 auto;
+    flex: 0 1 724px;   /* matches .app inner width; shrinks on narrow viewports */
+    width: 100%;
     pointer-events: auto;
   }
+  /* Reserve space at the bottom of the Overtime page so scrolled content
+     can fully scroll up past the fixed FAB without being trapped behind it. */
+  #main-ore{ padding-bottom: 200px; }
 
   /* Duration picker — hours / minutes stepper for break length (Pausa).
      Distinct from a clock-time input: starts at 0h 0m and increments. */
@@ -1244,7 +1263,13 @@
   .field input[type="time"]:invalid{
     color: var(--ink-muted);
   }
-  .field-row{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  /* Two-column form row. Flex with min-width:0 children so native time
+     inputs (which carry an intrinsic min-content wider than a 1fr grid
+     track on narrow mobile viewports) shrink properly instead of pushing
+     the second cell off-screen. */
+  .field-row{ display: flex; gap: 12px; }
+  .field-row > .field{ flex: 1 1 0; min-width: 0; margin-bottom: 16px; }
+  .field-row > .field input{ min-width: 0; }
 
   /* Visual separator for settings groups (Salary / Overtime / System). */
   .settings-section-title{
@@ -1949,7 +1974,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.4.3";
+const VERSION = "3.4.4";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
