@@ -6,6 +6,42 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.4.4] — 2026-05-27
+
+Round di UX polish sul form evento Overtime e sul FAB di aggiunta. Tre temi indipendenti, tutti motivati da feedback diretto: "il FAB full-width copre il contenuto sotto", "il campo pausa sembra un orologio, non una durata", "ora inizio e ora fine sforano dal viewport su mobile e si sovrappongono".
+
+### FAB — da pulsante full-width a cerchio "+" bottom-right
+
+- **Sostituito il pulsante full-width `+ Aggiungi evento` con un FAB circolare 56×56** posizionato in basso a destra, allineato al bordo destro di `.app` (max-width 760 centrato, padding 18). Il pulsante full-width creava troppa massa visiva al fondo e copriva il contenuto sottostante in modo invasivo — su viewport stretti diventava una "barra" che si frapponeva tra l'ultima card e la tabbar. Il cerchio piccolo è il pattern standard FAB (Material/iOS): contenuto scrolla intorno, niente bisogno di mascheramento full-width.
+- **Da `position: sticky` a `position: fixed`.** Lo sticky aveva un comportamento subdolo: nelle viste corte (es. "Mesi" desktop con 12 card che entrano nel viewport senza scroll) il wrap non era mai pinned e ricadeva alla posizione naturale a fine documento, lasciando le card successive visibili "sotto" il FAB. Con fixed la posizione è invariante rispetto a scroll e altezza pagina.
+- **Centratura su `.app` invece che sul viewport**: il wrap usa `left: 50%; transform: translateX(-50%); max-width: 760px; padding: 0 18px; justify-content: flex-end`. Su desktop largo il FAB resta accanto al contenuto invece di essere incollato al bordo destro del viewport.
+- **Posizione verticale**: `bottom: calc(74px + max(16px, env(safe-area-inset-bottom)))` → ~24px di gap visivo sopra la tabbar pill, con safe-area inset rispettata su iPhone.
+- **Visibilità per-pagina**: il wrap è figlio di `#page-ore`, quindi quando l'utente è sulla Salary tab `.page{display:none}` lo nasconde insieme al resto. Niente leak cross-page del FAB.
+- **`#main-ore { padding-bottom: 140px }`** per riservare spazio sotto al contenuto e non far schiacciare l'ultima riga dal cerchio.
+- HTML semplificato: rimossi `.btn.full .btn.large`, label testuale "+ Aggiungi evento" → "+" con `aria-label="Aggiungi evento"` e `title` per accessibilità e tooltip desktop.
+
+### Campo Pausa — duration picker invece di clock-time input
+
+- **Sostituito `<input type="time" id="ot-pausa">` con un duration picker custom**: due gruppi `−  Nh  +` e `−  Nm  +` con incrementi di 1h e 5min. L'input nativo `type="time"` era un "orologio" (HH:MM clock-style) e creava ambiguità semantica — l'utente lo leggeva come orario assoluto invece che durata. Il nuovo widget parte da `0h 0m` e si incrementa con i bottoni `+`/`−`, comunicando esplicitamente "stai selezionando una durata".
+- **Wrap minuti↔ore implementato**: premere `+` sui minuti a 55 → diventa 0 e incrementa ore di 1 (clamp 0-23). Stessa logica al contrario per il `−` a 0 minuti.
+- **Storage format invariato**: il duration picker continua a serializzare la pausa come stringa `"HH:MM"` (es. "01:30"), o stringa vuota se 0h 0m. Quindi `parseHHMM(e.pausa)`, CSV import/export (`STRAORD_COLS` e `ORE_COLS`) e la visualizzazione "pausa 01:30" nel day-drilldown restano compatibili senza migrazione dati.
+- Helper aggiunti: `pausaPickerValue()` per leggere i due span come HH:MM, `setPausaPicker(hhmm)` per popolare i due span da un evento esistente, `adjustPausa(target, delta)` per i click sui bottoni.
+
+### `<input type="date"|"time">` — fix definitivo overflow su iOS Safari
+
+- **Diagnosi**: due fix successivi necessari. Il primo tentativo (`.field-row` da `display: grid 1fr 1fr` a `display: flex; gap: 12px` con `min-width: 0` sui figli `.field`) era una premessa necessaria ma insufficiente: iOS Safari ignora `width: 100%` e `min-width: 0` sui native form controls (`type="date"|"time"`) e li renderizza alla loro min-content intrinseca, quella richiesta dal picker nativo interno. Su viewport stretti (~390px) questo min-content > metà sheet → "Ora fine" sfora il bordo destro e si sovrappone visivamente al box di "Ora inizio".
+- **Soluzione**: `-webkit-appearance: none` + `appearance: none` sui campi DATA/ORA INIZIO/ORA FINE. Il browser smette di trattarli come native widgets e rispetta `width: 100%` + `max-width: 100%` + `min-width: 0`. Il picker nativo continua ad aprirsi al tap (l'interazione non è alterata, solo il chrome del widget viene disabilitato).
+- **`::-webkit-calendar-picker-indicator` esplicitamente nascosto** con `display: none`. La regola precedente lo styling con opacity/filter sopravviveva ed era visibile *insieme* all'SVG che ho aggiunto come `background-image` → due icone affiancate nel riquadro.
+- **Icone sostitutive SVG inline** come `background-image` (calendario per date, orologio per time), posizionate a destra con `padding-right: 36px`. Stroke `#A88B6E` (= warm-paper sienna desaturato) per coerenza col design system. URL-encoded direttamente nel CSS, niente file separati.
+- **`text-align: center`** sui campi date/time così il valore (es. "26 May 2026", "14:30") sta centrato nel box invece di essere left-aligned col padding-right che lo spostava ottica­mente fuori centro.
+
+### Internals
+
+- Versione bumped a `3.4.4`.
+- Cache key del service worker bumped a `wims-v3.4.4` per invalidare la 3.4.3 al primo activate.
+
+---
+
 ## [3.4.3] — 2026-05-14
 
 Due interventi UX legati all'onboarding e al controllo fine-grained sugli straordinari.
