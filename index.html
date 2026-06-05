@@ -949,6 +949,12 @@
   .dws-day.has-events{ background: var(--sienna-soft); }
   .dws-day.has-events .dws-name{ color: var(--sienna); }
   .dws-day.has-events .dws-num{ color: var(--sienna-deep); }
+  /* Day with a "festivo" event: gold tint overrides the sienna has-events
+     look so a holiday reads at a glance in the week strip. `selected` is
+     declared after this and keeps winning when the day is the active one. */
+  .dws-day.festivo{ background: var(--gold-tint); }
+  .dws-day.festivo .dws-name{ color: var(--gold); }
+  .dws-day.festivo .dws-num{ color: var(--gold); }
   .dws-day.selected{
     background: var(--sienna);
     color: #fff;
@@ -1010,6 +1016,14 @@
     vertical-align: middle;
     white-space: nowrap;
   }
+  /* Event flagged "holiday" (giorno festivo): the hours are paid like a
+     normal worked day, but a solid gold badge makes the festivo visible.
+     Distinct from the dashed "non strord." badge so the two read apart. */
+  .dd-event-badge.festivo{
+    color: var(--gold); border: 1px solid var(--gold-soft);
+    background: var(--gold-tint); font-style: normal;
+  }
+  .dd-event.holiday{ border-left: 3px solid var(--gold); }
 
   /* Calendar grid (compact, centered). Headers and day cells share one grid
      container so the vertical rhythm between rows is consistent — using two
@@ -1063,6 +1077,11 @@
     font-weight: 600;
   }
   .cal-c.has-events.weekend{ background: var(--terracotta); color: #fff; }
+  /* Festivo day: gold fill overrides the sienna/terracotta event look.
+     Declared after has-events so it wins on equal specificity; the
+     `.weekend` variant matches the 3-class specificity of has-events.weekend. */
+  .cal-c.festivo,
+  .cal-c.festivo.weekend{ background: var(--gold); color: #fff; font-weight: 600; }
   .cal-c.today{ outline: 2px solid var(--sienna); outline-offset: -2px; }
 
   /* ---------- Buttons ---------- */
@@ -1914,7 +1933,15 @@
       <label>Data</label>
       <input type="date" id="ot-data" />
     </div>
-    <div class="field-row">
+    <div class="field">
+      <label class="settings-toggle field-toggle">
+        <span class="field-toggle-label">Giorno festivo</span>
+        <input type="checkbox" id="ot-festivo" />
+        <span class="toggle-track"></span>
+      </label>
+      <div class="hint">Conta come una normale giornata lavorativa di 8 ore (verso la soglia settimanale), senza inserire gli orari. Nel calendario il giorno è evidenziato come festivo.</div>
+    </div>
+    <div class="field-row" id="ot-time-row">
       <div class="field">
         <label>Ora inizio</label>
         <input type="time" id="ot-inizio" />
@@ -1924,7 +1951,7 @@
         <input type="time" id="ot-fine" />
       </div>
     </div>
-    <div class="field">
+    <div class="field" id="ot-pausa-field">
       <label>Pausa (opzionale)</label>
       <div class="duration-picker" id="ot-pausa">
         <div class="dp-group">
@@ -1943,7 +1970,7 @@
       <label>Nota (opzionale)</label>
       <input type="text" id="ot-nota" placeholder="es. trasferta Milano" maxlength="120" />
     </div>
-    <div class="field">
+    <div class="field" id="ot-notov-field">
       <label class="settings-toggle field-toggle">
         <span class="field-toggle-label">Non contare come straordinario</span>
         <input type="checkbox" id="ot-not-overtime" />
@@ -2009,7 +2036,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.4.4";
+const VERSION = "3.5.0";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -2085,9 +2112,15 @@ function workingDaysInMonth(year, m0){
 
 /* ----- Overtime helpers -----
  * Events are stored as { id, data:"YYYY-MM-DD", inizio:"HH:MM", fine:"HH:MM",
- * pausa:"HH:MM"|"", nota:"" }. Cross-midnight events are disallowed (model:
+ * pausa:"HH:MM"|"", nota:"", notOvertime?:bool, holiday?:bool }.
+ * Cross-midnight events are disallowed (model:
  * one record per work-day; if you work across midnight, log two events).
+ *
+ * A `holiday` event (giorno festivo) is special: it carries no clock times —
+ * the user just flags the day and it counts as a fixed standard workday of
+ * FESTIVO_HOURS hours. inizio/fine/pausa are stored empty for these.
  */
+const FESTIVO_HOURS = 8;
 function parseHHMM(s){
   if(s == null || s === "") return null;
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(s).trim());
@@ -2097,6 +2130,8 @@ function parseHHMM(s){
   return h * 60 + mm;
 }
 function eventHours(e){
+  // Festivo days are a fixed standard workday regardless of clock times.
+  if(e && e.holiday) return FESTIVO_HOURS;
   const start = parseHHMM(e.inizio), end = parseHHMM(e.fine);
   if(start == null || end == null) return 0;
   const pause = parseHHMM(e.pausa) || 0;
@@ -2145,6 +2180,11 @@ function paidHoursForMonth(events, year, m0, forfaitWeek, workdays, contractWeek
   // decided those hours should not contribute to the overtime total, even
   // if they're on a weekend or push the week over the threshold. They still
   // exist in the calendar (gross hours), they just don't get paid out.
+  //
+  // Events flagged `holiday` (giorno festivo) are treated as a normal worked
+  // day: they contribute a fixed FESTIVO_HOURS (via eventHours) toward the
+  // weekly threshold like any workday, even if the date falls on a weekend.
+  // They do not get the automatic 100%-paid treatment that non-workdays get.
   const inMonth = eventsInMonth(events, year, m0);
   if(inMonth.length === 0) return 0;
   const wd = (workdays && workdays.length) ? workdays : [1,2,3,4,5];
@@ -2153,7 +2193,7 @@ function paidHoursForMonth(events, year, m0, forfaitWeek, workdays, contractWeek
   for(const e of inMonth){
     if(e.notOvertime) continue;
     const h = eventHours(e);
-    if(isWorkday(e.data, wd)){
+    if(e.holiday || isWorkday(e.data, wd)){
       const [iy, iw] = isoWeek(e.data);
       const k = iy + "-" + iw;
       workByWeek[k] = (workByWeek[k] || 0) + h;
@@ -2808,7 +2848,7 @@ function renderOreWeekView(p){
     const k = iw;
     if(!byWeek[k]) byWeek[k] = { iw, workH: 0, weekendH: 0, count: 0 };
     const h = eventHours(e);
-    if(isWorkday(e.data, wd)) byWeek[k].workH += h;
+    if(e.holiday || isWorkday(e.data, wd)) byWeek[k].workH += h;
     else byWeek[k].weekendH += h;
     byWeek[k].count++;
   }
@@ -2896,7 +2936,7 @@ function renderOreDayList(p){
   return `<div class="ore-day-list">${dates.map(d => {
     const evs = byDate[d];
     const totalH = evs.reduce((s, e) => s + eventHours(e), 0);
-    const times = evs.map(e => `${escapeHtml(e.inizio)}–${escapeHtml(e.fine)}`).join(" · ");
+    const times = evs.map(e => e.holiday ? "Festivo" : `${escapeHtml(e.inizio)}–${escapeHtml(e.fine)}`).join(" · ");
     const note = evs.map(e => e.nota).filter(Boolean).join(" / ");
     return `<div class="ore-day-row" data-date="${escapeHtml(d)}">
       <div class="odr-date">${formatItalianDateLong(d)}</div>
@@ -2928,6 +2968,7 @@ function renderOreDayDetail(p){
   const names = ["L","M","M","G","V","S","D"];
   const wd = p.settings.workdays || [1,2,3,4,5];
   const eventDates = new Set((p.overtime || []).map(e => e.data));
+  const festivoDates = new Set((p.overtime || []).filter(e => e.holiday).map(e => e.data));
 
   const strip = [];
   for(let i = 0; i < 7; i++){
@@ -2936,8 +2977,9 @@ function renderOreDayDetail(p){
     const ds = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
     const isWeekend = !wd.includes(i + 1);
     const hasEv = eventDates.has(ds);
+    const isFestivo = festivoDates.has(ds);
     const isSel = ds === date;
-    strip.push(`<button class="dws-day${isSel ? " selected" : ""}${isWeekend ? " weekend" : ""}${hasEv ? " has-events" : ""}" data-date="${ds}" type="button">
+    strip.push(`<button class="dws-day${isSel ? " selected" : ""}${isWeekend ? " weekend" : ""}${hasEv ? " has-events" : ""}${isFestivo ? " festivo" : ""}" data-date="${ds}" type="button">
       <span class="dws-name">${names[i]}</span>
       <span class="dws-num">${dt.getDate()}</span>
     </button>`);
@@ -2950,10 +2992,10 @@ function renderOreDayDetail(p){
       <button class="btn full" id="dd-add" type="button" style="margin-top:10px">+ Aggiungi evento qui</button>`;
   } else {
     eventsHtml = events.map(e => `
-      <div class="dd-event${e.notOvertime ? " not-overtime" : ""}" data-id="${escapeHtml(e.id)}">
-        <div class="dd-event-times">${escapeHtml(e.inizio)} → ${escapeHtml(e.fine)}${e.pausa ? ` · pausa ${escapeHtml(e.pausa)}` : ""}</div>
+      <div class="dd-event${e.notOvertime ? " not-overtime" : ""}${e.holiday ? " holiday" : ""}" data-id="${escapeHtml(e.id)}">
+        <div class="dd-event-times">${e.holiday ? "Giornata festiva" : `${escapeHtml(e.inizio)} → ${escapeHtml(e.fine)}${e.pausa ? ` · pausa ${escapeHtml(e.pausa)}` : ""}`}</div>
         ${e.nota ? `<div class="dd-event-note">${escapeHtml(e.nota)}</div>` : ""}
-        <div class="dd-event-hours">${hStr(eventHours(e))}${e.notOvertime ? ` <span class="dd-event-badge">non strord.</span>` : ""}</div>
+        <div class="dd-event-hours">${hStr(eventHours(e))}${e.holiday ? ` <span class="dd-event-badge festivo">festivo</span>` : ""}${e.notOvertime ? ` <span class="dd-event-badge">non strord.</span>` : ""}</div>
       </div>`).join("") + `<button class="btn secondary full" id="dd-add" type="button" style="margin-top:12px">+ Aggiungi un altro evento</button>`;
   }
 
@@ -3106,8 +3148,12 @@ function renderCalendar(year, m0, events, workdays){
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const eventDates = new Set();
+  const festivoDates = new Set();
   for(const e of (events || [])){
-    if(e.data && e.data.startsWith(`${year}-${mm}-`)) eventDates.add(e.data);
+    if(e.data && e.data.startsWith(`${year}-${mm}-`)){
+      eventDates.add(e.data);
+      if(e.holiday) festivoDates.add(e.data);
+    }
   }
 
   const headers = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
@@ -3126,6 +3172,7 @@ function renderCalendar(year, m0, events, workdays){
     const cls = ["cal-c"];
     if(!isWork) cls.push("weekend");
     if(eventDates.has(dateStr)) cls.push("has-events");
+    if(festivoDates.has(dateStr)) cls.push("festivo");
     if(dateStr === todayStr) cls.push("today");
     const style = (d === 1 && startOffset > 0) ? ` style="grid-column-start: ${startOffset + 1}"` : "";
     cells += `<div class="${cls.join(" ")}" data-date="${dateStr}"${style}>${d}</div>`;
@@ -3160,6 +3207,7 @@ function openOvertimeForm(eventId){
     setPausaPicker(ev.pausa || "");
     $("#ot-nota").value = ev.nota || "";
     $("#ot-not-overtime").checked = !!ev.notOvertime;
+    $("#ot-festivo").checked = !!ev.holiday;
   } else {
     $("#ot-data").value = new Date().toISOString().slice(0, 10);
     $("#ot-inizio").value = "";
@@ -3167,10 +3215,22 @@ function openOvertimeForm(eventId){
     setPausaPicker("");
     $("#ot-nota").value = "";
     $("#ot-not-overtime").checked = false;
+    $("#ot-festivo").checked = false;
   }
-  updateOvertimePreview();
+  syncFestivoUI();
   openSheet("ot-event-sheet");
 }
+// When "Giorno festivo" is on, the event is a fixed standard day: hide the
+// time/pausa inputs (and the conflicting "non straordinario" toggle) since
+// the user doesn't enter hours for a holiday. Also refreshes the preview.
+function syncFestivoUI(){
+  const on = !!$("#ot-festivo").checked;
+  $("#ot-time-row").style.display = on ? "none" : "";
+  $("#ot-pausa-field").style.display = on ? "none" : "";
+  $("#ot-notov-field").style.display = on ? "none" : "";
+  updateOvertimePreview();
+}
+$("#ot-festivo").onchange = syncFestivoUI;
 function pausaPickerValue(){
   const h = parseInt($("#ot-pausa-h").textContent, 10) || 0;
   const m = parseInt($("#ot-pausa-m").textContent, 10) || 0;
@@ -3212,6 +3272,10 @@ $$("#ot-pausa .dp-btn").forEach(btn => {
   });
 });
 function updateOvertimePreview(){
+  if($("#ot-festivo").checked){
+    $("#ot-hours-preview").textContent = `Giornata festiva: conta come ${FESTIVO_HOURS} ore lavorate.`;
+    return;
+  }
   const e = { inizio: $("#ot-inizio").value, fine: $("#ot-fine").value, pausa: pausaPickerValue() };
   const h = eventHours(e);
   $("#ot-hours-preview").textContent = h > 0 ? `Durata: ${h.toFixed(2).replace(".", ",")} h` : "Inserisci ora inizio e fine per vedere la durata.";
@@ -3223,16 +3287,23 @@ $("#btn-ot-save").onclick = () => {
   const p = activeProfile();
   if(!p) return;
   const data = $("#ot-data").value;
-  const inizio = $("#ot-inizio").value;
-  const fine = $("#ot-fine").value;
   if(!data){ showAlert("Manca la data"); $("#ot-data").focus(); return; }
-  if(!inizio || !fine){ showAlert("Inserisci ora di inizio e fine"); return; }
-  const startM = parseHHMM(inizio), endM = parseHHMM(fine);
-  if(startM == null || endM == null){ showAlert("Orari non validi"); return; }
-  if(endM <= startM){ showAlert("L'ora di fine deve essere dopo l'ora di inizio.\n\nGli eventi a cavallo della mezzanotte non sono supportati: registra due eventi separati."); return; }
+  const holiday = !!$("#ot-festivo").checked;
+  // Festivo events carry no clock times — they count as a fixed standard day
+  // (FESTIVO_HOURS). Skip the time validation and store empty inizio/fine/pausa.
+  let inizio = "", fine = "", pausaVal = "";
+  let notOvertime = false;
+  if(!holiday){
+    inizio = $("#ot-inizio").value;
+    fine = $("#ot-fine").value;
+    if(!inizio || !fine){ showAlert("Inserisci ora di inizio e fine"); return; }
+    const startM = parseHHMM(inizio), endM = parseHHMM(fine);
+    if(startM == null || endM == null){ showAlert("Orari non validi"); return; }
+    if(endM <= startM){ showAlert("L'ora di fine deve essere dopo l'ora di inizio.\n\nGli eventi a cavallo della mezzanotte non sono supportati: registra due eventi separati."); return; }
+    notOvertime = !!$("#ot-not-overtime").checked;
+    pausaVal = pausaPickerValue();
+  }
   if(!Array.isArray(p.overtime)) p.overtime = [];
-  const notOvertime = !!$("#ot-not-overtime").checked;
-  const pausaVal = pausaPickerValue();
   if(editingEventId){
     const ev = p.overtime.find(e => e.id === editingEventId);
     if(ev){
@@ -3240,6 +3311,7 @@ $("#btn-ot-save").onclick = () => {
       ev.pausa = pausaVal;
       ev.nota = ($("#ot-nota").value || "").trim();
       ev.notOvertime = notOvertime;
+      ev.holiday = holiday;
     }
   } else {
     p.overtime.push({
@@ -3248,6 +3320,7 @@ $("#btn-ot-save").onclick = () => {
       pausa: pausaVal,
       nota: ($("#ot-nota").value || "").trim(),
       notOvertime,
+      holiday,
     });
   }
   editingEventId = null;
@@ -3823,7 +3896,7 @@ const STATE_FROM_IT = { ricevuto: "received", mancante: "missing", non_atteso: "
 const CSV_SEP = ";";
 const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default","forfait_settimana","tariffa_ora","giorni_lavorativi","contratto_settimana","mensilita","pay_giorno","pay_mese_dopo","overtime_abilitato"];
 const MONTH_COLS = ["profilo","anno","mese","stipendio_stato","stipendio_importo","welfare","ticket_stato","ticket_giorni","fringe","bonus_stato","bonus_importo","rimborso_stato","rimborso_importo","straord_stato","straord_ore_pagare","salary13_stato","salary14_stato","salary15_stato","salary13_importo","salary14_importo","salary15_importo"];
-const STRAORD_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario"];
+const STRAORD_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario","festivo"];
 
 function fmtNum(n){
   // Italian decimal, two digits, no thousands separator (avoids extra quoting)
@@ -3939,7 +4012,7 @@ function buildCsv(storeIn){
   for(const [, p] of Object.entries(storeIn.profiles || {})){
     const events = (p.overtime || []).slice().sort((a, b) => (a.data || "").localeCompare(b.data || ""));
     for(const e of events){
-      lines.push(csvRow([p.name, e.data || "", e.inizio || "", e.fine || "", e.pausa || "", e.nota || "", e.notOvertime ? "1" : "0"]));
+      lines.push(csvRow([p.name, e.data || "", e.inizio || "", e.fine || "", e.pausa || "", e.nota || "", e.notOvertime ? "1" : "0", e.holiday ? "1" : "0"]));
     }
   }
   return "﻿" + lines.join("\r\n") + "\r\n";
@@ -4069,10 +4142,15 @@ function parseCsv(text){
       if(!name) throw new Error(`Profilo senza nome in sezione STRAORDINARI a riga ${lineNo+1}`);
       const data = (row.data || "").trim();
       if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Data non valida a riga ${lineNo+1}: "${data}" (formato YYYY-MM-DD)`);
+      const festivoRaw = (row.festivo || "").trim().toLowerCase();
+      const holiday = festivoRaw === "1" || festivoRaw === "sì" || festivoRaw === "si" || festivoRaw === "true";
       const inizio = (row.inizio || "").trim();
       const fine = (row.fine || "").trim();
-      if(parseHHMM(inizio) == null) throw new Error(`Ora inizio non valida a riga ${lineNo+1}: "${inizio}"`);
-      if(parseHHMM(fine) == null) throw new Error(`Ora fine non valida a riga ${lineNo+1}: "${fine}"`);
+      // Festivo events carry no clock times — don't validate them as orari.
+      if(!holiday){
+        if(parseHHMM(inizio) == null) throw new Error(`Ora inizio non valida a riga ${lineNo+1}: "${inizio}"`);
+        if(parseHHMM(fine) == null) throw new Error(`Ora fine non valida a riga ${lineNo+1}: "${fine}"`);
+      }
       const notOvRaw = (row.non_straordinario || "").trim().toLowerCase();
       const notOvertime = notOvRaw === "1" || notOvRaw === "sì" || notOvRaw === "si" || notOvRaw === "true";
       (overtimeByName[name] = overtimeByName[name] || []).push({
@@ -4081,6 +4159,7 @@ function parseCsv(text){
         pausa: (row.pausa || "").trim(),
         nota: (row.nota || "").trim(),
         notOvertime,
+        holiday,
       });
     }
   }
@@ -4130,11 +4209,11 @@ async function applyImportedData(parsed, sourceLabel){
  *  Ore-only CSV — scoped to a single profile's overtime events.
  *  Simpler format (no sections): header + rows.
  * ============================================================ */
-// `non_straordinario` (v3.4.3) is appended at the end so files exported by
-// older versions still match as a header *prefix* — parseCsvOre below uses a
-// tolerant comparison that requires the leading columns to match but accepts
-// trailing columns being absent (older files) or extra (forward compat).
-const ORE_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario"];
+// `non_straordinario` (v3.4.3) and `festivo` (v3.5.0) are appended at the end so files
+// exported by older versions still match as a header *prefix* — parseCsvOre
+// below uses a tolerant comparison that requires the leading columns to match
+// but accepts trailing columns being absent (older files) or extra (forward compat).
+const ORE_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario","festivo"];
 
 function buildCsvOre(profileName, events){
   const lines = [ORE_COLS.join(CSV_SEP)];
@@ -4147,6 +4226,7 @@ function buildCsvOre(profileName, events){
       e.pausa || "",
       e.nota || "",
       e.notOvertime ? "1" : "0",
+      e.holiday ? "1" : "0",
     ]));
   }
   return "﻿" + lines.join("\r\n") + "\r\n";
@@ -4172,12 +4252,17 @@ function parseCsvOre(text){
     if(f.length !== header.length) throw new Error(`Riga ${i+1}: ${f.length} colonne invece di ${header.length}`);
     const data = f[1].trim();
     if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Riga ${i+1}: data non valida "${data}"`);
+    const festivoRaw = (f[7] || "").trim().toLowerCase();
+    const holiday = festivoRaw === "1" || festivoRaw === "sì" || festivoRaw === "si" || festivoRaw === "true";
     const inizio = f[2].trim(), fine = f[3].trim();
-    if(parseHHMM(inizio) == null) throw new Error(`Riga ${i+1}: ora inizio "${inizio}" non valida`);
-    if(parseHHMM(fine) == null) throw new Error(`Riga ${i+1}: ora fine "${fine}" non valida`);
+    // Festivo events carry no clock times — don't validate them as orari.
+    if(!holiday){
+      if(parseHHMM(inizio) == null) throw new Error(`Riga ${i+1}: ora inizio "${inizio}" non valida`);
+      if(parseHHMM(fine) == null) throw new Error(`Riga ${i+1}: ora fine "${fine}" non valida`);
+    }
     const notOvertimeRaw = (f[6] || "").trim().toLowerCase();
     const notOvertime = notOvertimeRaw === "1" || notOvertimeRaw === "sì" || notOvertimeRaw === "si" || notOvertimeRaw === "true";
-    events.push({ id: genEventId(), data, inizio, fine, pausa: f[4].trim(), nota: f[5].trim(), notOvertime });
+    events.push({ id: genEventId(), data, inizio, fine, pausa: f[4].trim(), nota: f[5].trim(), notOvertime, holiday });
   }
   return events;
 }

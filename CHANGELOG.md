@@ -6,6 +6,23 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.5.0] — 2026-06-05
+
+Nuova opzione **"Giorno festivo"** nel form evento Overtime. Nasce da una richiesta diretta: poter segnare che un giorno è festivo senza dover digitare gli orari, perché quel giorno è comunque pagato come una normale giornata lavorata — e deve restare riconoscibile a colpo d'occhio nel calendario.
+
+### Flag `holiday` sull'evento
+
+- **Aggiunto un toggle "Giorno festivo"** nel sheet di add/edit evento, posizionato subito sotto la Data (prima degli orari, così il flusso è: scegli il giorno → è festivo? → se no, inserisci gli orari). Persiste sull'evento come `holiday: bool`.
+- **Niente orari da inserire — conta come 8 ore fisse.** Quando il toggle è attivo i campi Ora inizio / Ora fine / Pausa (e il toggle "non straordinario", in conflitto) vengono nascosti: l'evento non porta orari e vale una giornata standard di `FESTIVO_HOURS = 8` ore. `eventHours()` ritorna 8 per gli eventi `holiday` ignorando i clock-time, che vengono salvati vuoti.
+- **Semantica di calcolo — "come una normale giornata lavorativa".** In `paidHoursForMonth` (e nella vista Settimane) un evento `holiday` è trattato come giorno feriale: le sue 8 ore confluiscono nella soglia settimanale (`contratto + forfait`) invece di ricevere il trattamento automatico 100%-pagato dei giorni non lavorativi. Per un festivo infrasettimanale conta come un normale giorno lavorato; per un festivo nel weekend l'effetto è contarlo verso la soglia anziché come straordinario pieno — lettura letterale di "le segnerei come se avessi fatto una giornata lavorativa".
+- **Indicatori visivi.** Il festivo è oro in entrambi i calendari: nella griglia mensile (`renderCalendar`) il cerchio del giorno è pieno oro invece del sienna/terracotta dei giorni con eventi; nella week-strip ha sfondo `--gold-tint` (lo stato `selected` continua a vincere). Nella card evento la riga orari diventa "Giornata festiva" con un badge "festivo" pieno color oro e una barra oro a sinistra.
+
+### Persistenza CSV
+
+- **Aggiunta colonna `festivo`** in coda sia a `STRAORD_COLS` (backup completo) sia a `ORE_COLS` (export solo-ore). È appesa in fondo, quindi i file esportati da versioni precedenti restano importabili: l'header più corto matcha come prefisso e l'assenza della colonna viene letta come `holiday=false`. Per le righe festivo la validazione degli orari è saltata (inizio/fine vuoti), così il round-trip export→import resta valido.
+
+---
+
 ## [3.4.4] — 2026-05-27
 
 Round di UX polish sul form evento Overtime e sul FAB di aggiunta. Tre temi indipendenti, tutti motivati da feedback diretto: "il FAB full-width copre il contenuto sotto", "il campo pausa sembra un orologio, non una durata", "ora inizio e ora fine sforano dal viewport su mobile e si sovrappongono".
