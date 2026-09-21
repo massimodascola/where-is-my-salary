@@ -2277,7 +2277,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.7.1";
+const VERSION = "3.7.2";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -2438,7 +2438,20 @@ function paidHoursForMonth(events, year, m0, forfaitWeek, workdays, contractWeek
   // Threshold = contract hours + forfait hours per week. Workday hours below
   // the threshold are absorbed by salary; only hours above count as paid
   // overtime. Non-workday hours (weekend/holidays per user settings) are 100%
-  // paid (no absorption).
+  // paid (no absorption) and belong to the month they were worked in.
+  //
+  // A week can straddle two months (or two years, e.g. 28/12-03/01). The
+  // threshold is filled day by day in date order and overtime is the hours
+  // past it, so it belongs to the month of the days in which the week went
+  // over. The days of the same ISO week that come before this month (at most
+  // 6) have already used up part of the threshold; the days after it don't
+  // matter here. With `before` and `inMonth` the week's workday hours before
+  // and inside the month:
+  //   paid = max(0, before + inMonth - threshold) - max(0, before - threshold)
+  // Summed over the months a week touches this gives max(0, week - threshold),
+  // the same figure as the Settimane view, and a finished month never changes
+  // when the following one is filled in. So `events` must be the profile's
+  // full list, never one already filtered by month.
   //
   // Events flagged `notOvertime` are skipped entirely: the user explicitly
   // decided those hours should not contribute to the overtime total, even
@@ -2452,25 +2465,35 @@ function paidHoursForMonth(events, year, m0, forfaitWeek, workdays, contractWeek
   // treatment that non-workdays get. Net effect of a ferie day: the week
   // needs 8 fewer worked hours before overtime starts, so extra hours done
   // on the other days of that week are not swallowed by the vacation day.
-  const inMonth = eventsInMonth(events, year, m0);
-  if(inMonth.length === 0) return 0;
+  const y = Number(year);
+  const first = `${y}-${String(m0 + 1).padStart(2, "0")}-01`;
+  const last = localDateStr(new Date(y, m0 + 1, 0));
+  // Up to 6 days of the previous month can share an ISO week with the 1st.
+  const from = localDateStr(new Date(y, m0, -5));
   const wd = (workdays && workdays.length) ? workdays : [1,2,3,4,5];
-  const workByWeek = {};
+  const byWeek = {};
   let nonWorkHours = 0;
-  for(const e of inMonth){
-    if(e.notOvertime) continue;
+  for(const e of events || []){
+    const d = e.data;
+    if(!d || d < from || d > last || e.notOvertime) continue;
+    const inMonth = d >= first;
     const h = eventHours(e);
-    if(e.holiday || e.pto || isWorkday(e.data, wd)){
-      const [iy, iw] = isoWeek(e.data);
+    if(e.holiday || e.pto || isWorkday(d, wd)){
+      const [iy, iw] = isoWeek(d);
       const k = iy + "-" + iw;
-      workByWeek[k] = (workByWeek[k] || 0) + h;
-    } else {
+      if(!byWeek[k]) byWeek[k] = { before: 0, inMonth: 0 };
+      if(inMonth) byWeek[k].inMonth += h;
+      else byWeek[k].before += h;
+    } else if(inMonth){
       nonWorkHours += h;
     }
   }
   const threshold = (Number(contractWeek) || 0) + (Number(forfaitWeek) || 0);
   let paid = nonWorkHours;
-  for(const k in workByWeek) paid += Math.max(0, workByWeek[k] - threshold);
+  for(const k in byWeek){
+    const w = byWeek[k];
+    paid += Math.max(0, w.before + w.inMonth - threshold) - Math.max(0, w.before - threshold);
+  }
   return paid;
 }
 function genEventId(){ return "ev_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 6); }

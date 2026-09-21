@@ -120,6 +120,7 @@ Per ogni giorno loggato nel calendario:
 - Le **ore weekend** (giorni che hai marcato come non lavorativi) contano per intero come straordinario.
 - Le **ore feriali** contano come straordinario solo per la parte che eccede la soglia settimanale: `paid = max(0, oreFeriali - (oreContratto + forfait))`.
 - **Ferie e festivi** valgono 8 ore e contano verso la soglia settimanale come un giorno lavorato, perché lo stipendio li paga comunque. In una settimana con un giorno di ferie bastano quindi 32 ore lavorate per arrivare a 40: quelle oltre restano straordinario. Le ferie si possono segnare solo nei giorni lavorativi.
+- Una **settimana a cavallo di due mesi** (o di due anni) conta per intero. La soglia si riempie giorno per giorno, in ordine di data, e gli straordinari vanno nel mese dei giorni in cui la settimana la supera. Esempio: da lunedì 28/9 a venerdì 2/10, 10 ore al giorno. Settembre 0 h (30 h, ancora sotto soglia), ottobre 10 h, come nella vista Settimane. Un mese finito non cambia più quando inserisci le ore del mese dopo.
 
 L'importo in euro è `ore × tariffa straordinario`. Se la tariffa è 0, l'hero mostra solo le ore.
 
@@ -152,7 +153,7 @@ Tutta la logica vive in `index.html` (markup, stili, script in unico file). I fi
 | `paymentDateFor`, `isPaymentDue` | Determinano quando lo stipendio del mese N è "dovuto", in base a `payDay` e `payDayNextMonth`. |
 | `loadStore`, `saveStore`, `defaultSettings`, `defaultMonth`, `ensureProfile`, `ensureYear`, `activeProfile`, `runMigrations` | Persistenza e shape del dato in `localStorage`. Lo store ha forma `{ profiles: { id: { name, settings, years: { 2026: { 1: {...} } } } }, activeProfile, currentYear, _migrations }`. `runMigrations` gira a bootstrap e applica trasformazioni idempotenti taggate in `_migrations`. |
 | `expectedAmountFor`, `computeYearTotals`, `monthStatus`, `extraSalaryApplies` | Logica di calcolo "atteso vs ricevuto" per Salary, comprese 13ª/14ª/15ª. |
-| `paidHoursForMonth` e correlati | Calcolo ore straordinario su base settimanale, con soglia `oreContratto + forfait`. |
+| `paidHoursForMonth` e correlati | Calcolo ore straordinario su base settimanale, con soglia `oreContratto + forfait`. Per le settimane a cavallo di mese conta anche i giorni della stessa settimana nel mese prima: vuole sempre l'elenco completo degli eventi, mai uno già filtrato per mese. |
 | `render`, `renderTopbar`, `renderMain`, `renderMonthCard`, `renderPageOre`, `renderOvertimeVisibility`, `switchTab` | Rendering delle due pagine. **L'app rifà l'intero `#main` con `innerHTML` ad ogni interazione** — semplice, funziona bene su questa scala, ma occhio se aggiungi input con focus persistente. |
 | `openSheet`, `closeSheets`, `openNewProfile` + handler `$("#btn-...")` | UI dei sheet (modali a fondo schermo) e bottoni. |
 | Backup CSV (`buildCsv`, `parseCsv`, `parseCsvLine`, `fmtNum`, `parseNum`, `csvEscape`, `applyImportedData`) | Export/import. Formato sezionato (`# SETTINGS` + `# MESI`), separatore `;`, decimale `,`, UTF-8 con BOM. Stati mappati da inglese a italiano via `STATE_TO_IT` / `STATE_FROM_IT`. Parser tollerante (header *prefisso*) per retro-compatibilità tra versioni. |

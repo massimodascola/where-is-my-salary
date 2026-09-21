@@ -6,6 +6,25 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.7.2] — 2026-09-21
+
+Bug trovato durante il lavoro sulla 3.7.1: una settimana divisa fra due mesi perdeva gli straordinari nei totali mensili. Tocca i soldi, perché `paidHoursForMonth` alimenta l'hero "quanto ti devono", le card dei mesi, la vista Anni e la voce Straordinari della pagina Salary.
+
+### Settimane a cavallo di due mesi
+
+- **Problema**: `paidHoursForMonth` guardava solo gli eventi del mese, li raggruppava per settimana ISO e confrontava ogni gruppo con la soglia intera (contratto + forfait). Una settimana divisa fra due mesi diventava due mezze settimane, ognuna sotto soglia. Esempio misurato: da lunedì 28/09 a venerdì 02/10/2026, 10 h al giorno (50 h, soglia 40). Vista Settimane: 10 h da pagare. Settembre: 0 h. Ottobre: 0 h.
+- **Regola scelta**: la soglia si riempie giorno per giorno, in ordine di data, e gli straordinari sono le ore oltre la soglia: vanno nel mese dei giorni in cui la settimana la supera. Nell'esempio settembre resta a 0 h (30 h, ancora sotto soglia) e ottobre ne prende 10. Scartate: tutta la settimana al mese del giovedì (regola ISO); al mese della domenica, che avrebbe spostato a novembre anche la settimana dal 26 al 30/10, lavorata tutta a ottobre; divisa in proporzione alle ore, che avrebbe cambiato il mese prima dopo la sua fine e prodotto ore con decimali.
+- **Come funziona**: per ogni settimana che tocca il mese la funzione somma anche le ore feriali dei giorni della stessa settimana che cadono nel mese prima (al massimo 6), e tiene solo la parte oltre soglia che spetta al mese: `max(0, prima + mese - soglia) - max(0, prima - soglia)`. Sui due mesi la somma è esattamente quella della vista Settimane, e un mese finito non cambia più quando inserisci le ore del mese dopo. Le ore nei giorni non lavorativi restano pagate per intero nel loro mese; "non contare come straordinario", ferie, festivi e l'override manuale del mese funzionano come prima. I chiamanti non cambiano: passano già tutti l'elenco completo degli eventi, e il commento della funzione ora dice che deve restare così.
+- **A cavallo d'anno** vale la stessa regola: la settimana 53 del 2026 (dal 28/12 al 03/01) si divide fra dicembre 2026 e gennaio 2027. La vista Settimane la elenca intera nel 2026 (anno ISO), quindi in quel caso il totale 2026 della vista Anni è più basso della somma delle settimane del 2026 esattamente di quanto è andato a gennaio. Il totale complessivo coincide.
+- **Verifica**: profilo di prova a 20 €/h con quattro settimane divise: 28/09-02/10; 26-30/10; 28/12/2026-02/01/2027 con un sabato da 4 h; 31/08-04/09 con un giorno di ferie e uno "non contare". Prima: agosto 0, settembre 0, ottobre 10, dicembre 0, gennaio 2027 4 h, totale 14 h contro le 38 h della vista Settimane (480 € persi). Dopo: 0, 4, 20, 0, 14 h, totale 38 h. Nel browser tornano le card dei mesi, l'hero (80 € entro settembre), il calendario di ottobre (400 €, 140 € con override a 7 h), la pagina Salary (20,0 h proposte a ottobre) e la vista Anni (24 h nel 2026 più 14 h nel 2027). In più 3000 casi casuali in quattro fusi orari: somma dei mesi sempre uguale alla somma delle settimane, mese chiuso stabile, mai negativo.
+
+### Internals
+
+- Versione bumped a `3.7.2`.
+- Cache key del service worker bumped a `wims-v3.7.2`.
+
+---
+
 ## [3.7.1] — 2026-09-21
 
 Due bug già presenti prima della 3.6.0, trovati rileggendo il codice per le ferie: la vista Settimane contava come da pagare anche le ore segnate "non contare come straordinario", e la data di "oggi" era quella UTC, che in Italia tra mezzanotte e l'una (le due con l'ora legale) è ancora ieri.
