@@ -257,7 +257,7 @@ iOS-style pill in basso, sempre visibile (`position: fixed`), con due tab: **Sal
 
 Pattern usato per:
 - **Settings** (`Le tue cifre`) — sezioni *Salary*, *Overtime*, *Sistema*.
-- **New profile** (`Iniziamo da te`) — stesso shape del settings, senza sezione Sistema.
+- **Wizard di primo avvio** (`Iniziamo da te`) — un passo alla volta, vedi sotto.
 - **Sync configure** (`Configura sync cloud`).
 - **Overtime event** (`Nuovo / Modifica evento`).
 
@@ -277,6 +277,8 @@ Comportamento responsive:
 - **Desktop**: centrato, max-width 560px, popup-style con scale-in.
 
 Le sezioni interne usano `.settings-section-title` (serif italic 16px sienna, dashed underline) come heading.
+
+**Wizard di primo avvio** (`#new-profile-sheet`): stesso sheet, con una `.wz-progress` (barra sienna di 3px) sotto la head, "Passo N di M" (`.wz-count`, 11px uppercase faint) e un solo `.wz-step` visibile, che si apre con una frase `.wz-intro` (serif italic). Le domande sì/no usano `.wz-q` (15px, ink) più il selettore `.kind-switch`; i campi che un "Sì" rende visibili hanno `data-show-if`. Il foglio ha altezza fissa (`min(92dvh, 680px)`, desktop `min(86vh, 680px)`) perché i bottoni Indietro/Avanti nel foot non si spostino tra un passo e l'altro. L'ultimo passo è un riepilogo `.wz-summary`: righe `.wz-row` con separatore tratteggiato, cliccabili per tornare al passo.
 
 ### 5.8 Calendario (Overtime)
 
@@ -337,6 +339,10 @@ Pattern unico:
 `.field-row` mette due `.field` affiancati in due colonne 1fr/1fr.
 
 `.workday-row` è il selettore lun-dom: una pillola per giorno, sienna soft + sienna bordo quando selezionato.
+
+`.kind-switch` è il selettore a pillole per le scelte esclusive (tipo di giornata nel form evento, sì/no nel wizard): veri `radio`, la pillola attiva è card-elev con testo sienna-deep, o del colore del tipo (ocean per Ferie, gold per Festivo).
+
+Sui touch screen (`pointer: coarse`) input e select dei `.field` sono a 16px invece di 15px: sotto i 16px Safari iOS ingrandisce la pagina quando il campo riceve il cursore, e non torna indietro da solo.
 
 ---
 

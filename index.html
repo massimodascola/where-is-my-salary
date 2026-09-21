@@ -1338,6 +1338,17 @@
   .field input[type="time"]{
     font-variant-numeric: tabular-nums;
   }
+  /* iOS Safari zooms the whole page in when a field with text under 16px
+     gets the caret, and doesn't zoom back out (the wizard puts the caret in
+     the amount right after a "Sì"). 16px on touch screens keeps the page
+     still; desktop keeps 15px. */
+  @media (pointer: coarse){
+    .field input[type="text"],
+    .field input[type="number"],
+    .field input[type="date"],
+    .field input[type="time"],
+    .field select{ font-size: 16px; }
+  }
   .field input:focus, .field select:focus{
     outline: none; border-color: var(--sienna);
     background: var(--card-elev);
@@ -1481,6 +1492,53 @@
   .kind-switch input[value="festivo"]:checked + span{ background: var(--gold-tint); color: var(--gold); }
   .kind-switch input:focus-visible + span{ outline: 2px solid var(--sienna); outline-offset: 1px; }
   .field .hint:empty{ display: none; }
+
+  /* ---------- First-run wizard (new-profile sheet) ----------
+     One .wz-step visible at a time, a thin progress bar under the sheet
+     head and "Passo N di M" above the step. Yes/no questions reuse
+     .kind-switch; the fields they unlock carry data-show-if. */
+  /* Same height for every step, so the footer buttons don't jump around as
+     steps get shorter or longer (the tallest step is the summary). */
+  #new-profile-sheet{ height: min(92dvh, 680px); }
+  @media (min-width: 640px){
+    #new-profile-sheet{ height: min(86vh, 680px); }
+  }
+  .wz-progress{ flex-shrink: 0; height: 3px; background: var(--line-soft); }
+  .wz-progress-bar{ height: 100%; width: 0; background: var(--sienna); transition: width .25s ease; }
+  .wz-count{
+    font-size: 11px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+  .wz-step{ display: none; }
+  .wz-step.active{ display: block; }
+  .wz-intro{
+    font-family: var(--serif); font-style: italic;
+    font-size: 15.5px; line-height: 1.5;
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+  }
+  .wz-q{ font-size: 15px; font-weight: 500; color: var(--ink); }
+  .field.wz-gap{ margin-top: 10px; }
+  .wz-summary{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    padding: 2px 16px;
+    box-shadow: var(--shadow-rest);
+  }
+  .wz-row{
+    display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+    width: 100%;
+    padding: 11px 0;
+    text-align: left;
+    cursor: pointer;
+  }
+  .wz-row + .wz-row{ border-top: 1px dashed var(--line-soft); }
+  .wz-row .k{ flex-shrink: 0; font-size: 13px; color: var(--ink-muted); }
+  .wz-row .v{ font-size: 14px; color: var(--ink); text-align: right; }
+  .wz-row:hover .v{ color: var(--sienna-deep); }
 
   /* ---------- Empty state (entire card is clickable) ---------- */
   .empty{
@@ -1820,6 +1878,9 @@
         <select id="set-fringe-month"></select>
       </div>
     </div>
+    <div class="field" style="margin-top:-8px">
+      <div class="hint">Welfare, ticket e fringe a 0 se non li hai: quelle voci non compaiono nei mesi.</div>
+    </div>
     <div class="field">
       <label>Bonus standard (€)</label>
       <input type="number" id="set-bonus" min="0" step="0.01" />
@@ -1872,10 +1933,20 @@
       <input type="number" id="set-tariffa" min="0" step="0.01" />
       <div class="hint">Sopra le (contratto + forfait) ore settimanali contano come straordinari pagati a questa tariffa.</div>
     </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="set-inizio">Ora inizio abituale</label>
+        <input type="time" id="set-inizio" />
+      </div>
+      <div class="field">
+        <label for="set-fine">Ora fine abituale</label>
+        <input type="time" id="set-fine" />
+      </div>
+    </div>
     <div class="field">
-      <label>Pausa predefinita (minuti)</label>
+      <label for="set-pausa">Pausa predefinita (minuti)</label>
       <input type="number" id="set-pausa" min="0" max="720" step="5" />
-      <div class="hint">Già impostata in ogni nuovo evento; se un giorno è diversa la cambi lì. 0 per partire senza pausa.</div>
+      <div class="hint">Orario e pausa sono già impostati in ogni nuovo evento; se un giorno sono diversi li cambi lì. Lascia vuoti inizio e fine se il tuo orario cambia ogni giorno.</div>
     </div>
 
     <div class="settings-section-title">Sistema</div>
@@ -1908,109 +1979,185 @@
   </div>
 </div>
 
-<!-- New profile sheet -->
+<!-- First-run wizard: creates the profile one step at a time. The inputs keep
+     the np-* ids read by createProfileFromWizard(); the JS only decides which
+     .wz-step is visible. Steps about hours are skipped when the user answers
+     "no" to tracking them. -->
 <div class="sheet" id="new-profile-sheet" role="dialog" aria-labelledby="np-title">
   <div class="sheet-handle"></div>
   <div class="sheet-head">
     <div class="sheet-title" id="np-title">Iniziamo da te</div>
     <button class="icon-btn" data-close-sheet aria-label="Chiudi">✕</button>
   </div>
-  <div class="sheet-body">
-    <div class="field">
-      <label>Come ti chiami</label>
-      <input type="text" id="np-name" placeholder="il tuo nome" />
-    </div>
+  <div class="wz-progress" aria-hidden="true"><div class="wz-progress-bar" id="wz-bar"></div></div>
+  <div class="sheet-body" id="wz-body">
+    <div class="wz-count" id="wz-count"></div>
 
-    <div class="settings-section-title">Salary</div>
-    <div class="field-row">
+    <section class="wz-step" data-step="nome" data-title="Iniziamo da te">
+      <p class="wz-intro">Qualche domanda veloce per preparare l'app, un passo alla volta. Tutto si può cambiare dopo dalle impostazioni.</p>
       <div class="field">
-        <label>Stipendio mensile (€)</label>
-        <input type="number" id="np-salary" min="0" step="0.01" placeholder="0,00" />
+        <label for="np-name">Come ti chiami</label>
+        <input type="text" id="np-name" placeholder="il tuo nome" autocomplete="given-name" />
       </div>
-      <div class="field">
-        <label>Mensilità annue</label>
-        <select id="np-mensilita">
-          <option value="12">12</option>
-          <option value="13">13</option>
-          <option value="14">14</option>
-          <option value="15">15</option>
-        </select>
-        <div class="hint">13a a dicembre, 14a a giugno, 15a a luglio.</div>
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Welfare mensile (€)</label>
-        <input type="number" id="np-welfare" min="0" step="0.01" value="400" />
-      </div>
-      <div class="field">
-        <label>Ticket per giorno (€)</label>
-        <input type="number" id="np-ticket" min="0" step="0.01" value="10" />
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Fringe annuale (€)</label>
-        <input type="number" id="np-fringe" min="0" step="0.01" value="1000" />
-      </div>
-      <div class="field">
-        <label>Mese del fringe</label>
-        <select id="np-fringe-month"></select>
-      </div>
-    </div>
-    <div class="field">
-      <label>Bonus standard (€)</label>
-      <input type="number" id="np-bonus" min="0" step="0.01" value="0" />
-      <div class="hint">Si applica se segni un bonus come atteso senza specificarne l'importo.</div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Giorno di pagamento</label>
-        <input type="number" id="np-payday" min="1" max="28" step="1" value="27" />
-      </div>
-      <div class="field">
-        <label>Mese di pagamento</label>
-        <select id="np-payday-month">
-          <option value="0">Stesso mese</option>
-          <option value="1">Mese successivo</option>
-        </select>
-      </div>
-    </div>
+    </section>
 
-    <div class="settings-section-title">Overtime <label class="settings-toggle"><input type="checkbox" id="np-overtime-enabled" checked /><span class="toggle-track"></span></label></div>
-    <div class="field">
-      <label>Giorni lavorativi</label>
-      <div class="workday-row" id="np-workdays">
-        <label><input type="checkbox" value="1" checked><span>Lun</span></label>
-        <label><input type="checkbox" value="2" checked><span>Mar</span></label>
-        <label><input type="checkbox" value="3" checked><span>Mer</span></label>
-        <label><input type="checkbox" value="4" checked><span>Gio</span></label>
-        <label><input type="checkbox" value="5" checked><span>Ven</span></label>
-        <label><input type="checkbox" value="6"><span>Sab</span></label>
-        <label><input type="checkbox" value="7"><span>Dom</span></label>
+    <section class="wz-step" data-step="stipendio" data-title="Lo stipendio">
+      <p class="wz-intro">Quanto ti arriva ogni mese, quante mensilità hai all'anno e quando ti pagano.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="np-salary">Stipendio mensile (€)</label>
+          <input type="number" id="np-salary" min="0" step="0.01" placeholder="0,00" />
+        </div>
+        <div class="field">
+          <label for="np-mensilita">Mensilità annue</label>
+          <select id="np-mensilita">
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+          </select>
+          <div class="hint">13ª a dicembre, 14ª a giugno, 15ª a luglio.</div>
+        </div>
       </div>
-      <div class="hint">Ore fuori da questi giorni (es. weekend) sono 100% straordinario, senza forfait.</div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Ore contratto (h/settimana)</label>
-        <input type="number" id="np-contratto" min="0" step="0.5" value="40" />
-        <div class="hint">Coperte dallo stipendio.</div>
+      <div class="field-row">
+        <div class="field">
+          <label for="np-payday">Giorno di pagamento</label>
+          <input type="number" id="np-payday" min="1" max="28" step="1" value="27" />
+          <div class="hint">Il giorno del mese in cui arriva (1-28).</div>
+        </div>
+        <div class="field">
+          <label for="np-payday-month">Mese di pagamento</label>
+          <select id="np-payday-month">
+            <option value="0">Stesso mese</option>
+            <option value="1">Mese successivo</option>
+          </select>
+          <div class="hint">Con le presenze sfalsate lo stipendio di maggio arriva a giugno.</div>
+        </div>
       </div>
+    </section>
+
+    <section class="wz-step" data-step="welfare" data-title="Welfare e buoni pasto">
+      <p class="wz-intro">Se non li hai, rispondi no: quelle voci non compariranno nei mesi.</p>
       <div class="field">
-        <label>Forfait straord. (h/settimana)</label>
+        <div class="wz-q" id="np-q-welfare">Hai un welfare aziendale?</div>
+        <div class="kind-switch" role="radiogroup" aria-labelledby="np-q-welfare">
+          <label><input type="radio" name="np-has-welfare" value="si" /><span>Sì</span></label>
+          <label><input type="radio" name="np-has-welfare" value="no" checked /><span>No</span></label>
+        </div>
+      </div>
+      <div class="field" data-show-if="np-has-welfare">
+        <label for="np-welfare">Welfare al mese (€)</label>
+        <input type="number" id="np-welfare" min="0" step="0.01" placeholder="es. 400" />
+      </div>
+      <div class="field wz-gap">
+        <div class="wz-q" id="np-q-ticket">Ricevi i buoni pasto?</div>
+        <div class="kind-switch" role="radiogroup" aria-labelledby="np-q-ticket">
+          <label><input type="radio" name="np-has-ticket" value="si" /><span>Sì</span></label>
+          <label><input type="radio" name="np-has-ticket" value="no" checked /><span>No</span></label>
+        </div>
+      </div>
+      <div class="field" data-show-if="np-has-ticket">
+        <label for="np-ticket">Valore di un buono (€ per giorno lavorato)</label>
+        <input type="number" id="np-ticket" min="0" step="0.01" placeholder="es. 8" />
+        <div class="hint">L'app li moltiplica da sola per i giorni lavorativi del mese.</div>
+      </div>
+    </section>
+
+    <section class="wz-step" data-step="fringe" data-title="Fringe benefit">
+      <p class="wz-intro">Il fringe benefit di solito arriva una volta l'anno, in un mese preciso.</p>
+      <div class="field">
+        <div class="wz-q" id="np-q-fringe">Hai un fringe benefit?</div>
+        <div class="kind-switch" role="radiogroup" aria-labelledby="np-q-fringe">
+          <label><input type="radio" name="np-has-fringe" value="si" /><span>Sì</span></label>
+          <label><input type="radio" name="np-has-fringe" value="no" checked /><span>No</span></label>
+        </div>
+      </div>
+      <div class="field-row" data-show-if="np-has-fringe">
+        <div class="field">
+          <label for="np-fringe">Importo annuale (€)</label>
+          <input type="number" id="np-fringe" min="0" step="0.01" placeholder="es. 1000" />
+        </div>
+        <div class="field">
+          <label for="np-fringe-month">Mese in cui arriva</label>
+          <select id="np-fringe-month"></select>
+        </div>
+      </div>
+    </section>
+
+    <section class="wz-step" data-step="ore" data-title="Le tue ore">
+      <p class="wz-intro">L'app può contare le ore che lavori e calcolare gli straordinari che non ti sono stati pagati.</p>
+      <div class="field">
+        <div class="wz-q" id="np-q-overtime">Vuoi tenere traccia delle ore?</div>
+        <div class="kind-switch" role="radiogroup" aria-labelledby="np-q-overtime">
+          <label><input type="radio" name="np-has-overtime" value="si" checked /><span>Sì</span></label>
+          <label><input type="radio" name="np-has-overtime" value="no" /><span>No</span></label>
+        </div>
+      </div>
+      <div data-show-if="np-has-overtime">
+        <div class="field">
+          <label>Giorni lavorativi</label>
+          <div class="workday-row" id="np-workdays">
+            <label><input type="checkbox" value="1" checked><span>Lun</span></label>
+            <label><input type="checkbox" value="2" checked><span>Mar</span></label>
+            <label><input type="checkbox" value="3" checked><span>Mer</span></label>
+            <label><input type="checkbox" value="4" checked><span>Gio</span></label>
+            <label><input type="checkbox" value="5" checked><span>Ven</span></label>
+            <label><input type="checkbox" value="6"><span>Sab</span></label>
+            <label><input type="checkbox" value="7"><span>Dom</span></label>
+          </div>
+          <div class="hint">Le ore fatte fuori da questi giorni (es. nel weekend) contano tutte come straordinario.</div>
+        </div>
+        <div class="field">
+          <label for="np-contratto">Ore da contratto a settimana</label>
+          <input type="number" id="np-contratto" min="0" step="0.5" value="40" />
+          <div class="hint">Le ore già pagate dallo stipendio.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="wz-step" data-step="straordinari" data-title="Gli straordinari">
+      <p class="wz-intro">Oltre le ore da contratto, più l'eventuale forfait, ogni ora conta come straordinario.</p>
+      <div class="field">
+        <label for="np-forfait">Forfait straordinari (h/settimana)</label>
         <input type="number" id="np-forfait" min="0" step="0.5" value="0" />
-        <div class="hint">Extra oltre il contratto, comunque coperte.</div>
+        <div class="hint">Ore in più già coperte dallo stipendio. Lascia 0 se non ce l'hai.</div>
       </div>
-    </div>
-    <div class="field">
-      <label>Tariffa straord. (€/h)</label>
-      <input type="number" id="np-tariffa" min="0" step="0.01" value="0" />
-      <div class="hint">Oltre (contratto + forfait) ore settimanali si pagano a questa tariffa.</div>
-    </div>
+      <div class="field">
+        <label for="np-tariffa">Tariffa straordinario (€/h)</label>
+        <input type="number" id="np-tariffa" min="0" step="0.01" value="0" />
+        <div class="hint">Se non la sai lascia 0: vedrai le ore, senza l'importo in euro.</div>
+      </div>
+    </section>
 
-    <button class="btn full large" id="btn-create-profile" style="margin-top:8px">Crea il mio profilo</button>
-    <div class="help" style="margin-top:12px">Tutti questi valori si possono cambiare in seguito dall'icona in alto.</div>
+    <section class="wz-step" data-step="orario" data-title="Il tuo orario">
+      <p class="wz-intro">L'orario che fai di solito: lo trovi già impostato ogni volta che aggiungi un giorno, e lo cambi solo quando serve.</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="np-inizio">Ora inizio</label>
+          <input type="time" id="np-inizio" value="09:00" />
+        </div>
+        <div class="field">
+          <label for="np-fine">Ora fine</label>
+          <input type="time" id="np-fine" value="18:00" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="np-pausa">Pausa (minuti)</label>
+        <input type="number" id="np-pausa" min="0" max="720" step="5" value="30" />
+        <div class="hint">Se il tuo orario cambia ogni giorno, lascia vuoti inizio e fine.</div>
+      </div>
+    </section>
+
+    <section class="wz-step" data-step="riepilogo" data-title="Tutto pronto">
+      <p class="wz-intro">Controlla i dati prima di iniziare. Tocca una riga per cambiarla.</p>
+      <div class="wz-summary" id="wz-summary"></div>
+    </section>
+  </div>
+  <div class="sheet-foot">
+    <div class="btn-row">
+      <button class="btn secondary" id="wz-back" type="button">Indietro</button>
+      <button class="btn" id="wz-next" type="button">Avanti</button>
+    </div>
   </div>
 </div>
 
@@ -2130,7 +2277,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.6.4";
+const VERSION = "3.7.0";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -2168,6 +2315,20 @@ function extraSalaryApplies(comp, settings, m0){
   if(has < need) return false;
   const month = EXTRA_SALARY_DEFAULT_MONTHS[need];
   return month && (m0 + 1) === month;
+}
+
+// Voices this profile doesn't have at all: welfare, buoni pasto and fringe
+// set to 0 € (the wizard's "no" answers), extra mensilità beyond the chosen
+// count, overtime when the feature is off. They stay out of the month cards
+// and of the yearly recap; their expected amount is 0 anyway, so totals and
+// month states don't change.
+function componentApplies(comp, settings){
+  if(comp.key === "welfare") return (Number(settings.welfare) || 0) > 0;
+  if(comp.key === "ticket") return (Number(settings.ticketPerDay) || 0) > 0;
+  if(comp.key === "fringe") return (Number(settings.fringe) || 0) > 0;
+  if(comp.key === "overtime") return settings.overtimeEnabled !== false;
+  if(comp.extraSalary) return (Number(settings.mensilita) || 12) >= comp.extraSalary;
+  return true;
 }
 
 /* ----- Italian holidays for working-day count ----- */
@@ -2408,6 +2569,10 @@ function defaultSettings(){
     // Break pre-filled in every new overtime event, in minutes. The user
     // still edits it per event; 0 means "start with no break".
     pausaDefaultMin: PAUSA_DEFAULT_MIN,
+    // Usual start/end ("HH:MM", or "" = no pre-fill), pre-filled in every
+    // new overtime event like the break. The wizard proposes 09:00-18:00.
+    inizioDefault: "",
+    fineDefault: "",
   };
 }
 // Reads the default break from settings, clamped to 0..720 minutes.
@@ -2460,6 +2625,8 @@ function ensureProfile(id){
     if(p.settings.payDayNextMonth == null) p.settings.payDayNextMonth = false;
     if(p.settings.overtimeEnabled == null) p.settings.overtimeEnabled = true;
     if(p.settings.pausaDefaultMin == null) p.settings.pausaDefaultMin = PAUSA_DEFAULT_MIN;
+    if(p.settings.inizioDefault == null) p.settings.inizioDefault = "";
+    if(p.settings.fineDefault == null) p.settings.fineDefault = "";
     if(!Array.isArray(p.settings.workdays) || p.settings.workdays.length === 0){
       p.settings.workdays = [1,2,3,4,5];
     }
@@ -3365,24 +3532,27 @@ function openOvertimeForm(eventId){
   editingEventId = eventId;
   $("#ot-event-title").textContent = eventId ? "Modifica evento" : "Nuovo evento";
   $("#btn-ot-delete").style.display = eventId ? "" : "none";
-  // New events start with the usual break from settings. Ferie/festivo events
-  // store no break, so editing one also starts from the default: it only
-  // shows if the user switches the day back to "Lavoro".
+  // New events start with the usual hours and break from settings.
+  // Ferie/festivo events store no times, so editing one also starts from the
+  // defaults: they only show if the user switches the day back to "Lavoro".
   const defaultPausa = minutesToHHMM(pausaDefaultMin(p.settings));
+  const defaultInizio = p.settings.inizioDefault || "";
+  const defaultFine = p.settings.fineDefault || "";
   if(eventId){
     const ev = (p.overtime || []).find(e => e.id === eventId);
     if(!ev){ editingEventId = null; return; }
+    const standardDay = ev.holiday || ev.pto;
     $("#ot-data").value = ev.data || "";
-    $("#ot-inizio").value = ev.inizio || "";
-    $("#ot-fine").value = ev.fine || "";
-    setPausaPicker(ev.holiday || ev.pto ? defaultPausa : (ev.pausa || ""));
+    $("#ot-inizio").value = standardDay ? defaultInizio : (ev.inizio || "");
+    $("#ot-fine").value = standardDay ? defaultFine : (ev.fine || "");
+    setPausaPicker(standardDay ? defaultPausa : (ev.pausa || ""));
     $("#ot-nota").value = ev.nota || "";
     $("#ot-not-overtime").checked = !!ev.notOvertime;
     setDayKind(ev.holiday ? "festivo" : ev.pto ? "ferie" : "lavoro");
   } else {
     $("#ot-data").value = new Date().toISOString().slice(0, 10);
-    $("#ot-inizio").value = "";
-    $("#ot-fine").value = "";
+    $("#ot-inizio").value = defaultInizio;
+    $("#ot-fine").value = defaultFine;
     setPausaPicker(defaultPausa);
     $("#ot-nota").value = "";
     $("#ot-not-overtime").checked = false;
@@ -3484,14 +3654,17 @@ function updateOvertimePreview(){
   const inp = $("#" + id);
   inp.oninput = updateOvertimePreview;
   inp.addEventListener("blur", updateOvertimePreview);
-  // Typing only the hour and moving on with Tab used to leave the minutes
-  // blank ("09:--"), and a half-filled time input has no value at all: the
-  // event couldn't be saved. The browser gives no access to the half-typed
-  // hour, so on the first key typed into an *empty* field we seed it with
-  // "00:00": the typed hour replaces the hours, the minutes stay "00" unless
-  // the user types them. A half-filled field (badInput) is left alone, so a
-  // typed hour is never overwritten. Touch pickers (iOS/Android wheels) send
-  // no keydown and are unaffected.
+});
+// Typing only the hour and moving on with Tab used to leave the minutes
+// blank ("09:--"), and a half-filled time input has no value at all: the
+// event couldn't be saved. The browser gives no access to the half-typed
+// hour, so on the first key typed into an *empty* field we seed it with
+// "00:00": the typed hour replaces the hours, the minutes stay "00" unless
+// the user types them. A half-filled field (badInput) is left alone, so a
+// typed hour is never overwritten. Touch pickers (iOS/Android wheels) send
+// no keydown and are unaffected. Applies to every time field: event form,
+// settings and first-run wizard.
+$$(".field input[type='time']").forEach(inp => {
   inp.addEventListener("keydown", (e) => {
     if(inp.value !== "" || inp.validity.badInput) return;
     if(e.metaKey || e.ctrlKey || e.altKey) return;
@@ -3713,7 +3886,7 @@ function renderMain(){
     <details style="margin-top:22px">
       <summary>Riepilogo per voce — ${year}</summary>
       <div class="recap">
-        ${COMPONENTS.map(c => {
+        ${COMPONENTS.filter(c => componentApplies(c, p.settings)).map(c => {
           const t = totals.perComponent[c.key];
           const cls = t.missing > 0 ? 'danger' : (t.received > 0 ? 'ok' : 'dim');
           return `<div class="comp">
@@ -3819,12 +3992,11 @@ function renderMonthCard(profile, year, m0){
   const isCurrent = today.getFullYear() === Number(year) && today.getMonth() === m0;
 
   // Extra-salary voices (13a/14a/15a) only show up in their dedicated month
-  // and only when the profile's mensilità count enables them.
-  // The "overtime" row is hidden entirely when the feature is disabled.
-  const overtimeOn = profile.settings.overtimeEnabled !== false;
+  // and only when the profile's mensilità count enables them. Voices the
+  // profile doesn't have (see componentApplies) are hidden entirely.
   const visibleComponents = COMPONENTS
-    .filter(c => extraSalaryApplies(c, profile.settings, m0))
-    .filter(c => overtimeOn || c.key !== "overtime");
+    .filter(c => componentApplies(c, profile.settings))
+    .filter(c => extraSalaryApplies(c, profile.settings, m0));
 
   const compRows = visibleComponents.map(c => {
     const cell = data[c.key];
@@ -3941,29 +4113,198 @@ document.addEventListener("wheel", () => {
   if(a && a.tagName === "INPUT" && a.type === "number") a.blur();
 }, { passive: true });
 
+/* ----- First-run wizard ("Iniziamo da te") -----
+ * The new-profile sheet shows one .wz-step at a time. Steps about hours are
+ * skipped when the user doesn't want to track them. Closing the sheet keeps
+ * the answers: reopening resumes where the user left off, until the profile
+ * is created (then wzStarted goes back to false). */
+const WZ_STEPS = ["nome", "stipendio", "welfare", "fringe", "ore", "straordinari", "orario", "riepilogo"];
+let wzStep = "nome";
+let wzStarted = false;
+// True while editing a step reached from a summary row: "Avanti" then goes
+// straight back to the summary instead of walking through every step again.
+let wzFromSummary = false;
+
+// "si" / "no" answer of a yes/no question (radio group name).
+function wzAnswer(name){
+  const r = $(`input[name='${name}']:checked`);
+  return r ? r.value : "no";
+}
+function wzSteps(){
+  const tracking = wzAnswer("np-has-overtime") === "si";
+  return WZ_STEPS.filter(s => tracking || (s !== "straordinari" && s !== "orario"));
+}
+function wzReset(){
+  const set = (id, v) => { const el = $("#" + id); if(el) el.value = v; };
+  set("np-name", "");
+  set("np-salary", "");
+  set("np-mensilita", "12");
+  set("np-payday", 27);
+  set("np-payday-month", "0");
+  set("np-welfare", "");
+  set("np-ticket", "");
+  set("np-fringe", "");
+  set("np-contratto", 40);
+  set("np-forfait", 0);
+  set("np-tariffa", 0);
+  set("np-inizio", "09:00");
+  set("np-fine", "18:00");
+  set("np-pausa", PAUSA_DEFAULT_MIN);
+  const fm = $("#np-fringe-month");
+  if(fm) fm.innerHTML = MONTHS_IT.map((m,i) =>
+    `<option value="${i+1}" ${i+1===12?"selected":""}>${m}</option>`).join("");
+  const setAnswer = (name, v) => $$(`input[name='${name}']`).forEach(r => { r.checked = r.value === v; });
+  setAnswer("np-has-welfare", "no");
+  setAnswer("np-has-ticket", "no");
+  setAnswer("np-has-fringe", "no");
+  setAnswer("np-has-overtime", "si");
+  $$("#np-workdays input").forEach(inp => { inp.checked = [1,2,3,4,5].includes(Number(inp.value)); });
+  wzStep = "nome";
+}
 function openNewProfile(){
   try {
-    const set = (id, v) => { const el = $("#" + id); if(el) el.value = v; };
-    set("np-name", "");
-    set("np-salary", "");
-    set("np-mensilita", "12");
-    set("np-welfare", 400);
-    set("np-ticket", 10);
-    set("np-fringe", 1000);
-    set("np-bonus", 0);
-    set("np-contratto", 40);
-    set("np-forfait", 0);
-    set("np-tariffa", 0);
-    const fm = $("#np-fringe-month");
-    if(fm) fm.innerHTML = MONTHS_IT.map((m,i) =>
-      `<option value="${i+1}" ${i+1===12?"selected":""}>${m}</option>`).join("");
-    // Reset workdays to Mon-Fri.
-    $$("#np-workdays input").forEach(inp => { inp.checked = [1,2,3,4,5].includes(Number(inp.value)); });
+    if(!wzStarted){ wzReset(); wzStarted = true; wzFromSummary = false; }
+    wzRender();
     openSheet("new-profile-sheet");
-    setTimeout(() => { const x = $("#np-name"); if(x) x.focus(); }, 200);
   } catch(err){ console.error("openNewProfile failed:", err); showAlert("Errore: " + err.message); }
 }
 window.openNewProfile = openNewProfile; // global so inline onclick can reach it
+
+// Title, "Passo N di M", progress bar and footer buttons for the current step.
+function wzUpdateChrome(){
+  const steps = wzSteps();
+  const i = steps.indexOf(wzStep);
+  const section = $(`#new-profile-sheet .wz-step[data-step='${wzStep}']`);
+  $("#np-title").textContent = section.dataset.title;
+  $("#wz-count").textContent = `Passo ${i + 1} di ${steps.length}`;
+  $("#wz-bar").style.width = `${((i + 1) / steps.length) * 100}%`;
+  $("#wz-back").style.display = i === 0 ? "none" : "";
+  $("#wz-next").textContent = i === steps.length - 1 ? "Crea il mio profilo"
+    : wzFromSummary ? "Torna al riepilogo" : "Avanti";
+}
+// Fields unlocked by a "sì" answer carry data-show-if="<radio name>".
+function wzSyncShowIf(){
+  $$("#new-profile-sheet [data-show-if]").forEach(el => {
+    el.style.display = wzAnswer(el.dataset.showIf) === "si" ? "" : "none";
+  });
+}
+function wzRender(){
+  if(!wzSteps().includes(wzStep)) wzStep = "ore";
+  $$("#new-profile-sheet .wz-step").forEach(s => s.classList.toggle("active", s.dataset.step === wzStep));
+  wzSyncShowIf();
+  wzUpdateChrome();
+  if(wzStep === "riepilogo") $("#wz-summary").innerHTML = wzSummaryHtml();
+  $("#wz-body").scrollTop = 0;
+  // Focus the first visible field: always on the name step, elsewhere only
+  // with a mouse/keyboard (on a phone it would pop the keyboard every step).
+  const section = $(`#new-profile-sheet .wz-step[data-step='${wzStep}']`);
+  const first = [...section.querySelectorAll("input[type='text'], input[type='number'], input[type='time']")]
+    .find(el => el.offsetParent !== null);
+  if(first && (wzStep === "nome" || matchMedia("(pointer: fine)").matches)){
+    setTimeout(() => first.focus(), 200);
+  }
+}
+const wzNum = id => Number($("#" + id).value) || 0;
+const wzNumStr = n => String(n).replace(".", ",");
+// Returns { msg, focus } when the step can't be left yet, null otherwise.
+function wzValidate(step){
+  const yes = name => wzAnswer(name) === "si";
+  if(step === "nome" && !$("#np-name").value.trim()){
+    return { msg: "Scrivi il tuo nome per continuare", focus: "#np-name" };
+  }
+  if(step === "welfare"){
+    if(yes("np-has-welfare") && wzNum("np-welfare") <= 0) return { msg: "Inserisci l'importo del welfare, oppure rispondi no", focus: "#np-welfare" };
+    if(yes("np-has-ticket") && wzNum("np-ticket") <= 0) return { msg: "Inserisci il valore del buono pasto, oppure rispondi no", focus: "#np-ticket" };
+  }
+  if(step === "fringe" && yes("np-has-fringe") && wzNum("np-fringe") <= 0){
+    return { msg: "Inserisci l'importo del fringe, oppure rispondi no", focus: "#np-fringe" };
+  }
+  if(step === "ore" && yes("np-has-overtime") && $$("#np-workdays input:checked").length === 0){
+    return { msg: "Scegli almeno un giorno lavorativo", focus: null };
+  }
+  if(step === "orario"){
+    const a = parseHHMM($("#np-inizio").value), b = parseHHMM($("#np-fine").value);
+    if(a != null && b != null && b <= a) return { msg: "L'ora di fine deve essere dopo l'ora di inizio", focus: "#np-fine" };
+  }
+  return null;
+}
+function wzNext(){
+  const err = wzValidate(wzStep);
+  if(err){
+    toast(err.msg);
+    if(err.focus){
+      // blur first: re-focusing an already focused time field would leave
+      // the caret on the minutes instead of starting again from the hours.
+      const el = $(err.focus);
+      el.blur();
+      el.focus();
+    }
+    return;
+  }
+  const steps = wzSteps();
+  const i = steps.indexOf(wzStep);
+  if(i === steps.length - 1){ createProfileFromWizard(); return; }
+  wzStep = wzFromSummary ? "riepilogo" : steps[i + 1];
+  wzFromSummary = false;
+  wzRender();
+}
+function wzBack(){
+  const steps = wzSteps();
+  const i = steps.indexOf(wzStep);
+  wzFromSummary = false;
+  if(i > 0){ wzStep = steps[i - 1]; wzRender(); }
+}
+// Last step: every answer in one card; a row jumps back to its step.
+function wzSummaryHtml(){
+  const v = id => $("#" + id).value;
+  const yes = name => wzAnswer(name) === "si";
+  const rows = [];
+  const row = (step, k, val) => rows.push(
+    `<button type="button" class="wz-row" data-goto="${step}"><span class="k">${k}</span><span class="v">${val}</span></button>`);
+  const payDay = Math.min(28, Math.max(1, Number(v("np-payday")) || 27));
+  row("nome", "Nome", escapeHtml(v("np-name").trim()));
+  row("stipendio", "Stipendio", `${eur(wzNum("np-salary"))} × ${escapeHtml(v("np-mensilita"))} mensilità`);
+  row("stipendio", "Pagamento", `il ${payDay} ${v("np-payday-month") === "1" ? "del mese dopo" : "dello stesso mese"}`);
+  row("welfare", "Welfare", yes("np-has-welfare") ? `${eur(wzNum("np-welfare"))} al mese` : "no");
+  row("welfare", "Buoni pasto", yes("np-has-ticket") ? `${eur(wzNum("np-ticket"))} al giorno` : "no");
+  row("fringe", "Fringe benefit", yes("np-has-fringe")
+    ? `${eur(wzNum("np-fringe"))} a ${(MONTHS_IT[Number(v("np-fringe-month")) - 1] || "Dicembre").toLowerCase()}` : "no");
+  if(yes("np-has-overtime")){
+    const dayNames = ["", "lun", "mar", "mer", "gio", "ven", "sab", "dom"];
+    const days = $$("#np-workdays input:checked").map(i => dayNames[Number(i.value)]).join(", ");
+    row("ore", "Ore", `${days} · ${wzNumStr(wzNum("np-contratto"))} h a settimana`);
+    const forfait = wzNum("np-forfait"), tariffa = wzNum("np-tariffa");
+    row("straordinari", "Straordinari", `${forfait > 0 ? `forfait ${wzNumStr(forfait)} h · ` : ""}${tariffa > 0 ? `${eur(tariffa)} l'ora` : "solo le ore"}`);
+    const ini = v("np-inizio"), fin = v("np-fine");
+    row("orario", "Orario", `${ini && fin ? `${ini}-${fin}` : "non impostato"} · pausa ${wzNum("np-pausa")} min`);
+  } else {
+    row("ore", "Ore e straordinari", "no");
+  }
+  return rows.join("");
+}
+$("#wz-next").onclick = wzNext;
+$("#wz-back").onclick = wzBack;
+$("#wz-summary").addEventListener("click", (e) => {
+  const r = e.target.closest && e.target.closest(".wz-row");
+  if(r){ wzStep = r.dataset.goto; wzFromSummary = true; wzRender(); }
+});
+// A yes/no answer shows or hides its fields, and "Vuoi tenere traccia delle
+// ore?" also changes how many steps there are. A fresh "sì" focuses the
+// amount it unlocks.
+$$("#new-profile-sheet .kind-switch input").forEach(r => r.addEventListener("change", () => {
+  wzSyncShowIf();
+  wzUpdateChrome();
+  if(r.value !== "si") return;
+  const unlocked = $(`#new-profile-sheet [data-show-if='${r.name}']`);
+  const inp = unlocked && unlocked.querySelector("input[type='number']");
+  if(inp) inp.focus();
+}));
+// Enter in a text/number/time field moves on, like a form submit.
+$("#new-profile-sheet").addEventListener("keydown", (e) => {
+  if(e.key !== "Enter" || !e.target.matches("input[type='text'], input[type='number'], input[type='time']")) return;
+  e.preventDefault();
+  wzNext();
+});
 
 // Document-level event delegation — final safety net for the "Create profile"
 // empty-state card. This ensures the click handler survives any innerHTML
@@ -3976,9 +4317,9 @@ document.addEventListener("click", (e) => {
     openNewProfile();
   }
 }, false);
-$("#btn-create-profile").onclick = () => {
+function createProfileFromWizard(){
   const name = $("#np-name").value.trim();
-  if(!name){ toast("Manca il nome"); $("#np-name").focus(); return; }
+  if(!name){ wzStep = "nome"; wzRender(); toast("Manca il nome"); return; }
   const id = (name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]/g,"") || "user")
              + "-" + Math.random().toString(36).slice(2,6);
   const num = (id, fallback) => {
@@ -3986,16 +4327,18 @@ $("#btn-create-profile").onclick = () => {
     return Number.isFinite(v) ? v : fallback;
   };
   const clamp = (v, max) => Math.min(max, Math.max(0, Number(v) || 0));
+  const yes = name => wzAnswer(name) === "si";
+  const time = id => { const v = $("#" + id).value; return parseHHMM(v) != null ? v : ""; };
   const chosenWd = $$("#np-workdays input:checked").map(i => Number(i.value)).sort();
   store.profiles[id] = {
     name,
     settings: {
       ...defaultSettings(),
       salary: clamp(num("np-salary", 0), 100_000),
-      welfare: clamp(num("np-welfare", 400), 100_000),
-      fringe: clamp(num("np-fringe", 1000), 100_000),
-      ticketPerDay: clamp(num("np-ticket", 10), 1_000),
-      defaultBonus: clamp(num("np-bonus", 0), 1_000_000),
+      // A "no" answer stores 0: the voice then stays out of the month cards.
+      welfare: yes("np-has-welfare") ? clamp(num("np-welfare", 0), 100_000) : 0,
+      fringe: yes("np-has-fringe") ? clamp(num("np-fringe", 0), 100_000) : 0,
+      ticketPerDay: yes("np-has-ticket") ? clamp(num("np-ticket", 0), 1_000) : 0,
       mensilita: Math.min(15, Math.max(12, Number($("#np-mensilita").value) || 12)),
       fringeMonth: Math.min(12, Math.max(1, Number($("#np-fringe-month").value) || 12)),
       payDay: Math.min(28, Math.max(1, Number($("#np-payday").value) || 27)),
@@ -4004,13 +4347,17 @@ $("#btn-create-profile").onclick = () => {
       forfaitOreSett: clamp(num("np-forfait", 0), 100),
       tariffaOraStraord: clamp(num("np-tariffa", 0), 1_000),
       workdays: chosenWd.length ? chosenWd : [1,2,3,4,5],
-      overtimeEnabled: $("#np-overtime-enabled").checked,
+      overtimeEnabled: yes("np-has-overtime"),
+      pausaDefaultMin: Math.round(clamp(num("np-pausa", PAUSA_DEFAULT_MIN), 720)),
+      inizioDefault: time("np-inizio"),
+      fineDefault: time("np-fine"),
     },
     years: {},
     overtime: [],
   };
   store.activeProfile = id;
   saveStore();
+  wzStarted = false;
   closeSheets();
   // Open current month by default for the new profile
   const today = new Date();
@@ -4019,7 +4366,7 @@ $("#btn-create-profile").onclick = () => {
   }
   render();
   toast("Profilo creato");
-};
+}
 
 /* Settings */
 $("#btn-settings").onclick = () => {
@@ -4038,6 +4385,8 @@ $("#btn-settings").onclick = () => {
   $("#set-forfait").value = p.settings.forfaitOreSett != null ? p.settings.forfaitOreSett : 0;
   $("#set-tariffa").value = p.settings.tariffaOraStraord || 0;
   $("#set-pausa").value = pausaDefaultMin(p.settings);
+  $("#set-inizio").value = p.settings.inizioDefault || "";
+  $("#set-fine").value = p.settings.fineDefault || "";
   $("#set-overtime-enabled").checked = p.settings.overtimeEnabled !== false;
   const wd = Array.isArray(p.settings.workdays) ? p.settings.workdays : [1,2,3,4,5];
   $$("#set-workdays input").forEach(inp => { inp.checked = wd.includes(Number(inp.value)); });
@@ -4051,6 +4400,16 @@ $("#btn-save-settings").onclick = () => {
   const p = activeProfile();
   if(!p) return;
   const clamp = (v, max) => Math.min(max, Math.max(0, Number(v) || 0));
+  // Usual hours: both optional, but a full pair must go forward in time.
+  // Checked before touching the profile so a rejected save changes nothing.
+  const inizio = $("#set-inizio").value, fine = $("#set-fine").value;
+  const inizioM = parseHHMM(inizio), fineM = parseHHMM(fine);
+  if(inizioM != null && fineM != null && fineM <= inizioM){
+    showAlert("L'ora di fine abituale deve essere dopo l'ora di inizio.");
+    return;
+  }
+  p.settings.inizioDefault = inizioM != null ? inizio : "";
+  p.settings.fineDefault = fineM != null ? fine : "";
   p.name = $("#set-name").value.trim() || p.name;
   p.settings.salary = clamp($("#set-salary").value, 100_000);
   p.settings.welfare = clamp($("#set-welfare").value, 100_000);
@@ -4124,7 +4483,7 @@ function refreshBackupStats(){
 const STATE_TO_IT = { received: "ricevuto", missing: "mancante", not_expected: "non_atteso" };
 const STATE_FROM_IT = { ricevuto: "received", mancante: "missing", non_atteso: "not_expected" };
 const CSV_SEP = ";";
-const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default","forfait_settimana","tariffa_ora","giorni_lavorativi","contratto_settimana","mensilita","pay_giorno","pay_mese_dopo","overtime_abilitato","pausa_predefinita"];
+const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default","forfait_settimana","tariffa_ora","giorni_lavorativi","contratto_settimana","mensilita","pay_giorno","pay_mese_dopo","overtime_abilitato","pausa_predefinita","orario_inizio","orario_fine"];
 const MONTH_COLS = ["profilo","anno","mese","stipendio_stato","stipendio_importo","welfare","ticket_stato","ticket_giorni","fringe","bonus_stato","bonus_importo","rimborso_stato","rimborso_importo","straord_stato","straord_ore_pagare","salary13_stato","salary14_stato","salary15_stato","salary13_importo","salary14_importo","salary15_importo"];
 const STRAORD_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario","festivo","ferie"];
 
@@ -4187,6 +4546,8 @@ function buildCsv(storeIn){
       s.payDayNextMonth ? 1 : 0,
       s.overtimeEnabled === false ? 0 : 1,
       pausaDefaultMin(s),
+      s.inizioDefault || "",
+      s.fineDefault || "",
     ]));
   }
   lines.push("");
@@ -4314,6 +4675,14 @@ function parseCsv(text){
       // v3.6: default break in minutes. Older files fall back to 30.
       const pausaRaw = (row.pausa_predefinita || "").trim();
       const pausaDefault = pausaRaw === "" ? PAUSA_DEFAULT_MIN : Math.min(720, Math.max(0, Math.round(parseNum(pausaRaw))));
+      // v3.7: usual start/end ("HH:MM"). Empty or missing = no pre-fill.
+      const orario = (col) => {
+        const v = (row[col] || "").trim();
+        if(v !== "" && parseHHMM(v) == null) throw new Error(`Orario non valido in SETTINGS a riga ${lineNo+1} (colonna ${col}): "${v}"`);
+        return v;
+      };
+      const inizioDefault = orario("orario_inizio");
+      const fineDefault = orario("orario_fine");
       settingsByName[name] = {
         salary: parseNum(row.stipendio),
         welfare: parseNum(row.welfare),
@@ -4330,6 +4699,8 @@ function parseCsv(text){
         payDayNextMonth,
         overtimeEnabled,
         pausaDefaultMin: pausaDefault,
+        inizioDefault,
+        fineDefault,
       };
     } else if(section === "months"){
       const name = (row.profilo || "").trim();

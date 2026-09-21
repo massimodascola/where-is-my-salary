@@ -20,7 +20,7 @@ L'app ha due pagine principali, accessibili dalla tabbar in fondo allo schermo:
 ### Pagina **Salary** — la busta paga mese per mese
 
 - **Quanto ti devono ancora** — un'unica cifra in cima alla pagina, ricalcolata sui mesi il cui giorno di pagamento è già passato.
-- **Voci di paga tracciate** — stipendio, welfare, fringe benefit, buoni pasto, bonus, rimborso spese, più 13ª/14ª/15ª come voci separate nei mesi giusti (configurabili da 12 a 15 mensilità annue).
+- **Voci di paga tracciate** — stipendio, welfare, fringe benefit, buoni pasto, bonus, rimborso spese, più 13ª/14ª/15ª come voci separate nei mesi giusti (configurabili da 12 a 15 mensilità annue). Le voci che non hai (welfare, buoni pasto o fringe a 0) non compaiono nei mesi né nel riepilogo annuale.
 - **Stato per mese** — ✓ ricevuto · ! mancante · — non spettato. Più una colonna "Straordinari" che rimanda alla pagina Overtime.
 - **Giorno di pagamento configurabile** — il tuo `payDay` (1–28) determina quando l'app considera "atteso" lo stipendio del mese. Toggle per chi viene pagato il mese successivo (es. maggio incassato il 15 giugno).
 - **Override per-mese di ogni importo** — se uno stipendio mensile, una 13ª o un bonus arriva diverso dal default, lo metti a mano sulla singola cella.
@@ -30,7 +30,7 @@ L'app ha due pagine principali, accessibili dalla tabbar in fondo allo schermo:
 
 - **Calendario per logging giornaliero** — apri il giorno, segni le ore lavorate (e quelle di weekend, contate sempre come straordinario). Nel dettaglio del giorno le frecce `‹ Settimana N ›` passano alla settimana prima o dopo. Da tastiera basta scrivere l'ora e premere Tab: i minuti diventano `00`.
 - **Tipo di giornata: Lavoro, Ferie, Festivo** — ferie e festivi si segnano senza orari e valgono una giornata da 8 ore. Nel calendario le ferie sono blu e i festivi oro; i giorni di ferie sono contati nelle viste Mesi, Settimane e Anni.
-- **Pausa predefinita** — ogni nuovo evento parte con la pausa che fai di solito (default 30 minuti, si cambia nelle impostazioni). Il giorno che è diversa la modifichi nell'evento.
+- **Orario e pausa abituali** — ogni nuovo evento parte con l'orario che fai di solito (es. 9:00-18:00) e con la tua pausa (default 30 minuti), impostabili nel wizard e nelle impostazioni. Il giorno che sono diversi li modifichi nell'evento.
 - **Soglia automatica** — ore contratto (default 40h/sett.) + eventuale forfait CCNL. Tutto quello che eccede diventa straordinario non pagato.
 - **Hero box con metrica doppia** — importo in euro (se hai impostato una tariffa) accanto al totale ore non pagate. Mostra entrambe le risposte con un'occhiata.
 - **KPI annuo dedicato** — ore di straordinario complessive dell'anno corrente.
@@ -47,7 +47,7 @@ L'app ha due pagine principali, accessibili dalla tabbar in fondo allo schermo:
 ## Setup iniziale (30 secondi)
 
 1. Apri `index.html` con doppio click — si apre nel browser.
-2. Al primo avvio l'app apre da sola il modulo **"Iniziamo da te"**: scrivi il tuo nome, lo stipendio mensile, le mensilità annue (12–15), il giorno di pagamento, e i parametri Overtime (ore contratto, eventuale forfait, tariffa straordinario, giorni lavorativi settimanali). Welfare, fringe e ticket hanno già default sensati (400 / 1000 / 10€).
+2. Al primo avvio l'app apre da sola il **wizard "Iniziamo da te"**, che ti guida un passo alla volta: nome; stipendio, mensilità (12–15) e giorno di pagamento; welfare e buoni pasto; fringe benefit; se vuoi tracciare le ore (giorni lavorativi e ore da contratto); straordinari (forfait e tariffa); il tuo orario abituale (inizio, fine, pausa); infine un riepilogo da controllare prima di creare il profilo. Welfare, buoni pasto e fringe sono domande sì/no: se non li hai, quelle voci non compaiono nei mesi. Se dici che non vuoi tracciare le ore, i passi sulle ore vengono saltati. Chiudendo il wizard a metà, alla riapertura riparti da dove eri.
 3. Per ogni mese passato, apri la card della pagina **Salary** e imposta lo stato di ogni voce. Per le ore extra, vai sulla pagina **Overtime** e logga i giorni.
 4. Per modificare i parametri in qualunque momento: icona ⚙️ in alto a destra → Impostazioni. Per azzerare tutto e ripartire: "Azzera dati" in fondo alle impostazioni.
 
@@ -189,10 +189,10 @@ Tutto è configurabile dall'icona ⚙️ in alto. Le impostazioni sono organizza
 - Mensilità annue (12–15) — abilita 13ª/14ª/15ª come voci separate nei mesi `EXTRA_SALARY_DEFAULT_MONTHS` (Dicembre / Giugno / Luglio)
 - Giorno di pagamento (1–28, default 27) — clampato a 28 per evitare di "saltare" febbraio
 - Pagamento mese successivo (toggle) — per ciclo sfalsato tipo "lavoro maggio, incasso il 15 giugno"
-- Welfare mensile (default 400 €, max 100.000)
-- Fringe benefit annuale (default 1000 €, max 100.000)
+- Welfare mensile (max 100.000; 0 se non ce l'hai: la voce non compare nei mesi)
+- Fringe benefit annuale (max 100.000; 0 se non ce l'hai)
 - Mese in cui arriva il fringe (default Dicembre)
-- Ticket per giorno lavorativo (default 10 €, max 1.000)
+- Ticket per giorno lavorativo (max 1.000; 0 se non hai i buoni pasto)
 - Bonus standard (per quando segni un bonus come atteso senza specificarne l'importo)
 
 ### Overtime
@@ -201,7 +201,8 @@ Tutto è configurabile dall'icona ⚙️ in alto. Le impostazioni sono organizza
 - Ore contratto settimanali (default 40h)
 - Forfait CCNL settimanale (default 0h) — soglia aggiuntiva oltre il contratto entro la quale le ore extra non sono considerate straordinario
 - Tariffa straordinario oraria (default 0 €/h, max 1.000)
-- Pausa predefinita in minuti (default 30, max 720) — già impostata in ogni nuovo evento, modificabile evento per evento
+- Ora inizio e ora fine abituali (vuote = nessun orario precompilato) — già impostate in ogni nuovo evento, modificabili evento per evento
+- Pausa predefinita in minuti (default 30, max 720) — come sopra
 - Giorni lavorativi della settimana (default lun-ven) — definisce quali giorni rientrano nel calcolo settimanale e quali contano sempre come straordinario
 
 ### Sistema
@@ -225,8 +226,8 @@ Formato del file (tre sezioni separate da `# SETTINGS`, `# MESI` e `# STRAORDINA
 
 ```
 # SETTINGS
-profilo;stipendio;welfare;fringe;mese_fringe;ticket_giorno;bonus_default;forfait_settimana;tariffa_ora;giorni_lavorativi;contratto_settimana;mensilita;pay_giorno;pay_mese_dopo;overtime_abilitato;pausa_predefinita
-Massimo;2800,00;400,00;1000,00;12;10,00;0,00;0,00;0,00;1,2,3,4,5;40,00;14;27;0;1;30
+profilo;stipendio;welfare;fringe;mese_fringe;ticket_giorno;bonus_default;forfait_settimana;tariffa_ora;giorni_lavorativi;contratto_settimana;mensilita;pay_giorno;pay_mese_dopo;overtime_abilitato;pausa_predefinita;orario_inizio;orario_fine
+Massimo;2800,00;400,00;1000,00;12;10,00;0,00;0,00;0,00;1,2,3,4,5;40,00;14;27;0;1;30;09:00;18:00
 
 # MESI
 profilo;anno;mese;stipendio_stato;stipendio_importo;welfare;ticket_stato;ticket_giorni;fringe;bonus_stato;bonus_importo;rimborso_stato;rimborso_importo;straord_stato;straord_ore_pagare;salary13_stato;salary14_stato;salary15_stato;salary13_importo;salary14_importo;salary15_importo
@@ -238,7 +239,7 @@ Massimo;2026-05-13;09:00;19:30;00:45;riunione clienti;0;0;0
 Massimo;2026-08-10;;;;;0;0;1
 ```
 
-Nella sezione `# STRAORDINARI` le colonne `non_straordinario`, `festivo` e `ferie` valgono `0` o `1`. Le righe festivo e ferie non hanno orari. `pausa_predefinita` è in minuti.
+Nella sezione `# STRAORDINARI` le colonne `non_straordinario`, `festivo` e `ferie` valgono `0` o `1`. Le righe festivo e ferie non hanno orari. `pausa_predefinita` è in minuti; `orario_inizio` e `orario_fine` sono nel formato `HH:MM` oppure vuoti.
 
 Stati ammessi: `ricevuto`, `mancante`, `non_atteso`. Mesi con tutti i valori a default vengono omessi dall'export per ridurre rumore.
 

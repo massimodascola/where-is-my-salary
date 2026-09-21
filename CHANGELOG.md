@@ -6,6 +6,55 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.7.0] — 2026-09-21
+
+Due richieste dirette. Primo: al primo avvio un wizard che guidi passo dopo passo (nome, stipendio, mensilità, welfare e tutto quello che serve) al posto del modulo unico "Iniziamo da te". Secondo: un orario abituale di inizio e fine, impostabile, che come la pausa sia già precompilato ogni volta che si aggiunge un evento.
+
+### Wizard di primo avvio
+
+- **Il modulo unico "Iniziamo da te" diventa un wizard a passi**, nello stesso foglio (`#new-profile-sheet`): nome → stipendio (importo, mensilità, giorno e mese di pagamento) → welfare e buoni pasto → fringe benefit → le tue ore → straordinari (forfait e tariffa) → il tuo orario → riepilogo. Barra di avanzamento sotto il titolo, "Passo N di M", bottoni Indietro/Avanti; Invio in un campo equivale ad Avanti. I campi hanno gli stessi id `np-*` di prima: il wizard decide solo quale passo è visibile, e la creazione del profilo (`createProfileFromWizard`) è la stessa logica di prima con le risposte nuove.
+- **Welfare, buoni pasto e fringe sono domande sì/no** (stesso selettore a pillole del "Tipo di giornata"), con "No" preselezionato. Il "Sì" fa comparire il campo dell'importo e ci mette il cursore; con "Sì" l'importo è obbligatorio. "No" salva 0. Prima il modulo proponeva 400 / 1000 / 10 € come se tutti li avessero.
+- **"Vuoi tenere traccia delle ore?"**: con "No" i passi straordinari e orario spariscono (6 passi invece di 8) e il profilo nasce con Overtime spento.
+- **Riepilogo finale**: una riga per risposta; toccandola si torna a quel passo e il bottone diventa "Torna al riepilogo", così non si ripassano tutti i passi dopo una correzione.
+- **Chiudere a metà non perde niente**: riaprendo (dalla card di benvenuto) si riparte dal passo dove si era. Le risposte si azzerano solo dopo la creazione del profilo.
+- **Altezza fissa del foglio** (`min(92dvh, 680px)`, su desktop `min(86vh, 680px)`): i passi hanno altezze diverse (da circa 380 px il nome a 670 px il riepilogo, misurati) e con l'altezza automatica "Avanti" saltava su e giù a ogni passo.
+- **Cursore sul primo campo** di ogni passo solo con mouse e tastiera; su telefono solo sul nome, per non aprire la tastiera a ogni passo. Dopo un errore su un orario il cursore riparte dalle ore, non dai minuti.
+- Il "Bonus standard" non è nel wizard: è un'impostazione avanzata, resta nelle impostazioni a 0.
+
+### Voci che non hai: nascoste
+
+- **Nuova `componentApplies(comp, settings)`**: welfare, buoni pasto e fringe a 0 €, mensilità extra oltre quelle scelte e straordinari con Overtime spento non compaiono nelle card dei mesi né nel "Riepilogo per voce". Prima comparivano comunque, con 0,00 €. Totali e stato dei mesi non cambiano: l'importo atteso di quelle voci era già 0.
+- Nelle impostazioni una nota lo dice: "Welfare, ticket e fringe a 0 se non li hai: quelle voci non compaiono nei mesi."
+
+### Orario abituale
+
+- **Nuove impostazioni `inizioDefault` e `fineDefault`** ("HH:MM" oppure vuote), nella sezione Overtime accanto alla pausa predefinita. Ogni nuovo evento parte con quell'orario e con la pausa; aprendo un evento ferie/festivo (che non ha orari) il form è precaricato con i valori abituali, così se lo si riporta a "Lavoro" si parte da lì.
+- **Il wizard propone 9:00-18:00**; lasciando vuoti inizio e fine non c'è niente di precompilato. I profili esistenti ricevono orario vuoto (tramite `ensureProfile`), quindi per loro nulla cambia finché non lo si imposta.
+- Se inizio e fine sono entrambi impostati, la fine deve venire dopo l'inizio: nel wizard lo blocca il passo, nelle impostazioni il salvataggio viene rifiutato senza toccare niente.
+- **"Scrivi l'ora + Tab = minuti a 00"** ora vale per tutti i campi orario dell'app (evento, impostazioni, wizard), non solo per il form evento.
+
+### iPhone — niente più zoom sui campi
+
+- Safari iOS ingrandisce la pagina quando un campo con testo sotto i 16 px riceve il cursore, e non torna indietro da solo. I campi dei moduli erano a 15 px: misurato nel simulatore, zoom 1,07 dopo che il wizard ha messo il cursore sull'importo. Ora sui touch screen (`pointer: coarse`) i campi sono a 16 px: zoom 1,00. Su desktop restano a 15 px. Vale anche per il form evento e le impostazioni, dove lo zoom succedeva già toccando un campo.
+
+### Backup CSV
+
+- Colonne `orario_inizio` e `orario_fine` in coda a `SETTINGS_COLS`. I file precedenti restano importabili (orario vuoto); un orario non valido nel file blocca l'import con un messaggio che indica riga e colonna.
+
+### Verifiche
+
+- Browser Chromium con clic e tasti reali: apertura automatica al primo avvio, avviso sul nome mancante, Invio per avanzare, "Sì" che mostra il campo e ci mette il cursore, avviso su importo mancante, "No" alle ore (8 → 6 passi e ritorno), errore "fine prima dell'inizio" con correzione, riga del riepilogo → passo → "Torna al riepilogo", creazione del profilo con tutte le impostazioni giuste.
+- Dopo la creazione: buoni pasto (risposto no) assenti dal mese e dal riepilogo annuale, quindicesima assente con 14 mensilità; nuovo evento con 9:00-18:00, pausa 30 e durata 8,50 h; impostazioni con orario non valido rifiutate, con 8:30-17:30 salvate e usate dal form.
+- Casi di contorno: profilo creato da una versione precedente (orario vuoto, nessuna precompilazione); "Azzera dati" → wizard da capo; chiusura a metà e ripresa; CSV nuovo esportato e reimportato, CSV 3.6 senza le colonne, CSV con orario non valido.
+- Larghezza 375 px e simulatore iPhone 17 Pro (iOS 26.4, Safari): passi welfare, orario e riepilogo, campi orario alti come gli altri (48 px con il testo a 16 px), nessuno zoom.
+
+### Internals
+
+- Versione bumped a `3.7.0`.
+- Cache key del service worker bumped a `wims-v3.7.0`.
+
+---
+
 ## [3.6.4] — 2026-09-21
 
 Su iPhone i campi "Ora inizio" e "Ora fine" vuoti erano più bassi di tutti gli altri riquadri del form, e si allargavano solo dopo aver scelto un orario. Richiesta diretta: stessa altezza fissa degli altri campi.
