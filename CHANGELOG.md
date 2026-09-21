@@ -6,6 +6,28 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.6.4] — 2026-09-21
+
+Su iPhone i campi "Ora inizio" e "Ora fine" vuoti erano più bassi di tutti gli altri riquadri del form, e si allargavano solo dopo aver scelto un orario. Richiesta diretta: stessa altezza fissa degli altri campi.
+
+### Form evento — campi data e ora alti come gli altri
+
+- **Causa (iOS Safari)**: con `appearance: none` (serve dalla 3.4.4 per non far sforare i campi su iPhone) un `<input type="time">` vuoto non ha una riga di testo interna, quindi si riduce a padding + bordo. Misurato nel simulatore iOS 26.4: "Ora fine" vuota 24 px, "Ora inizio" compilata 46 px, "Nota" 46,5 px.
+- **Soluzione**: `min-height` sui campi data e ora pari all'altezza degli altri campi, cioè una riga (`line-height: 1.5`, ereditata dal body tramite `font: inherit`) + 11 px di padding sopra e sotto + 1 px di bordo sopra e sotto. Scritto come `calc(1lh + 24px)`, con `calc(1.5em + 24px)` come riserva per i browser che non conoscono l'unità `lh`.
+- **Desktop**: su Chromium i campi data e ora erano già 2 px più alti dei campi di testo (48,5 contro 46,5), per il padding verticale della casella interna (`::-webkit-datetime-edit`). Azzerato quel padding: ora tutti i campi del form hanno la stessa altezza anche su desktop.
+
+### Verifiche
+
+- **Simulatore iPhone 17 Pro, iOS 26.4, Safari**, con una pagina di prova che apre il form da sola: prima della correzione 24 px per il campo vuoto (problema riprodotto come negli screenshot), dopo 46,5 px per Data, Ora inizio compilata, Ora fine vuota e Nota; stesso risultato con entrambi gli orari vuoti. Controllato anche a vista sugli screenshot.
+- Browser Chromium desktop: tutti i campi a 46,5 px, orari centrati, "9" + Tab = 09:00 ancora funzionante.
+
+### Internals
+
+- Versione bumped a `3.6.4`.
+- Cache key del service worker bumped a `wims-v3.6.4`.
+
+---
+
 ## [3.6.3] — 2026-09-21
 
 Ritocco al riepilogo del mese sotto il calendario: sopra la riga "Importo" c'erano due linee attaccate, la tratteggiata della riga "Ore da pagare" e la continua del totale. Richiesta diretta: lasciare solo quella continua.

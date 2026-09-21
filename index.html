@@ -1298,6 +1298,22 @@
     -moz-appearance: none;
     appearance: none;
     text-align: center;
+    /* iOS Safari: with appearance:none an EMPTY date/time input has no inner
+       text line, so it collapses to padding + border (24px) and only grows
+       once a value is picked. Pin it to the height of the other fields:
+       one line (line-height 1.5, inherited via `font: inherit`) + 11px
+       padding x2 + 1px border x2. `1lh` where supported, 1.5em otherwise. */
+    min-height: calc(1.5em + 24px);
+    min-height: calc(1lh + 24px);
+  }
+  /* Chromium/desktop Safari: the inner edit box adds its own vertical
+     padding, which made date/time fields 2px taller than the text fields.
+     Drop it so every field in the form has the same height. */
+  .field input[type="date"]::-webkit-datetime-edit,
+  .field input[type="time"]::-webkit-datetime-edit,
+  .field input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+  .field input[type="time"]::-webkit-datetime-edit-fields-wrapper{
+    padding: 0;
   }
   /* Restore a small clock/calendar glyph as a background icon, since
      -webkit-calendar-picker-indicator is hidden after appearance:none.
@@ -2114,7 +2130,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.6.3";
+const VERSION = "3.6.4";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
