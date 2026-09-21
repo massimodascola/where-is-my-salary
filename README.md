@@ -28,7 +28,9 @@ L'app ha due pagine principali, accessibili dalla tabbar in fondo allo schermo:
 
 ### Pagina **Overtime** — le ore extra non pagate
 
-- **Calendario per logging giornaliero** — apri il giorno, segni le ore lavorate (e quelle di weekend, contate sempre come straordinario).
+- **Calendario per logging giornaliero** — apri il giorno, segni le ore lavorate (e quelle di weekend, contate sempre come straordinario). Da tastiera basta scrivere l'ora e premere Tab: i minuti diventano `00`.
+- **Tipo di giornata: Lavoro, Ferie, Festivo** — ferie e festivi si segnano senza orari e valgono una giornata da 8 ore. Nel calendario le ferie sono blu e i festivi oro; i giorni di ferie sono contati nelle viste Mesi, Settimane e Anni.
+- **Pausa predefinita** — ogni nuovo evento parte con la pausa che fai di solito (default 30 minuti, si cambia nelle impostazioni). Il giorno che è diversa la modifichi nell'evento.
 - **Soglia automatica** — ore contratto (default 40h/sett.) + eventuale forfait CCNL. Tutto quello che eccede diventa straordinario non pagato.
 - **Hero box con metrica doppia** — importo in euro (se hai impostato una tariffa) accanto al totale ore non pagate. Mostra entrambe le risposte con un'occhiata.
 - **KPI annuo dedicato** — ore di straordinario complessive dell'anno corrente.
@@ -117,6 +119,7 @@ Per ogni giorno loggato nel calendario:
 
 - Le **ore weekend** (giorni che hai marcato come non lavorativi) contano per intero come straordinario.
 - Le **ore feriali** contano come straordinario solo per la parte che eccede la soglia settimanale: `paid = max(0, oreFeriali - (oreContratto + forfait))`.
+- **Ferie e festivi** valgono 8 ore e contano verso la soglia settimanale come un giorno lavorato, perché lo stipendio li paga comunque. In una settimana con un giorno di ferie bastano quindi 32 ore lavorate per arrivare a 40: quelle oltre restano straordinario. Le ferie si possono segnare solo nei giorni lavorativi.
 
 L'importo in euro è `ore × tariffa straordinario`. Se la tariffa è 0, l'hero mostra solo le ore.
 
@@ -198,6 +201,7 @@ Tutto è configurabile dall'icona ⚙️ in alto. Le impostazioni sono organizza
 - Ore contratto settimanali (default 40h)
 - Forfait CCNL settimanale (default 0h) — soglia aggiuntiva oltre il contratto entro la quale le ore extra non sono considerate straordinario
 - Tariffa straordinario oraria (default 0 €/h, max 1.000)
+- Pausa predefinita in minuti (default 30, max 720) — già impostata in ogni nuovo evento, modificabile evento per evento
 - Giorni lavorativi della settimana (default lun-ven) — definisce quali giorni rientrano nel calcolo settimanale e quali contano sempre come straordinario
 
 ### Sistema
@@ -217,17 +221,24 @@ Dalle impostazioni → **Backup CSV** puoi:
 - **Scarica file** — esporta un CSV con tutti i profili e tutti gli anni. Convenzione italiana: separatore `;`, decimale `,`, UTF-8 con BOM (Excel/Numbers italiani lo aprono in colonne pulite).
 - **Carica file** — importa un CSV precedentemente esportato. Sovrascrive interamente i dati attuali (chiede conferma). Validazione strict: qualsiasi riga malformata → l'intero import viene rifiutato, niente stati a metà.
 
-Formato del file (due sezioni separate da `# SETTINGS` e `# MESI`):
+Formato del file (tre sezioni separate da `# SETTINGS`, `# MESI` e `# STRAORDINARI`):
 
 ```
 # SETTINGS
-profilo;stipendio;welfare;fringe;mese_fringe;ticket_giorno;bonus_default;contratto_settimana;mensilita;pay_giorno;pay_mese_dopo;overtime_abilitato
-Massimo;2800,00;400,00;1000,00;12;10,00;0,00;40;14;27;0;1
+profilo;stipendio;welfare;fringe;mese_fringe;ticket_giorno;bonus_default;forfait_settimana;tariffa_ora;giorni_lavorativi;contratto_settimana;mensilita;pay_giorno;pay_mese_dopo;overtime_abilitato;pausa_predefinita
+Massimo;2800,00;400,00;1000,00;12;10,00;0,00;0,00;0,00;1,2,3,4,5;40,00;14;27;0;1;30
 
 # MESI
-profilo;anno;mese;stipendio_stato;stipendio_importo;welfare;ticket_stato;ticket_giorni;fringe;bonus_stato;bonus_importo;rimborso_stato;rimborso_importo;salary13_stato;salary14_stato;salary15_stato;salary13_importo;salary14_importo;salary15_importo
-Massimo;2026;1;ricevuto;3000,00;ricevuto;ricevuto;22;non_atteso;non_atteso;0,00;non_atteso;0,00;non_atteso;non_atteso;non_atteso;;;
+profilo;anno;mese;stipendio_stato;stipendio_importo;welfare;ticket_stato;ticket_giorni;fringe;bonus_stato;bonus_importo;rimborso_stato;rimborso_importo;straord_stato;straord_ore_pagare;salary13_stato;salary14_stato;salary15_stato;salary13_importo;salary14_importo;salary15_importo
+Massimo;2026;1;ricevuto;3000,00;ricevuto;ricevuto;22;non_atteso;non_atteso;0,00;non_atteso;0,00;mancante;;non_atteso;non_atteso;non_atteso;;;
+
+# STRAORDINARI
+profilo;data;inizio;fine;pausa;nota;non_straordinario;festivo;ferie
+Massimo;2026-05-13;09:00;19:30;00:45;riunione clienti;0;0;0
+Massimo;2026-08-10;;;;;0;0;1
 ```
+
+Nella sezione `# STRAORDINARI` le colonne `non_straordinario`, `festivo` e `ferie` valgono `0` o `1`. Le righe festivo e ferie non hanno orari. `pausa_predefinita` è in minuti.
 
 Stati ammessi: `ricevuto`, `mancante`, `non_atteso`. Mesi con tutti i valori a default vengono omessi dall'export per ridurre rumore.
 
@@ -240,8 +251,9 @@ Il parser è **tollerante**: header *prefisso* è accettato, quindi un CSV espor
 Al click di "Scarica file" l'app ti chiede se vuoi il CSV **Stipendio (completo)** o **Solo ore lavorate**. Il secondo è un export evento-per-evento del calendario Overtime, schema:
 
 ```
-profilo;data;inizio;fine;pausa;nota
-Massimo;2026-05-13;09:00;19:30;45;riunione clienti
+profilo;data;inizio;fine;pausa;nota;non_straordinario;festivo;ferie
+Massimo;2026-05-13;09:00;19:30;00:45;riunione clienti;0;0;0
+Massimo;2026-08-10;;;;;0;0;1
 ```
 
 Granularità giornaliera, separato dal CSV principale per non gonfiare l'export Stipendio nei casi d'uso "solo busta paga".

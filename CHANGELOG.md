@@ -6,6 +6,59 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.6.0] — 2026-09-21
+
+Tre richieste dirette, tutte sul form evento Overtime: poter segnare i giorni di ferie e vederli a colpo d'occhio, non dover reinserire ogni volta la solita pausa di 30 minuti, e non dover completare a mano i minuti quando si scrive solo l'ora.
+
+### Ferie (PTO) come tipo di giornata
+
+- **Il toggle "Giorno festivo" diventa un selettore "Tipo di giornata": Lavoro · Ferie · Festivo.** Ferie e festivo si escludono a vicenda (un giorno è l'uno o l'altro): due toggle indipendenti avrebbero permesso combinazioni senza senso. Il selettore usa veri `radio` (frecce da tastiera e screen reader funzionano da soli) ed è colorato come il calendario: Ferie in blu, Festivo in oro.
+- **Nuovo flag `pto: bool` sull'evento.** Stesso modello del festivo: niente orari (inizio/fine/pausa salvati vuoti), vale una giornata standard di 8 ore. `FESTIVO_HOURS` è stata rinominata `STANDARD_DAY_HOURS`, perché ora vale per entrambi.
+- **Semantica di calcolo: le 8 ore di ferie contano verso la soglia settimanale**, come un giorno lavorato. Motivo: lo stipendio paga il giorno di ferie, quindi quella giornata occupa 8 ore della soglia già coperta dallo stipendio. Esempio verificato: lunedì in ferie + martedì-venerdì da 9,5 h = 38 h lavorate + 8 h di ferie = 46 h contro soglia 40, quindi 6 h di straordinario. Prima, non segnando nulla il lunedì, la stessa settimana dava 0 h: il giorno di ferie "assorbiva" gli straordinari fatti negli altri giorni.
+- **Ferie solo nei giorni lavorativi.** Su un giorno non lavorativo (es. sabato con impostazione lun-ven) le ferie non hanno senso e aggiungerebbero 8 h alla settimana, inventando straordinari: il salvataggio è bloccato con un messaggio che dice dove cambiare i giorni lavorativi, e l'anteprima lo segnala già quando si sceglie "Ferie". Il festivo resta com'era (conta anche nel weekend, decisione della 3.5.0).
+- **Visibilità**:
+  - calendario mensile: cerchio pieno blu (`--ocean`);
+  - week strip del dettaglio giorno: sfondo `--ocean-tint`;
+  - card evento: "Giornata di ferie", badge "ferie" e barra blu a sinistra;
+  - lista Giorni: "Ferie" in blu al posto degli orari (e, per coerenza, "Festivo" in oro);
+  - conteggio dei giorni di ferie nelle card Mesi, nelle righe Settimane e Anni e nel riepilogo del mese sotto il calendario (solo quando è maggiore di zero).
+- **"Ore lavorate" include le giornate standard** (ferie e festivi a 8 h), come già succedeva per il festivo. Nel riepilogo del mese, quando ce ne sono, l'etichetta lo dice: "Ore lavorate (ferie e festivi a 8 h)".
+- **Colore**: `--ocean` era "riservato, lasciato per estensioni" nel design system; ora ha un significato, le ferie. Aggiunto `--ocean-tint: #E6EDF5` per gli sfondi.
+
+### Pausa predefinita
+
+- **Nuova impostazione "Pausa predefinita (minuti)"** nella sezione Overtime, default 30. Ogni nuovo evento parte con quella pausa già nel duration picker; il giorno che è diversa si cambia lì, come prima. Con 0 si parte senza pausa.
+- Salvata come `settings.pausaDefaultMin` (minuti, 0-720). I profili esistenti la ricevono a 30 tramite `ensureProfile`, come le altre impostazioni aggiunte nel tempo.
+- Modificando un evento di lavoro esistente resta la sua pausa. Un evento ferie/festivo non ha pausa: aprendolo, il picker è precaricato con la predefinita, così se lo si riporta a "Lavoro" si parte dal valore solito.
+
+### Orari: minuti a "00" quando si scrive solo l'ora
+
+- **Problema**: negli `<input type="time">` su desktop, scrivendo solo l'ora (es. "9", che passa da solo ai minuti) e premendo Tab, i minuti restavano "--". Per il browser un campo orario compilato a metà non ha valore (`value === ""`): l'anteprima non calcolava la durata e il salvataggio rispondeva "Inserisci ora di inizio e fine".
+- **Perché non si può completare dopo**: il browser non espone l'ora digitata finché il campo non è completo, quindi al `blur` non c'è modo di leggere "09" e aggiungere ":00".
+- **Soluzione**: al primo tasto (cifra o freccia su/giù) in un campo *vuoto*, il campo viene inizializzato a "00:00" prima che il browser elabori il tasto. L'ora digitata sostituisce le ore, i minuti restano "00" finché non si scrivono. Risultato: "9" + Tab = 09:00, "9" "30" = 09:30, "18" + Tab = 18:00.
+- **Guardie**: niente inizializzazione se il campo ha già un valore o è compilato a metà (`validity.badInput`), così un'ora già scritta non viene mai sovrascritta (verificato: cancellando solo i minuti di 09:00 e scrivendo "45" si ottiene 09:45). Passare col Tab su un campo vuoto senza scrivere lo lascia vuoto. Le rotelle native di iOS/Android non generano `keydown`, quindi sul telefono il comportamento non cambia.
+- L'anteprima della durata ora si aggiorna anche al `blur` dei campi orario.
+
+### Backup CSV
+
+- Colonna `ferie` (0/1) in coda sia a `STRAORD_COLS` (backup completo) sia a `ORE_COLS` (export solo ore). Colonna `pausa_predefinita` (minuti) in coda a `SETTINGS_COLS`. Tutte in coda, quindi i file delle versioni precedenti restano importabili come prefisso: ferie = no, pausa = 30.
+- Le righe ferie non hanno orari: la validazione degli orari è saltata come per il festivo. Se un file ha sia `festivo` sia `ferie` a 1, vince festivo.
+- README: gli esempi del formato CSV erano rimasti indietro di qualche versione (mancavano colonne e la sezione `# STRAORDINARI`); riallineati alle intestazioni reali e verificati facendoli leggere a `parseCsv`.
+
+### Verifiche
+
+- Browser Chromium con tasti reali sui campi orario: "9" + Tab = 09:00 con focus su Ora fine; "18" + Tab = 18:00; "9" "3" "0" = 09:30; "1" + Tab + Tab = 01:00; Tab su campo vuoto = resta vuoto; minuti cancellati e riscritti = ora conservata. **Non verificato su Safari e Firefox desktop.**
+- Form: blocco delle ferie di sabato, modifica di eventi ferie e lavoro, passaggio lavoro → ferie (orari svuotati) e ritorno, pausa predefinita portata a 45 = nuovo evento a 0h 45m.
+- Viste Mesi, Settimane, Anni, calendario, dettaglio giorno e lista Giorni con eventi ferie e festivo; form a 375 px senza scroll orizzontale.
+- CSV: round-trip completo e solo ore, import di file 3.5.0 senza le nuove colonne, riga con entrambi i flag.
+
+### Internals
+
+- Versione bumped a `3.6.0`.
+- Cache key del service worker bumped a `wims-v3.6.0` per invalidare la 3.5.0 al primo activate.
+
+---
+
 ## [3.5.0] — 2026-06-05
 
 Nuova opzione **"Giorno festivo"** nel form evento Overtime. Nasce da una richiesta diretta: poter segnare che un giorno è festivo senza dover digitare gli orari, perché quel giorno è comunque pagato come una normale giornata lavorata — e deve restare riconoscibile a colpo d'occhio nel calendario.

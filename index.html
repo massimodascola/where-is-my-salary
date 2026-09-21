@@ -59,6 +59,7 @@
 
     --ocean:           #4F7CAC;
     --ocean-soft:      rgba(79, 124, 172, .10);
+    --ocean-tint:      #E6EDF5;
 
     /* Type */
     --serif: "Source Serif 4", "Source Serif Pro", "Charter", "Georgia", "Times New Roman", serif;
@@ -766,6 +767,8 @@
   }
   .ore-month-card .omc-row.straord .omc-num{ color: var(--sienna); }
   .ore-month-card .omc-row.straord .omc-lab{ color: var(--sienna); }
+  .ore-month-card .omc-row.ferie .omc-num,
+  .ore-month-card .omc-row.ferie .omc-lab{ color: var(--ocean); }
   .ore-month-card .omc-amt{
     font-family: var(--serif);
     font-size: 14px;
@@ -808,6 +811,7 @@
     font-variant-numeric: tabular-nums;
   }
   .oms-value.sienna{ color: var(--sienna); font-weight: 500; font-size: 18px; }
+  .oms-value.ocean{ color: var(--ocean); }
   #oms-override{
     width: 90px;
     text-align: right;
@@ -861,6 +865,7 @@
     font-variant-numeric: tabular-nums;
   }
   .owr-stats .v.sienna, .oyr-stats .v.sienna{ color: var(--sienna); }
+  .owr-stats .v.ocean, .oyr-stats .v.ocean{ color: var(--ocean); }
 
   /* Day-view summary line below the calendar */
   .ore-day-summary{
@@ -891,6 +896,10 @@
   }
   .odr-mid{ flex: 1; min-width: 0; }
   .odr-times{ font-size: 13px; color: var(--ink-soft); }
+  /* "Ferie" / "Festivo" in place of the clock times, in their calendar color. */
+  .odr-kind{ font-weight: 600; }
+  .odr-kind.pto{ color: var(--ocean); }
+  .odr-kind.festivo{ color: var(--gold); }
   .odr-note{ font-size: 12px; color: var(--ink-muted); font-style: italic; margin-top: 2px; }
   .odr-hours{
     font-family: var(--serif); font-weight: 500;
@@ -955,6 +964,10 @@
   .dws-day.festivo{ background: var(--gold-tint); }
   .dws-day.festivo .dws-name{ color: var(--gold); }
   .dws-day.festivo .dws-num{ color: var(--gold); }
+  /* Day with a "ferie" (PTO) event: same idea in ocean blue. */
+  .dws-day.pto{ background: var(--ocean-tint); }
+  .dws-day.pto .dws-name{ color: var(--ocean); }
+  .dws-day.pto .dws-num{ color: var(--ocean); }
   .dws-day.selected{
     background: var(--sienna);
     color: #fff;
@@ -1024,6 +1037,13 @@
     background: var(--gold-tint); font-style: normal;
   }
   .dd-event.holiday{ border-left: 3px solid var(--gold); }
+  /* Event flagged "pto" (ferie): same treatment in ocean blue, so a
+     vacation day and a festivo read apart at a glance. */
+  .dd-event-badge.ferie{
+    color: var(--ocean); border: 1px solid var(--ocean-soft);
+    background: var(--ocean-tint); font-style: normal;
+  }
+  .dd-event.pto{ border-left: 3px solid var(--ocean); }
 
   /* Calendar grid (compact, centered). Headers and day cells share one grid
      container so the vertical rhythm between rows is consistent — using two
@@ -1082,6 +1102,9 @@
      `.weekend` variant matches the 3-class specificity of has-events.weekend. */
   .cal-c.festivo,
   .cal-c.festivo.weekend{ background: var(--gold); color: #fff; font-weight: 600; }
+  /* Ferie (PTO) day: ocean fill, same specificity rules as festivo. */
+  .cal-c.pto,
+  .cal-c.pto.weekend{ background: var(--ocean); color: #fff; font-weight: 600; }
   .cal-c.today{ outline: 2px solid var(--sienna); outline-offset: -2px; }
 
   /* ---------- Buttons ---------- */
@@ -1393,6 +1416,49 @@
   .settings-toggle.field-toggle .field-toggle-label{
     flex: 1;
   }
+
+  /* Day-kind switch in the event form (Lavoro / Ferie / Festivo). Real
+     radio inputs, so arrow keys and screen readers work natively; the
+     visible pill is the sibling span. Each kind lights up in the color it
+     has in the calendar. */
+  .kind-switch{
+    display: flex;
+    gap: 4px;
+    background: var(--paper-tint);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-soft);
+    padding: 4px;
+  }
+  .field .kind-switch label{
+    flex: 1;
+    position: relative;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink-muted);
+  }
+  .kind-switch input{
+    position: absolute; opacity: 0; pointer-events: none;
+  }
+  .kind-switch span{
+    display: block;
+    text-align: center;
+    padding: 9px 4px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background .14s, color .14s;
+  }
+  .kind-switch span:hover{ color: var(--ink); }
+  .kind-switch input:checked + span{
+    background: var(--card-elev);
+    color: var(--sienna-deep);
+    box-shadow: var(--shadow-rest);
+  }
+  .kind-switch input[value="ferie"]:checked + span{ background: var(--ocean-tint); color: var(--ocean); }
+  .kind-switch input[value="festivo"]:checked + span{ background: var(--gold-tint); color: var(--gold); }
+  .kind-switch input:focus-visible + span{ outline: 2px solid var(--sienna); outline-offset: 1px; }
+  .field .hint:empty{ display: none; }
 
   /* ---------- Empty state (entire card is clickable) ---------- */
   .empty{
@@ -1784,6 +1850,11 @@
       <input type="number" id="set-tariffa" min="0" step="0.01" />
       <div class="hint">Sopra le (contratto + forfait) ore settimanali contano come straordinari pagati a questa tariffa.</div>
     </div>
+    <div class="field">
+      <label>Pausa predefinita (minuti)</label>
+      <input type="number" id="set-pausa" min="0" max="720" step="5" />
+      <div class="hint">Già impostata in ogni nuovo evento; se un giorno è diversa la cambi lì. 0 per partire senza pausa.</div>
+    </div>
 
     <div class="settings-section-title">Sistema</div>
     <div class="sync-block" id="sync-block">
@@ -1934,12 +2005,13 @@
       <input type="date" id="ot-data" />
     </div>
     <div class="field">
-      <label class="settings-toggle field-toggle">
-        <span class="field-toggle-label">Giorno festivo</span>
-        <input type="checkbox" id="ot-festivo" />
-        <span class="toggle-track"></span>
-      </label>
-      <div class="hint">Conta come una normale giornata lavorativa di 8 ore (verso la soglia settimanale), senza inserire gli orari. Nel calendario il giorno è evidenziato come festivo.</div>
+      <label id="ot-kind-label">Tipo di giornata</label>
+      <div class="kind-switch" id="ot-kind" role="radiogroup" aria-labelledby="ot-kind-label">
+        <label><input type="radio" name="ot-kind" value="lavoro" checked /><span>Lavoro</span></label>
+        <label><input type="radio" name="ot-kind" value="ferie" /><span>Ferie</span></label>
+        <label><input type="radio" name="ot-kind" value="festivo" /><span>Festivo</span></label>
+      </div>
+      <div class="hint" id="ot-kind-hint"></div>
     </div>
     <div class="field-row" id="ot-time-row">
       <div class="field">
@@ -2036,7 +2108,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.5.0";
+const VERSION = "3.6.0";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -2112,15 +2184,19 @@ function workingDaysInMonth(year, m0){
 
 /* ----- Overtime helpers -----
  * Events are stored as { id, data:"YYYY-MM-DD", inizio:"HH:MM", fine:"HH:MM",
- * pausa:"HH:MM"|"", nota:"", notOvertime?:bool, holiday?:bool }.
+ * pausa:"HH:MM"|"", nota:"", notOvertime?:bool, holiday?:bool, pto?:bool }.
  * Cross-midnight events are disallowed (model:
  * one record per work-day; if you work across midnight, log two events).
  *
- * A `holiday` event (giorno festivo) is special: it carries no clock times —
- * the user just flags the day and it counts as a fixed standard workday of
- * FESTIVO_HOURS hours. inizio/fine/pausa are stored empty for these.
+ * `holiday` (giorno festivo) and `pto` (ferie) events are special: they carry
+ * no clock times — the user just flags the day and it counts as a fixed
+ * standard workday of STANDARD_DAY_HOURS hours, because the salary pays it
+ * anyway. inizio/fine/pausa are stored empty for these, and the two flags are
+ * mutually exclusive (the form offers them as one "tipo di giornata" choice).
  */
-const FESTIVO_HOURS = 8;
+const STANDARD_DAY_HOURS = 8;
+// Default break pre-filled in new events, in minutes (settings.pausaDefaultMin).
+const PAUSA_DEFAULT_MIN = 30;
 function parseHHMM(s){
   if(s == null || s === "") return null;
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(s).trim());
@@ -2130,8 +2206,8 @@ function parseHHMM(s){
   return h * 60 + mm;
 }
 function eventHours(e){
-  // Festivo days are a fixed standard workday regardless of clock times.
-  if(e && e.holiday) return FESTIVO_HOURS;
+  // Festivo and ferie days are a fixed standard workday, no clock times.
+  if(e && (e.holiday || e.pto)) return STANDARD_DAY_HOURS;
   const start = parseHHMM(e.inizio), end = parseHHMM(e.fine);
   if(start == null || end == null) return 0;
   const pause = parseHHMM(e.pausa) || 0;
@@ -2161,6 +2237,11 @@ function eventsInYear(events, year){
 function grossHoursForMonth(events, year, m0){
   return eventsInMonth(events, year, m0).reduce((s, e) => s + eventHours(e), 0);
 }
+// Distinct days marked as ferie (PTO) among the given events.
+function ptoDayCount(events){
+  return new Set((events || []).filter(e => e.pto && e.data).map(e => e.data)).size;
+}
+const giorniStr = n => `${n} ${n === 1 ? "giorno" : "giorni"}`;
 function isoDayOfWeek(dateStr){
   // Returns 1..7 (Monday..Sunday).
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -2181,10 +2262,13 @@ function paidHoursForMonth(events, year, m0, forfaitWeek, workdays, contractWeek
   // if they're on a weekend or push the week over the threshold. They still
   // exist in the calendar (gross hours), they just don't get paid out.
   //
-  // Events flagged `holiday` (giorno festivo) are treated as a normal worked
-  // day: they contribute a fixed FESTIVO_HOURS (via eventHours) toward the
-  // weekly threshold like any workday, even if the date falls on a weekend.
-  // They do not get the automatic 100%-paid treatment that non-workdays get.
+  // Events flagged `holiday` (giorno festivo) or `pto` (ferie) are treated as
+  // a normal worked day: they contribute a fixed STANDARD_DAY_HOURS (via
+  // eventHours) toward the weekly threshold like any workday, even if the
+  // date falls on a weekend. They do not get the automatic 100%-paid
+  // treatment that non-workdays get. Net effect of a ferie day: the week
+  // needs 8 fewer worked hours before overtime starts, so extra hours done
+  // on the other days of that week are not swallowed by the vacation day.
   const inMonth = eventsInMonth(events, year, m0);
   if(inMonth.length === 0) return 0;
   const wd = (workdays && workdays.length) ? workdays : [1,2,3,4,5];
@@ -2193,7 +2277,7 @@ function paidHoursForMonth(events, year, m0, forfaitWeek, workdays, contractWeek
   for(const e of inMonth){
     if(e.notOvertime) continue;
     const h = eventHours(e);
-    if(e.holiday || isWorkday(e.data, wd)){
+    if(e.holiday || e.pto || isWorkday(e.data, wd)){
       const [iy, iw] = isoWeek(e.data);
       const k = iy + "-" + iw;
       workByWeek[k] = (workByWeek[k] || 0) + h;
@@ -2299,7 +2383,16 @@ function defaultSettings(){
     // If false, the entire Overtime section is hidden: no tabbar, no
     // "Straordinari" row inside month cards, no Overtime-only settings.
     overtimeEnabled: true,
+    // Break pre-filled in every new overtime event, in minutes. The user
+    // still edits it per event; 0 means "start with no break".
+    pausaDefaultMin: PAUSA_DEFAULT_MIN,
   };
+}
+// Reads the default break from settings, clamped to 0..720 minutes.
+function pausaDefaultMin(settings){
+  const v = settings ? settings.pausaDefaultMin : null;
+  if(v == null || v === "") return PAUSA_DEFAULT_MIN;
+  return Math.min(720, Math.max(0, Math.round(Number(v) || 0)));
 }
 
 // Pay date for the salary that compensates work in (year, m0). Honors the
@@ -2344,6 +2437,7 @@ function ensureProfile(id){
     if(p.settings.payDay == null) p.settings.payDay = 27;
     if(p.settings.payDayNextMonth == null) p.settings.payDayNextMonth = false;
     if(p.settings.overtimeEnabled == null) p.settings.overtimeEnabled = true;
+    if(p.settings.pausaDefaultMin == null) p.settings.pausaDefaultMin = PAUSA_DEFAULT_MIN;
     if(!Array.isArray(p.settings.workdays) || p.settings.workdays.length === 0){
       p.settings.workdays = [1,2,3,4,5];
     }
@@ -2787,6 +2881,7 @@ function renderOreYearView(p){
       yp += paidHoursForMonth(events, Number(y), m0, p.settings.forfaitOreSett, p.settings.workdays, p.settings.oreContrattoSett);
     }
     byYear[y].paid = yp;
+    byYear[y].ferie = ptoDayCount(eventsInYear(events, Number(y)));
   }
   const years = Object.values(byYear).sort((a, b) => b.y - a.y);
   if(years.length === 0) return `<div class="ore-empty">Nessun anno con eventi registrati.</div>`;
@@ -2796,6 +2891,7 @@ function renderOreYearView(p){
       <div class="oyr-stats">
         <div><span class="k">Lavorate</span> <span class="v">${hStr(yy.hours)}</span></div>
         <div><span class="k">Da pagare</span> <span class="v">${hStr(yy.paid)}</span></div>
+        ${yy.ferie > 0 ? `<div><span class="k">Ferie</span> <span class="v ocean">${giorniStr(yy.ferie)}</span></div>` : ""}
         ${tariffa > 0 ? `<div><span class="k">Importo</span> <span class="v sienna">${eur(yy.paid * tariffa)}</span></div>` : ""}
       </div>
     </div>
@@ -2808,6 +2904,7 @@ function renderOreMonthView(p){
   const cards = MONTHS_IT.map((name, m0) => {
     const gross = grossHoursForMonth(events, oreYear, m0);
     const paid = paidHoursForMonth(events, oreYear, m0, p.settings.forfaitOreSett, p.settings.workdays, p.settings.oreContrattoSett);
+    const ferie = ptoDayCount(eventsInMonth(events, oreYear, m0));
     const has = gross > 0;
     return `<div class="ore-month-card${has ? " has-data" : ""}" data-m0="${m0}">
       <div class="omc-name">${name}</div>
@@ -2819,6 +2916,10 @@ function renderOreMonthView(p){
         <span class="omc-num">${hStr(paid)}</span>
         <span class="omc-lab">straordinari</span>
       </div>
+      ${ferie > 0 ? `<div class="omc-row ferie">
+        <span class="omc-num">${ferie}</span>
+        <span class="omc-lab">${ferie === 1 ? "giorno" : "giorni"} di ferie</span>
+      </div>` : ""}
       ${has && tariffa > 0 ? `<div class="omc-amt">${eur(paid * tariffa)}</div>` : ""}
     </div>`;
   }).join("");
@@ -2846,10 +2947,11 @@ function renderOreWeekView(p){
     const [iy, iw] = isoWeek(e.data);
     if(iy !== oreYear) continue;
     const k = iw;
-    if(!byWeek[k]) byWeek[k] = { iw, workH: 0, weekendH: 0, count: 0 };
+    if(!byWeek[k]) byWeek[k] = { iw, workH: 0, weekendH: 0, count: 0, ferieDates: new Set() };
     const h = eventHours(e);
-    if(e.holiday || isWorkday(e.data, wd)) byWeek[k].workH += h;
+    if(e.holiday || e.pto || isWorkday(e.data, wd)) byWeek[k].workH += h;
     else byWeek[k].weekendH += h;
+    if(e.pto) byWeek[k].ferieDates.add(e.data);
     byWeek[k].count++;
   }
   const weeks = Object.values(byWeek).sort((a, b) => a.iw - b.iw);
@@ -2872,6 +2974,7 @@ function renderOreWeekView(p){
       <div class="owr-stats">
         <div><span class="k">Lavorate</span> <span class="v">${hStr(gross)}</span></div>
         <div><span class="k">Da pagare</span> <span class="v">${hStr(paid)}</span></div>
+        ${w.ferieDates.size > 0 ? `<div><span class="k">Ferie</span> <span class="v ocean">${giorniStr(w.ferieDates.size)}</span></div>` : ""}
         ${tariffa > 0 ? `<div><span class="k">Importo</span> <span class="v sienna">${eur(paid * tariffa)}</span></div>` : ""}
       </div>
     </div>`;
@@ -2889,6 +2992,11 @@ function renderOreCalendarView(p){
   const override = md.overtime.hoursOverride;
   const finalPaid = override != null ? Number(override) : autoPaid;
   const importo = finalPaid * tariffa;
+  const monthEvents = eventsInMonth(events, oreYear, oreMonthIdx);
+  const ferie = ptoDayCount(monthEvents);
+  // Ferie and festivi add a standard 8 h day to "Ore lavorate": say so, so
+  // the total doesn't look inflated in a month with vacation days.
+  const hasStandardDays = monthEvents.some(e => e.pto || e.holiday);
   return `
     <button class="ore-back-btn" data-action="back-mesi" type="button">‹ Mesi</button>
     <div class="section-head">
@@ -2902,9 +3010,14 @@ function renderOreCalendarView(p){
     ${renderCalendar(oreYear, oreMonthIdx, events, p.settings.workdays)}
     <div class="ore-month-summary">
       <div class="oms-row">
-        <div class="oms-label">Ore lavorate</div>
+        <div class="oms-label">Ore lavorate${hasStandardDays ? ` <small>(ferie e festivi a 8 h)</small>` : ""}</div>
         <div class="oms-value">${hStr(gross)}</div>
       </div>
+      ${ferie > 0 ? `
+      <div class="oms-row">
+        <div class="oms-label">Ferie</div>
+        <div class="oms-value ocean">${giorniStr(ferie)}</div>
+      </div>` : ""}
       <div class="oms-row">
         <div class="oms-label">Straordinari calcolati</div>
         <div class="oms-value">${hStr(autoPaid)}</div>
@@ -2936,7 +3049,10 @@ function renderOreDayList(p){
   return `<div class="ore-day-list">${dates.map(d => {
     const evs = byDate[d];
     const totalH = evs.reduce((s, e) => s + eventHours(e), 0);
-    const times = evs.map(e => e.holiday ? "Festivo" : `${escapeHtml(e.inizio)}–${escapeHtml(e.fine)}`).join(" · ");
+    const times = evs.map(e =>
+      e.pto ? `<span class="odr-kind pto">Ferie</span>`
+      : e.holiday ? `<span class="odr-kind festivo">Festivo</span>`
+      : `${escapeHtml(e.inizio)}–${escapeHtml(e.fine)}`).join(" · ");
     const note = evs.map(e => e.nota).filter(Boolean).join(" / ");
     return `<div class="ore-day-row" data-date="${escapeHtml(d)}">
       <div class="odr-date">${formatItalianDateLong(d)}</div>
@@ -2969,6 +3085,7 @@ function renderOreDayDetail(p){
   const wd = p.settings.workdays || [1,2,3,4,5];
   const eventDates = new Set((p.overtime || []).map(e => e.data));
   const festivoDates = new Set((p.overtime || []).filter(e => e.holiday).map(e => e.data));
+  const ptoDates = new Set((p.overtime || []).filter(e => e.pto).map(e => e.data));
 
   const strip = [];
   for(let i = 0; i < 7; i++){
@@ -2978,8 +3095,9 @@ function renderOreDayDetail(p){
     const isWeekend = !wd.includes(i + 1);
     const hasEv = eventDates.has(ds);
     const isFestivo = festivoDates.has(ds);
+    const isPto = ptoDates.has(ds);
     const isSel = ds === date;
-    strip.push(`<button class="dws-day${isSel ? " selected" : ""}${isWeekend ? " weekend" : ""}${hasEv ? " has-events" : ""}${isFestivo ? " festivo" : ""}" data-date="${ds}" type="button">
+    strip.push(`<button class="dws-day${isSel ? " selected" : ""}${isWeekend ? " weekend" : ""}${hasEv ? " has-events" : ""}${isFestivo ? " festivo" : ""}${isPto ? " pto" : ""}" data-date="${ds}" type="button">
       <span class="dws-name">${names[i]}</span>
       <span class="dws-num">${dt.getDate()}</span>
     </button>`);
@@ -2992,10 +3110,10 @@ function renderOreDayDetail(p){
       <button class="btn full" id="dd-add" type="button" style="margin-top:10px">+ Aggiungi evento qui</button>`;
   } else {
     eventsHtml = events.map(e => `
-      <div class="dd-event${e.notOvertime ? " not-overtime" : ""}${e.holiday ? " holiday" : ""}" data-id="${escapeHtml(e.id)}">
-        <div class="dd-event-times">${e.holiday ? "Giornata festiva" : `${escapeHtml(e.inizio)} → ${escapeHtml(e.fine)}${e.pausa ? ` · pausa ${escapeHtml(e.pausa)}` : ""}`}</div>
+      <div class="dd-event${e.notOvertime ? " not-overtime" : ""}${e.holiday ? " holiday" : ""}${e.pto ? " pto" : ""}" data-id="${escapeHtml(e.id)}">
+        <div class="dd-event-times">${e.pto ? "Giornata di ferie" : e.holiday ? "Giornata festiva" : `${escapeHtml(e.inizio)} → ${escapeHtml(e.fine)}${e.pausa ? ` · pausa ${escapeHtml(e.pausa)}` : ""}`}</div>
         ${e.nota ? `<div class="dd-event-note">${escapeHtml(e.nota)}</div>` : ""}
-        <div class="dd-event-hours">${hStr(eventHours(e))}${e.holiday ? ` <span class="dd-event-badge festivo">festivo</span>` : ""}${e.notOvertime ? ` <span class="dd-event-badge">non strord.</span>` : ""}</div>
+        <div class="dd-event-hours">${hStr(eventHours(e))}${e.holiday ? ` <span class="dd-event-badge festivo">festivo</span>` : ""}${e.pto ? ` <span class="dd-event-badge ferie">ferie</span>` : ""}${e.notOvertime ? ` <span class="dd-event-badge">non strord.</span>` : ""}</div>
       </div>`).join("") + `<button class="btn secondary full" id="dd-add" type="button" style="margin-top:12px">+ Aggiungi un altro evento</button>`;
   }
 
@@ -3149,10 +3267,12 @@ function renderCalendar(year, m0, events, workdays){
 
   const eventDates = new Set();
   const festivoDates = new Set();
+  const ptoDates = new Set();
   for(const e of (events || [])){
     if(e.data && e.data.startsWith(`${year}-${mm}-`)){
       eventDates.add(e.data);
       if(e.holiday) festivoDates.add(e.data);
+      if(e.pto) ptoDates.add(e.data);
     }
   }
 
@@ -3173,6 +3293,7 @@ function renderCalendar(year, m0, events, workdays){
     if(!isWork) cls.push("weekend");
     if(eventDates.has(dateStr)) cls.push("has-events");
     if(festivoDates.has(dateStr)) cls.push("festivo");
+    if(ptoDates.has(dateStr)) cls.push("pto");
     if(dateStr === todayStr) cls.push("today");
     const style = (d === 1 && startOffset > 0) ? ` style="grid-column-start: ${startOffset + 1}"` : "";
     cells += `<div class="${cls.join(" ")}" data-date="${dateStr}"${style}>${d}</div>`;
@@ -3198,39 +3319,63 @@ function openOvertimeForm(eventId){
   editingEventId = eventId;
   $("#ot-event-title").textContent = eventId ? "Modifica evento" : "Nuovo evento";
   $("#btn-ot-delete").style.display = eventId ? "" : "none";
+  // New events start with the usual break from settings. Ferie/festivo events
+  // store no break, so editing one also starts from the default: it only
+  // shows if the user switches the day back to "Lavoro".
+  const defaultPausa = minutesToHHMM(pausaDefaultMin(p.settings));
   if(eventId){
     const ev = (p.overtime || []).find(e => e.id === eventId);
     if(!ev){ editingEventId = null; return; }
     $("#ot-data").value = ev.data || "";
     $("#ot-inizio").value = ev.inizio || "";
     $("#ot-fine").value = ev.fine || "";
-    setPausaPicker(ev.pausa || "");
+    setPausaPicker(ev.holiday || ev.pto ? defaultPausa : (ev.pausa || ""));
     $("#ot-nota").value = ev.nota || "";
     $("#ot-not-overtime").checked = !!ev.notOvertime;
-    $("#ot-festivo").checked = !!ev.holiday;
+    setDayKind(ev.holiday ? "festivo" : ev.pto ? "ferie" : "lavoro");
   } else {
     $("#ot-data").value = new Date().toISOString().slice(0, 10);
     $("#ot-inizio").value = "";
     $("#ot-fine").value = "";
-    setPausaPicker("");
+    setPausaPicker(defaultPausa);
     $("#ot-nota").value = "";
     $("#ot-not-overtime").checked = false;
-    $("#ot-festivo").checked = false;
+    setDayKind("lavoro");
   }
-  syncFestivoUI();
+  syncDayKindUI();
   openSheet("ot-event-sheet");
 }
-// When "Giorno festivo" is on, the event is a fixed standard day: hide the
-// time/pausa inputs (and the conflicting "non straordinario" toggle) since
-// the user doesn't enter hours for a holiday. Also refreshes the preview.
-function syncFestivoUI(){
-  const on = !!$("#ot-festivo").checked;
-  $("#ot-time-row").style.display = on ? "none" : "";
-  $("#ot-pausa-field").style.display = on ? "none" : "";
-  $("#ot-notov-field").style.display = on ? "none" : "";
+function minutesToHHMM(min){
+  if(!min) return "";
+  return String(Math.floor(min / 60)).padStart(2, "0") + ":" + String(min % 60).padStart(2, "0");
+}
+// "Tipo di giornata": lavoro (clock times) | ferie (pto) | festivo (holiday).
+function selectedDayKind(){
+  const r = $("input[name='ot-kind']:checked");
+  return r ? r.value : "lavoro";
+}
+function setDayKind(kind){
+  $$("input[name='ot-kind']").forEach(r => { r.checked = r.value === kind; });
+}
+const DAY_KIND_HINTS = {
+  lavoro: "",
+  ferie: `Niente orari: vale ${STANDARD_DAY_HOURS} ore dentro la soglia settimanale, perché lo stipendio te la paga comunque. Le ore in più degli altri giorni restano straordinari. Nel calendario è blu.`,
+  festivo: `Niente orari: conta come una normale giornata lavorativa di ${STANDARD_DAY_HOURS} ore verso la soglia settimanale. Nel calendario è oro.`,
+};
+// Ferie and festivo are fixed standard days: hide the time/pausa inputs (and
+// the conflicting "non straordinario" toggle) since the user doesn't enter
+// hours for them. Also refreshes the hint and the preview.
+function syncDayKindUI(){
+  const kind = selectedDayKind();
+  const standardDay = kind !== "lavoro";
+  $("#ot-time-row").style.display = standardDay ? "none" : "";
+  $("#ot-pausa-field").style.display = standardDay ? "none" : "";
+  $("#ot-notov-field").style.display = standardDay ? "none" : "";
+  $("#ot-kind-hint").textContent = DAY_KIND_HINTS[kind] || "";
   updateOvertimePreview();
 }
-$("#ot-festivo").onchange = syncFestivoUI;
+$$("input[name='ot-kind']").forEach(r => r.addEventListener("change", syncDayKindUI));
+$("#ot-data").addEventListener("change", updateOvertimePreview);
 function pausaPickerValue(){
   const h = parseInt($("#ot-pausa-h").textContent, 10) || 0;
   const m = parseInt($("#ot-pausa-m").textContent, 10) || 0;
@@ -3272,8 +3417,17 @@ $$("#ot-pausa .dp-btn").forEach(btn => {
   });
 });
 function updateOvertimePreview(){
-  if($("#ot-festivo").checked){
-    $("#ot-hours-preview").textContent = `Giornata festiva: conta come ${FESTIVO_HOURS} ore lavorate.`;
+  const kind = selectedDayKind();
+  if(kind === "festivo"){
+    $("#ot-hours-preview").textContent = `Giornata festiva: conta come ${STANDARD_DAY_HOURS} ore lavorate.`;
+    return;
+  }
+  if(kind === "ferie"){
+    const p = activeProfile();
+    const data = $("#ot-data").value;
+    $("#ot-hours-preview").textContent = (p && data && !isWorkday(data, p.settings.workdays))
+      ? "Questo giorno non è tra i tuoi giorni lavorativi: le ferie si segnano solo nei giorni in cui lavori."
+      : `Giornata di ferie: conta come ${STANDARD_DAY_HOURS} ore.`;
     return;
   }
   const e = { inizio: $("#ot-inizio").value, fine: $("#ot-fine").value, pausa: pausaPickerValue() };
@@ -3281,19 +3435,45 @@ function updateOvertimePreview(){
   $("#ot-hours-preview").textContent = h > 0 ? `Durata: ${h.toFixed(2).replace(".", ",")} h` : "Inserisci ora inizio e fine per vedere la durata.";
 }
 ["ot-inizio","ot-fine"].forEach(id => {
-  $("#" + id).oninput = updateOvertimePreview;
+  const inp = $("#" + id);
+  inp.oninput = updateOvertimePreview;
+  inp.addEventListener("blur", updateOvertimePreview);
+  // Typing only the hour and moving on with Tab used to leave the minutes
+  // blank ("09:--"), and a half-filled time input has no value at all: the
+  // event couldn't be saved. The browser gives no access to the half-typed
+  // hour, so on the first key typed into an *empty* field we seed it with
+  // "00:00": the typed hour replaces the hours, the minutes stay "00" unless
+  // the user types them. A half-filled field (badInput) is left alone, so a
+  // typed hour is never overwritten. Touch pickers (iOS/Android wheels) send
+  // no keydown and are unaffected.
+  inp.addEventListener("keydown", (e) => {
+    if(inp.value !== "" || inp.validity.badInput) return;
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    if(!/^[0-9]$/.test(e.key) && e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    inp.value = "00:00";
+  });
 });
 $("#btn-ot-save").onclick = () => {
   const p = activeProfile();
   if(!p) return;
   const data = $("#ot-data").value;
   if(!data){ showAlert("Manca la data"); $("#ot-data").focus(); return; }
-  const holiday = !!$("#ot-festivo").checked;
-  // Festivo events carry no clock times — they count as a fixed standard day
-  // (FESTIVO_HOURS). Skip the time validation and store empty inizio/fine/pausa.
+  const kind = selectedDayKind();
+  const holiday = kind === "festivo";
+  const pto = kind === "ferie";
+  // Ferie only replace a day the user would have worked: on a non-workday
+  // they would push STANDARD_DAY_HOURS into the week and invent overtime.
+  if(pto && !isWorkday(data, p.settings.workdays)){
+    const day = formatItalianDateLong(data);
+    showAlert(`${day.charAt(0).toUpperCase() + day.slice(1)} non è tra i tuoi giorni lavorativi.\n\nLe ferie si segnano solo nei giorni in cui lavori: i giorni lavorativi si cambiano nelle impostazioni, sezione Overtime.`);
+    return;
+  }
+  // Ferie and festivo events carry no clock times — they count as a fixed
+  // standard day (STANDARD_DAY_HOURS). Skip the time validation and store
+  // empty inizio/fine/pausa.
   let inizio = "", fine = "", pausaVal = "";
   let notOvertime = false;
-  if(!holiday){
+  if(kind === "lavoro"){
     inizio = $("#ot-inizio").value;
     fine = $("#ot-fine").value;
     if(!inizio || !fine){ showAlert("Inserisci ora di inizio e fine"); return; }
@@ -3312,6 +3492,7 @@ $("#btn-ot-save").onclick = () => {
       ev.nota = ($("#ot-nota").value || "").trim();
       ev.notOvertime = notOvertime;
       ev.holiday = holiday;
+      ev.pto = pto;
     }
   } else {
     p.overtime.push({
@@ -3321,6 +3502,7 @@ $("#btn-ot-save").onclick = () => {
       nota: ($("#ot-nota").value || "").trim(),
       notOvertime,
       holiday,
+      pto,
     });
   }
   editingEventId = null;
@@ -3809,6 +3991,7 @@ $("#btn-settings").onclick = () => {
   $("#set-contratto").value = p.settings.oreContrattoSett != null ? p.settings.oreContrattoSett : 40;
   $("#set-forfait").value = p.settings.forfaitOreSett != null ? p.settings.forfaitOreSett : 0;
   $("#set-tariffa").value = p.settings.tariffaOraStraord || 0;
+  $("#set-pausa").value = pausaDefaultMin(p.settings);
   $("#set-overtime-enabled").checked = p.settings.overtimeEnabled !== false;
   const wd = Array.isArray(p.settings.workdays) ? p.settings.workdays : [1,2,3,4,5];
   $$("#set-workdays input").forEach(inp => { inp.checked = wd.includes(Number(inp.value)); });
@@ -3834,6 +4017,7 @@ $("#btn-save-settings").onclick = () => {
   p.settings.oreContrattoSett = clamp($("#set-contratto").value, 168);
   p.settings.forfaitOreSett = clamp($("#set-forfait").value, 100);
   p.settings.tariffaOraStraord = clamp($("#set-tariffa").value, 1_000);
+  p.settings.pausaDefaultMin = Math.round(clamp($("#set-pausa").value, 720));
   p.settings.overtimeEnabled = $("#set-overtime-enabled").checked;
   const chosen = $$("#set-workdays input:checked").map(i => Number(i.value)).sort();
   p.settings.workdays = chosen.length ? chosen : [1,2,3,4,5];
@@ -3894,9 +4078,9 @@ function refreshBackupStats(){
 const STATE_TO_IT = { received: "ricevuto", missing: "mancante", not_expected: "non_atteso" };
 const STATE_FROM_IT = { ricevuto: "received", mancante: "missing", non_atteso: "not_expected" };
 const CSV_SEP = ";";
-const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default","forfait_settimana","tariffa_ora","giorni_lavorativi","contratto_settimana","mensilita","pay_giorno","pay_mese_dopo","overtime_abilitato"];
+const SETTINGS_COLS = ["profilo","stipendio","welfare","fringe","mese_fringe","ticket_giorno","bonus_default","forfait_settimana","tariffa_ora","giorni_lavorativi","contratto_settimana","mensilita","pay_giorno","pay_mese_dopo","overtime_abilitato","pausa_predefinita"];
 const MONTH_COLS = ["profilo","anno","mese","stipendio_stato","stipendio_importo","welfare","ticket_stato","ticket_giorni","fringe","bonus_stato","bonus_importo","rimborso_stato","rimborso_importo","straord_stato","straord_ore_pagare","salary13_stato","salary14_stato","salary15_stato","salary13_importo","salary14_importo","salary15_importo"];
-const STRAORD_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario","festivo"];
+const STRAORD_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario","festivo","ferie"];
 
 function fmtNum(n){
   // Italian decimal, two digits, no thousands separator (avoids extra quoting)
@@ -3956,6 +4140,7 @@ function buildCsv(storeIn){
       Math.min(28, Math.max(1, Number(s.payDay) || 27)),
       s.payDayNextMonth ? 1 : 0,
       s.overtimeEnabled === false ? 0 : 1,
+      pausaDefaultMin(s),
     ]));
   }
   lines.push("");
@@ -4012,7 +4197,7 @@ function buildCsv(storeIn){
   for(const [, p] of Object.entries(storeIn.profiles || {})){
     const events = (p.overtime || []).slice().sort((a, b) => (a.data || "").localeCompare(b.data || ""));
     for(const e of events){
-      lines.push(csvRow([p.name, e.data || "", e.inizio || "", e.fine || "", e.pausa || "", e.nota || "", e.notOvertime ? "1" : "0", e.holiday ? "1" : "0"]));
+      lines.push(csvRow([p.name, e.data || "", e.inizio || "", e.fine || "", e.pausa || "", e.nota || "", e.notOvertime ? "1" : "0", e.holiday ? "1" : "0", e.pto ? "1" : "0"]));
     }
   }
   return "﻿" + lines.join("\r\n") + "\r\n";
@@ -4080,6 +4265,9 @@ function parseCsv(text){
       const payDayNextMonth = payNextRaw === "1" || payNextRaw.toLowerCase() === "sì" || payNextRaw.toLowerCase() === "si" || payNextRaw.toLowerCase() === "true";
       const otRaw = (row.overtime_abilitato || "").trim();
       const overtimeEnabled = otRaw === "" ? true : !(otRaw === "0" || otRaw.toLowerCase() === "no" || otRaw.toLowerCase() === "false");
+      // v3.6: default break in minutes. Older files fall back to 30.
+      const pausaRaw = (row.pausa_predefinita || "").trim();
+      const pausaDefault = pausaRaw === "" ? PAUSA_DEFAULT_MIN : Math.min(720, Math.max(0, Math.round(parseNum(pausaRaw))));
       settingsByName[name] = {
         salary: parseNum(row.stipendio),
         welfare: parseNum(row.welfare),
@@ -4095,6 +4283,7 @@ function parseCsv(text){
         payDay,
         payDayNextMonth,
         overtimeEnabled,
+        pausaDefaultMin: pausaDefault,
       };
     } else if(section === "months"){
       const name = (row.profilo || "").trim();
@@ -4144,10 +4333,13 @@ function parseCsv(text){
       if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Data non valida a riga ${lineNo+1}: "${data}" (formato YYYY-MM-DD)`);
       const festivoRaw = (row.festivo || "").trim().toLowerCase();
       const holiday = festivoRaw === "1" || festivoRaw === "sì" || festivoRaw === "si" || festivoRaw === "true";
+      // Ferie and festivo are mutually exclusive; if a file sets both, festivo wins.
+      const ferieRaw = (row.ferie || "").trim().toLowerCase();
+      const pto = !holiday && (ferieRaw === "1" || ferieRaw === "sì" || ferieRaw === "si" || ferieRaw === "true");
       const inizio = (row.inizio || "").trim();
       const fine = (row.fine || "").trim();
-      // Festivo events carry no clock times — don't validate them as orari.
-      if(!holiday){
+      // Festivo and ferie events carry no clock times — don't validate them as orari.
+      if(!holiday && !pto){
         if(parseHHMM(inizio) == null) throw new Error(`Ora inizio non valida a riga ${lineNo+1}: "${inizio}"`);
         if(parseHHMM(fine) == null) throw new Error(`Ora fine non valida a riga ${lineNo+1}: "${fine}"`);
       }
@@ -4160,6 +4352,7 @@ function parseCsv(text){
         nota: (row.nota || "").trim(),
         notOvertime,
         holiday,
+        pto,
       });
     }
   }
@@ -4209,11 +4402,11 @@ async function applyImportedData(parsed, sourceLabel){
  *  Ore-only CSV — scoped to a single profile's overtime events.
  *  Simpler format (no sections): header + rows.
  * ============================================================ */
-// `non_straordinario` (v3.4.3) and `festivo` (v3.5.0) are appended at the end so files
+// `non_straordinario` (v3.4.3), `festivo` (v3.5.0) and `ferie` (v3.6.0) are appended at the end so files
 // exported by older versions still match as a header *prefix* — parseCsvOre
 // below uses a tolerant comparison that requires the leading columns to match
 // but accepts trailing columns being absent (older files) or extra (forward compat).
-const ORE_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario","festivo"];
+const ORE_COLS = ["profilo","data","inizio","fine","pausa","nota","non_straordinario","festivo","ferie"];
 
 function buildCsvOre(profileName, events){
   const lines = [ORE_COLS.join(CSV_SEP)];
@@ -4227,6 +4420,7 @@ function buildCsvOre(profileName, events){
       e.nota || "",
       e.notOvertime ? "1" : "0",
       e.holiday ? "1" : "0",
+      e.pto ? "1" : "0",
     ]));
   }
   return "﻿" + lines.join("\r\n") + "\r\n";
@@ -4254,15 +4448,18 @@ function parseCsvOre(text){
     if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Riga ${i+1}: data non valida "${data}"`);
     const festivoRaw = (f[7] || "").trim().toLowerCase();
     const holiday = festivoRaw === "1" || festivoRaw === "sì" || festivoRaw === "si" || festivoRaw === "true";
+    // Ferie and festivo are mutually exclusive; if a file sets both, festivo wins.
+    const ferieRaw = (f[8] || "").trim().toLowerCase();
+    const pto = !holiday && (ferieRaw === "1" || ferieRaw === "sì" || ferieRaw === "si" || ferieRaw === "true");
     const inizio = f[2].trim(), fine = f[3].trim();
-    // Festivo events carry no clock times — don't validate them as orari.
-    if(!holiday){
+    // Festivo and ferie events carry no clock times — don't validate them as orari.
+    if(!holiday && !pto){
       if(parseHHMM(inizio) == null) throw new Error(`Riga ${i+1}: ora inizio "${inizio}" non valida`);
       if(parseHHMM(fine) == null) throw new Error(`Riga ${i+1}: ora fine "${fine}" non valida`);
     }
     const notOvertimeRaw = (f[6] || "").trim().toLowerCase();
     const notOvertime = notOvertimeRaw === "1" || notOvertimeRaw === "sì" || notOvertimeRaw === "si" || notOvertimeRaw === "true";
-    events.push({ id: genEventId(), data, inizio, fine, pausa: f[4].trim(), nota: f[5].trim(), notOvertime, holiday });
+    events.push({ id: genEventId(), data, inizio, fine, pausa: f[4].trim(), nota: f[5].trim(), notOvertime, holiday, pto });
   }
   return events;
 }

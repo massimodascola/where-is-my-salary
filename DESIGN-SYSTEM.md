@@ -55,8 +55,8 @@ Tutti i token sono dichiarati in `:root` (vedi `index.html:26–66`). Ogni color
 |--------------------|----------------------|-----------|----------------------------------------------------|
 | Verde "ok"         | `--sage`             | `#6B8E5A` | Stato "ricevuto", hero-stat ok                     |
 | Rosso "manca"      | `--terracotta`       | `#B85449` | Stato "mancante", weekend con eventi nel cal       |
-| Oro "in attesa"    | `--gold`             | `#C29B3D` | Stato "warn" (qualcosa è arrivato, qualcosa no)    |
-| Blu "info"         | `--ocean`            | `#4F7CAC` | Riservato; non usato attivamente, lasciato per estensioni |
+| Oro "in attesa"    | `--gold`             | `#C29B3D` | Stato "warn" (qualcosa è arrivato, qualcosa no); giorno festivo in Overtime |
+| Blu "ferie"        | `--ocean`            | `#4F7CAC` | Giorno di ferie in Overtime: calendario, week strip, card evento, conteggi, selettore "Tipo di giornata" |
 
 Ognuno ha un `-soft` (alpha 10–12%) e un `-tint` (pastel) per backgrounds.
 
@@ -64,7 +64,7 @@ Ognuno ha un `-soft` (alpha 10–12%) e un `-tint` (pastel) per backgrounds.
 
 - **Mai usare due accenti diversi nella stessa schermata** se non per significare due stati diversi (ricevuto/mancante).
 - **Il sienna non si usa per "decorare".** Si usa per indicare *significato* (questa è l'app; questa cifra è la cifra; questo giorno è oggi).
-- **Sage/terracotta/gold sono semantici**, mai estetici. Se rimuovi una semantica, rimuovi il colore.
+- **Sage/terracotta/gold/ocean sono semantici**, mai estetici. Se rimuovi una semantica, rimuovi il colore.
 
 ---
 
@@ -287,7 +287,11 @@ Stati cella:
 - **`.weekend`**: paper-tint background, ink-muted text.
 - **`.has-events`**: sienna full, white text, bold.
 - **`.has-events.weekend`**: terracotta (lavorare nel weekend è già un'altra cosa).
+- **`.festivo`**: gold full, white text. Vince su `.has-events`.
+- **`.pto`** (ferie): ocean full, white text. Vince su `.has-events`.
 - **`.today`**: outline 2px sienna.
+
+Nella week strip del dettaglio giorno gli stessi stati usano il `-tint` (gold-tint, ocean-tint) come sfondo; `.selected` vince sempre.
 
 ### 5.9 Bottoni
 
@@ -448,6 +452,7 @@ Le card mese sono dodici, identiche, in colonna — la **ripetizione paziente** 
   --gold-tint:       #F6EFD9;
   --ocean:           #4F7CAC;
   --ocean-soft:      rgba(79, 124, 172, .10);
+  --ocean-tint:      #E6EDF5;
 
   /* Type */
   --serif: "Source Serif 4", "Source Serif Pro", Charter, Georgia, "Times New Roman", serif;
