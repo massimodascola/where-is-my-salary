@@ -2277,7 +2277,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.7.0";
+const VERSION = "3.7.1";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -2929,7 +2929,7 @@ function renderPageOre(){
   const events = p.overtime || [];
   // KPIs based on TODAY (live status, not the picker selection).
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = localDateStr(today);
   const [thisWeekYear, thisWeekNum] = isoWeek(todayStr);
   const weekHours = events.reduce((s, e) => {
     if(!e.data) return s;
@@ -3136,9 +3136,13 @@ function renderOreWeekView(p){
     const [iy, iw] = isoWeek(e.data);
     if(iy !== oreYear) continue;
     const k = iw;
-    if(!byWeek[k]) byWeek[k] = { iw, workH: 0, weekendH: 0, count: 0, ferieDates: new Set() };
+    if(!byWeek[k]) byWeek[k] = { iw, workH: 0, weekendH: 0, notOvertimeH: 0, count: 0, ferieDates: new Set() };
     const h = eventHours(e);
-    if(e.holiday || e.pto || isWorkday(e.data, wd)) byWeek[k].workH += h;
+    // Same rule as paidHoursForMonth: a "non contare come straordinario"
+    // event is worked time ("Lavorate") but stays out of "Da pagare", and
+    // doesn't use up the weekly threshold either.
+    if(e.notOvertime) byWeek[k].notOvertimeH += h;
+    else if(e.holiday || e.pto || isWorkday(e.data, wd)) byWeek[k].workH += h;
     else byWeek[k].weekendH += h;
     if(e.pto) byWeek[k].ferieDates.add(e.data);
     byWeek[k].count++;
@@ -3156,7 +3160,7 @@ function renderOreWeekView(p){
     return head + `<div class="ore-empty">Nessuna settimana con eventi in ${oreYear}.</div>`;
   }
   const rows = weeks.map(w => {
-    const gross = w.workH + w.weekendH;
+    const gross = w.workH + w.weekendH + w.notOvertimeH;
     const paid = Math.max(0, w.workH - threshold) + w.weekendH;
     return `<div class="ore-week-row" data-iw="${w.iw}">
       <div class="owr-label">Settimana ${w.iw}</div>
@@ -3320,7 +3324,9 @@ function renderOreDayDetail(p){
   `;
 }
 
-// Local-time "YYYY-MM-DD" for a Date.
+// Local-time "YYYY-MM-DD" for a Date. Use it for "today", never
+// toISOString(): that is the UTC date, and in Italy between midnight and
+// 1-2 am it is still yesterday.
 function localDateStr(dt){
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
 }
@@ -3476,7 +3482,7 @@ function renderCalendar(year, m0, events, workdays){
   const lastDate = new Date(year, m0 + 1, 0).getDate();
   const startOffset = (firstDay.getDay() + 6) % 7; // 0 = Mon
   const mm = String(m0 + 1).padStart(2, "0");
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateStr(new Date());
 
   const eventDates = new Set();
   const festivoDates = new Set();
@@ -3550,7 +3556,7 @@ function openOvertimeForm(eventId){
     $("#ot-not-overtime").checked = !!ev.notOvertime;
     setDayKind(ev.holiday ? "festivo" : ev.pto ? "ferie" : "lavoro");
   } else {
-    $("#ot-data").value = new Date().toISOString().slice(0, 10);
+    $("#ot-data").value = localDateStr(new Date());
     $("#ot-inizio").value = defaultInizio;
     $("#ot-fine").value = defaultFine;
     setPausaPicker(defaultPausa);
@@ -4919,7 +4925,7 @@ $("#btn-export").onclick = async () => {
   try {
     if(choice === "stipendio"){
       const data = buildCsv(store);
-      downloadCsv(`where-is-my-salary-${new Date().toISOString().slice(0,10)}.csv`, data);
+      downloadCsv(`where-is-my-salary-${localDateStr(new Date())}.csv`, data);
       toast("File scaricato — controlla la cartella Download");
     } else {
       const p = activeProfile();
@@ -4927,7 +4933,7 @@ $("#btn-export").onclick = async () => {
       const events = p.overtime || [];
       if(events.length === 0){ showAlert("Nessun evento da esportare."); return; }
       const safe = p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "profilo";
-      downloadCsv(`ore-${safe}-${new Date().toISOString().slice(0,10)}.csv`, buildCsvOre(p.name, events));
+      downloadCsv(`ore-${safe}-${localDateStr(new Date())}.csv`, buildCsvOre(p.name, events));
       toast("Ore scaricate");
     }
   } catch(err){

@@ -6,6 +6,28 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.7.1] — 2026-09-21
+
+Due bug già presenti prima della 3.6.0, trovati rileggendo il codice per le ferie: la vista Settimane contava come da pagare anche le ore segnate "non contare come straordinario", e la data di "oggi" era quella UTC, che in Italia tra mezzanotte e l'una (le due con l'ora legale) è ancora ieri.
+
+### Vista Settimane — gli eventi "non straordinario" non vanno in "Da pagare"
+
+- **Problema**: `renderOreWeekView` sommava in `workH`/`weekendH` anche gli eventi con `notOvertime: true`, mentre `paidHoursForMonth` li salta del tutto. La stessa settimana dava quindi due risposte: esempio verificato, settimana 38 con quattro giorni da 9,5 h, venerdì da 9,5 h e sabato da 4 h marcati "non contare": vista Settimane 11,5 h da pagare (195,50 €), calcolo del mese 0 h.
+- **Correzione**: gli eventi `notOvertime` finiscono in un contatore a parte (`notOvertimeH`). Contano nelle ore "Lavorate", ma non entrano in "Da pagare" e non consumano la soglia settimanale, esattamente come in `paidHoursForMonth`. Dopo la correzione: settimana 38 "Lavorate 51,5 h, da pagare 0,0 h"; la settimana 39 di controllo (niente eventi esclusi) resta 7,5 h. La somma delle settimane ora coincide con il totale dell'hero.
+
+### Data di "oggi" in ora locale
+
+- **Problema**: `new Date().toISOString().slice(0, 10)` restituisce la data UTC. Tra mezzanotte e le 2 (ora legale) il nuovo evento proponeva la data di ieri, il cerchio "oggi" del calendario stava sul giorno prima e il KPI "Settimana corrente", di lunedì notte, mostrava ancora la settimana precedente.
+- **Correzione**: il nuovo evento (`openOvertimeForm`), il calendario (`renderCalendar`) e il KPI (`renderPageOre`) usano `localDateStr(new Date())`, che compone anno, mese e giorno in ora locale (helper già introdotto nella 3.6.1; il suo commento ora dice di usarlo sempre per "oggi"). Anche i nomi dei file di backup CSV usano la data locale: un backup fatto a mezzanotte e mezza porta la data di quel giorno. Restano in UTC solo i timestamp della sync (`lastSyncAt`), che sono orari completi e non date.
+- **Verifica**: orologio simulato nel browser a lunedì 28/09/2026 00:30 ora di Roma (in UTC domenica 27, 22:30). Prima: nuovo evento al 27, "oggi" sul 27, settimana corrente 47,5 h (la settimana 39). Dopo: 28, 28, e settimana corrente 0,0 h (la 40, ancora vuota). Con l'orologio vero il nuovo evento propone la data di oggi.
+
+### Internals
+
+- Versione bumped a `3.7.1`.
+- Cache key del service worker bumped a `wims-v3.7.1`.
+
+---
+
 ## [3.7.0] — 2026-09-21
 
 Due richieste dirette. Primo: al primo avvio un wizard che guidi passo dopo passo (nome, stipendio, mensilità, welfare e tutto quello che serve) al posto del modulo unico "Iniziamo da te". Secondo: un orario abituale di inizio e fine, impostabile, che come la pausa sia già precompilato ogni volta che si aggiunge un evento.
