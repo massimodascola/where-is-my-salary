@@ -6,6 +6,27 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.6.3] — 2026-09-21
+
+Ritocco al riepilogo del mese sotto il calendario: sopra la riga "Importo" c'erano due linee attaccate, la tratteggiata della riga "Ore da pagare" e la continua del totale. Richiesta diretta: lasciare solo quella continua.
+
+### Riepilogo del mese — un solo separatore sopra il totale
+
+- **Causa**: ogni `.oms-row` disegnava il separatore tratteggiato *sotto* di sé (`border-bottom`), e la riga `.total` aggiungeva la sua linea continua *sopra*. Fra le due c'erano solo i 2 px di `margin-top` del totale, quindi si vedevano due linee.
+- **Soluzione**: il separatore ora sta *sopra* ogni riga tranne la prima (`.oms-row + .oms-row`), lo stesso schema delle voci della pagina Salary (`.comp + .comp`). La riga del totale sostituisce il suo tratteggio con la linea continua, quindi ne resta una sola. Tolta la regola `:last-child`, non serve più.
+- Senza tariffa (niente riga "Importo") non cambia nulla: nessuna linea in fondo al riquadro.
+
+### Verifiche
+
+- Browser Chromium con tariffa impostata: sopra "Importo" solo la linea continua, tratteggi invariati fra le altre righe (controllati anche gli stili calcolati di ogni riga). Senza tariffa: 4 righe, nessun bordo in fondo.
+
+### Internals
+
+- Versione bumped a `3.6.3`.
+- Cache key del service worker bumped a `wims-v3.6.3`.
+
+---
+
 ## [3.6.2] — 2026-09-21
 
 Il calendario del mese aveva molto spazio sopra: "‹ Mesi" su una riga, poi il titolo grande "Settembre 2026" con il suo margine, poi il selettore. Richiesta diretta: farlo compatto come il dettaglio giorno appena rifatto in 3.6.1.

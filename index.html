@@ -793,14 +793,15 @@
   .oms-row{
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 0;
-    border-bottom: 1px dashed var(--line-soft);
   }
-  .oms-row:last-child{ border-bottom: none; }
+  /* Separator drawn on top of each row (same pattern as .comp + .comp), so
+     the total row can swap it for its solid line: a bottom border here left
+     a dashed line right above the solid one. */
+  .oms-row + .oms-row{ border-top: 1px dashed var(--line-soft); }
   .oms-row.total{
     margin-top: 2px;
     border-top: 1px solid var(--line);
     padding-top: 14px;
-    border-bottom: none;
   }
   .oms-label{ color: var(--ink-soft); font-size: 13.5px; }
   .oms-label small{ color: var(--ink-faint); font-size: 11px; margin-left: 4px; }
@@ -2113,7 +2114,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.6.2";
+const VERSION = "3.6.3";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
