@@ -293,6 +293,8 @@ Stati cella:
 
 Nella week strip del dettaglio giorno gli stessi stati usano il `-tint` (gold-tint, ocean-tint) come sfondo; `.selected` vince sempre.
 
+Intestazione delle sotto-viste (calendario del mese, dettaglio giorno): una sola riga `.ore-subhead` con il ritorno (`‹ Mesi`, `‹ Giorni`) a sinistra e il `.year-picker` del periodo a destra (`‹ Settembre 2026 ›`, `‹ Settimana 39 ›`). Niente titolo grande: il periodo sta nel selettore, così il contenuto parte subito sotto. L'etichetta ha `min-width: 9em` perché la freccia sinistra non si sposti scorrendo mesi con nomi di lunghezza diversa.
+
 ### 5.9 Bottoni
 
 Una sola famiglia, tre varianti:

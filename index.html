@@ -921,14 +921,18 @@
   }
   .ore-back-btn:hover{ color: var(--sienna-deep); }
 
-  /* Day detail — header row: back button on the left, week picker on the
-     right (the same .year-picker pill used for years and months). */
-  .dd-head{
+  /* Sub-view header (month calendar, day detail): back button on the left,
+     period picker on the right (the same .year-picker pill used for years),
+     no big title, so the content starts right below. The label gets a
+     fixed minimum width so the "‹" arrow doesn't shift while scrolling
+     through months with names of different length. */
+  .ore-subhead{
     display: flex; align-items: center; justify-content: space-between;
     gap: 10px;
     margin-bottom: 6px;
   }
-  .dd-head .ore-back-btn{ margin-bottom: 0; }
+  .ore-subhead .ore-back-btn{ margin-bottom: 0; }
+  .ore-subhead .year-picker .y{ min-width: 9em; text-align: center; }
 
   /* Day detail — week strip + selected day events */
   .dd-week-strip{
@@ -2109,7 +2113,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.6.1";
+const VERSION = "3.6.2";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -2999,12 +3003,11 @@ function renderOreCalendarView(p){
   // the total doesn't look inflated in a month with vacation days.
   const hasStandardDays = monthEvents.some(e => e.pto || e.holiday);
   return `
-    <button class="ore-back-btn" data-action="back-mesi" type="button">‹ Mesi</button>
-    <div class="section-head">
-      <div class="section-title">${MONTHS_IT[oreMonthIdx]} ${oreYear}</div>
+    <div class="ore-subhead">
+      <button class="ore-back-btn" data-action="back-mesi" type="button">‹ Mesi</button>
       <div class="year-picker">
         <button data-action="month-prev" aria-label="Mese precedente">‹</button>
-        <span class="y">${MONTHS_IT[oreMonthIdx].slice(0,3)}</span>
+        <span class="y">${MONTHS_IT[oreMonthIdx]} ${oreYear}</span>
         <button data-action="month-next" aria-label="Mese successivo">›</button>
       </div>
     </div>
@@ -3119,7 +3122,7 @@ function renderOreDayDetail(p){
   }
 
   return `
-    <div class="dd-head">
+    <div class="ore-subhead">
       <button class="ore-back-btn" data-action="back-giorni" type="button">‹ Giorni</button>
       <div class="year-picker">
         <button data-action="week-prev" aria-label="Settimana precedente">‹</button>

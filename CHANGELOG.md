@@ -6,6 +6,28 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.6.2] — 2026-09-21
+
+Il calendario del mese aveva molto spazio sopra: "‹ Mesi" su una riga, poi il titolo grande "Settembre 2026" con il suo margine, poi il selettore. Richiesta diretta: farlo compatto come il dettaglio giorno appena rifatto in 3.6.1.
+
+### Calendario del mese — intestazione su una riga
+
+- **"‹ Mesi" a sinistra e `‹ Settembre 2026 ›` a destra, sulla stessa riga**, come "‹ Giorni" e `‹ Settimana 39 ›` nel dettaglio giorno. Il titolo grande è tolto: mese e anno ora stanno nel selettore (prima mostrava solo "Set", perché il nome intero era nel titolo). Il calendario parte subito sotto.
+- **Una sola classe per le due intestazioni**: `.dd-head` (3.6.1) è diventata `.ore-subhead`, usata sia dal calendario sia dal dettaglio giorno.
+- **Etichetta a larghezza minima fissa (`min-width: 9em`)**: i nomi dei mesi hanno lunghezze diverse ("Aprile 2026" circa 100 px, "Novembre 2026" circa 130 px misurati nel browser), quindi scorrendo con "‹" la freccia si sarebbe spostata sotto il dito a ogni mese. Con la larghezza fissa resta ferma (verificato: stessa posizione per tutti i 12 mesi). Di conseguenza anche il selettore della settimana ha la stessa larghezza, e le due intestazioni sono allineate.
+
+### Verifiche
+
+- Browser Chromium con clic reali: mese successivo e precedente, apertura di un giorno dal calendario con l'intestazione del dettaglio invariata.
+- Larghezza 375 px con l'etichetta più lunga ("Novembre 2026"): tutto su una riga, senza scroll orizzontale. Nessun errore in console.
+
+### Internals
+
+- Versione bumped a `3.6.2`.
+- Cache key del service worker bumped a `wims-v3.6.2`.
+
+---
+
 ## [3.6.1] — 2026-09-21
 
 Nel dettaglio del giorno mancava un modo per passare alla settimana prima o dopo: la week strip mostrava solo i 7 giorni della settimana corrente, e per cambiare settimana bisognava tornare alla lista o al calendario. Richiesta diretta, "come lo scorrimento dei mesi".
