@@ -921,6 +921,15 @@
   }
   .ore-back-btn:hover{ color: var(--sienna-deep); }
 
+  /* Day detail — header row: back button on the left, week picker on the
+     right (the same .year-picker pill used for years and months). */
+  .dd-head{
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .dd-head .ore-back-btn{ margin-bottom: 0; }
+
   /* Day detail — week strip + selected day events */
   .dd-week-strip{
     display: grid;
@@ -975,19 +984,11 @@
   .dws-day.selected .dws-name,
   .dws-day.selected .dws-num{ color: #fff; }
 
-  .dd-week-info{
-    text-align: center;
-    color: var(--ink-muted);
-    font-size: 11.5px;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    margin: 8px 0 4px;
-  }
   .dd-day-title{
     font-family: var(--serif); font-style: italic;
     font-size: 20px; color: var(--ink);
     text-align: center;
-    margin-bottom: 14px;
+    margin: 16px 0 14px;
   }
   .dd-events{ display: flex; flex-direction: column; gap: 10px; }
   .dd-event{
@@ -2108,7 +2109,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.6.0";
+const VERSION = "3.6.1";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -3073,7 +3074,7 @@ function renderOreDayDetail(p){
     return renderOreDayList(p);
   }
   const events = (p.overtime || []).filter(e => e.data === date);
-  const [iy, iw] = isoWeek(date);
+  const [, iw] = isoWeek(date);
 
   // Build the 7-day Mon→Sun strip around the selected date.
   const [y, m, d] = date.split("-").map(Number);
@@ -3091,7 +3092,7 @@ function renderOreDayDetail(p){
   for(let i = 0; i < 7; i++){
     const dt = new Date(monday);
     dt.setDate(monday.getDate() + i);
-    const ds = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+    const ds = localDateStr(dt);
     const isWeekend = !wd.includes(i + 1);
     const hasEv = eventDates.has(ds);
     const isFestivo = festivoDates.has(ds);
@@ -3118,12 +3119,32 @@ function renderOreDayDetail(p){
   }
 
   return `
-    <button class="ore-back-btn" data-action="back-giorni" type="button">‹ Giorni</button>
+    <div class="dd-head">
+      <button class="ore-back-btn" data-action="back-giorni" type="button">‹ Giorni</button>
+      <div class="year-picker">
+        <button data-action="week-prev" aria-label="Settimana precedente">‹</button>
+        <span class="y">Settimana ${iw}</span>
+        <button data-action="week-next" aria-label="Settimana successiva">›</button>
+      </div>
+    </div>
     <div class="dd-week-strip">${strip.join("")}</div>
-    <div class="dd-week-info">Settimana ${iw}</div>
     <div class="dd-day-title">${dayDate}</div>
     <div class="dd-events">${eventsHtml}</div>
   `;
+}
+
+// Local-time "YYYY-MM-DD" for a Date.
+function localDateStr(dt){
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+}
+// Selects a day in the day-detail view and keeps the calendar's year/month in
+// step with it, so "‹ Giorni" back to the calendar lands on the month of the
+// day being shown (week navigation can cross into another month or year).
+function selectOreDate(ds){
+  oreSelectedDate = ds;
+  const [y, m] = ds.split("-").map(Number);
+  oreYear = y;
+  oreMonthIdx = m - 1;
 }
 
 function formatItalianDateLong(yyyymmdd){
@@ -3140,7 +3161,7 @@ function wireOrePage(){
   $$(".ore-switcher button").forEach(btn => {
     btn.onclick = () => { oreView = btn.dataset.view; renderPageOre(); };
   });
-  // Period picker (year/month).
+  // Period picker (year/month, and week in the day detail).
   // Scope to #main-ore so we don't clobber the stipendio's own year-picker.
   $$("#main-ore .year-picker button[data-action]").forEach(btn => {
     const a = btn.dataset.action;
@@ -3149,6 +3170,11 @@ function wireOrePage(){
       else if(a === "year-next") oreYear++;
       else if(a === "month-prev"){ oreMonthIdx--; if(oreMonthIdx < 0){ oreMonthIdx = 11; oreYear--; } }
       else if(a === "month-next"){ oreMonthIdx++; if(oreMonthIdx > 11){ oreMonthIdx = 0; oreYear++; } }
+      else if((a === "week-prev" || a === "week-next") && oreSelectedDate){
+        // Same weekday, one week earlier/later.
+        const [y, m, d] = oreSelectedDate.split("-").map(Number);
+        selectOreDate(localDateStr(new Date(y, m - 1, d + (a === "week-prev" ? -7 : 7))));
+      }
       renderPageOre();
     };
   });
@@ -3188,7 +3214,7 @@ function wireOrePage(){
   });
   // Day-detail week strip — switches selected date.
   $$(".dd-week-strip .dws-day").forEach(b => {
-    b.onclick = () => { oreSelectedDate = b.dataset.date; renderPageOre(); };
+    b.onclick = () => { selectOreDate(b.dataset.date); renderPageOre(); };
   });
   // Day-detail event click → open edit form.
   $$(".dd-event").forEach(ev => {

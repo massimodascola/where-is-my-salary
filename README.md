@@ -28,7 +28,7 @@ L'app ha due pagine principali, accessibili dalla tabbar in fondo allo schermo:
 
 ### Pagina **Overtime** — le ore extra non pagate
 
-- **Calendario per logging giornaliero** — apri il giorno, segni le ore lavorate (e quelle di weekend, contate sempre come straordinario). Da tastiera basta scrivere l'ora e premere Tab: i minuti diventano `00`.
+- **Calendario per logging giornaliero** — apri il giorno, segni le ore lavorate (e quelle di weekend, contate sempre come straordinario). Nel dettaglio del giorno le frecce `‹ Settimana N ›` passano alla settimana prima o dopo. Da tastiera basta scrivere l'ora e premere Tab: i minuti diventano `00`.
 - **Tipo di giornata: Lavoro, Ferie, Festivo** — ferie e festivi si segnano senza orari e valgono una giornata da 8 ore. Nel calendario le ferie sono blu e i festivi oro; i giorni di ferie sono contati nelle viste Mesi, Settimane e Anni.
 - **Pausa predefinita** — ogni nuovo evento parte con la pausa che fai di solito (default 30 minuti, si cambia nelle impostazioni). Il giorno che è diversa la modifichi nell'evento.
 - **Soglia automatica** — ore contratto (default 40h/sett.) + eventuale forfait CCNL. Tutto quello che eccede diventa straordinario non pagato.

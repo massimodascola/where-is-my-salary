@@ -6,6 +6,31 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.6.1] — 2026-09-21
+
+Nel dettaglio del giorno mancava un modo per passare alla settimana prima o dopo: la week strip mostrava solo i 7 giorni della settimana corrente, e per cambiare settimana bisognava tornare alla lista o al calendario. Richiesta diretta, "come lo scorrimento dei mesi".
+
+### Dettaglio giorno — selettore di settimana
+
+- **Nuovo selettore `‹ Settimana N ›` in alto a destra**, sulla stessa riga di "‹ Giorni". È lo stesso `.year-picker` usato per anni e mesi, quindi stesso aspetto e stesso comportamento.
+- **Le frecce spostano di 7 giorni mantenendo il giorno della settimana** (venerdì 25 → venerdì 2 ottobre), come nei calendari a settimana. Il passaggio d'anno segue le settimane ISO (31/12/2026 è la settimana 53, la successiva è la 1 del 2027).
+- **La riga "SETTIMANA N" sotto la strip è stata tolta**: il numero ora sta nel selettore e ripeterlo due volte a pochi pixel era rumore. Il titolo del giorno ha preso un po' di margine sopra per compensare.
+- **Anno e mese del calendario seguono il giorno mostrato** (`selectOreDate`), sia con le frecce sia toccando un giorno della strip. Senza questo, entrando dal calendario di settembre e andando avanti fino al 2 ottobre, "‹ Giorni" riportava a settembre invece che a ottobre.
+
+### Verifiche
+
+- Browser Chromium con clic reali: avanti di una settimana (settimana 40, 28 settembre-4 ottobre), indietro di due (settimana 38, con il festivo del 14 visibile), ritorno al calendario su "Ottobre 2026" dopo aver cambiato mese.
+- Passaggio d'anno: 31/12/2026 (settimana 53) → 7/1/2027 (settimana 1); 1/1/2027 (settimana 53) → 25/12/2026 (settimana 52).
+- Larghezza 375 px: "‹ Giorni" e il selettore stanno sulla stessa riga, senza scroll orizzontale. Nessun errore in console.
+
+### Internals
+
+- Versione bumped a `3.6.1`.
+- Cache key del service worker bumped a `wims-v3.6.1`.
+- Helper `localDateStr(dt)` per la data locale "YYYY-MM-DD", usato anche nella costruzione della strip.
+
+---
+
 ## [3.6.0] — 2026-09-21
 
 Tre richieste dirette, tutte sul form evento Overtime: poter segnare i giorni di ferie e vederli a colpo d'occhio, non dover reinserire ogni volta la solita pausa di 30 minuti, e non dover completare a mano i minuti quando si scrive solo l'ora.
