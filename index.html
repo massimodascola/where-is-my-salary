@@ -330,8 +330,9 @@
     font-family: var(--serif); font-style: italic;
     font-size: 18px; font-weight: 500;
     letter-spacing: -.01em; color: var(--ink);
-    text-transform: lowercase;
   }
+  /* Lowercase month names are Italian style; English keeps its capitals. */
+  html[lang="it"] .month-name{ text-transform: lowercase; }
   /* "oggi" / "today": the text comes from the I18N dictionary through the
      data-today attribute set in renderMonthCard. */
   .month.current .month-name::after{
