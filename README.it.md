@@ -11,6 +11,8 @@
   Niente account, niente cloud (opzionale), niente dipendenze. Un solo file <code>.html</code> che funziona offline, installabile come PWA su iPhone e Android.
 </p>
 
+> **Lingua:** l'app è disponibile in inglese e in italiano. Di default segue la lingua del dispositivo (italiano se il dispositivo è in italiano, inglese negli altri casi) e si cambia dalle impostazioni e dal wizard del primo avvio. In entrambe le lingue segue la busta paga italiana (13ª/14ª/15ª, buoni pasto, festività nazionali, forfait straordinari del CCNL).
+
 ---
 
 ## Cosa fa
@@ -40,16 +42,17 @@ L'app ha due pagine principali, accessibili dalla tabbar in fondo allo schermo:
 
 ### Generale
 
-- **Installabile come PWA** — aggiungila alla home screen di iPhone/Android e si aggiorna automaticamente al prossimo lancio con rete (service worker network-first).
-- **Backup CSV** — esporta o importa per spostare i dati tra dispositivi (formato `;`-separato leggibile in Excel/Numbers italiani).
-- **Sync cloud opzionale** — un gist GitHub privato come deposito comune tra Mac, iPhone, ufficio. Niente nuovi servizi, niente account aggiuntivi.
+* **Installabile come PWA**: aggiungila alla home screen di iPhone/Android e si aggiorna automaticamente al prossimo lancio con rete (service worker network-first).
+* **Backup CSV**: esporta o importa per spostare i dati tra dispositivi (formato `;`-separato leggibile in Excel/Numbers italiani).
+* **Sync cloud opzionale**: un gist GitHub privato come deposito comune tra Mac, iPhone, ufficio. Niente nuovi servizi, niente account aggiuntivi.
+* **Inglese e italiano**: tutta l'interfaccia è disponibile nelle due lingue, date e importi compresi (formato `it-IT` o `en-GB`, sempre in euro). Segue la lingua del dispositivo e si cambia quando vuoi dalle impostazioni.
 
 ---
 
 ## Setup iniziale (30 secondi)
 
 1. Apri `index.html` con doppio click — si apre nel browser.
-2. Al primo avvio l'app apre da sola il **wizard "Iniziamo da te"**, che ti guida un passo alla volta: nome; stipendio, mensilità (12–15) e giorno di pagamento; welfare e buoni pasto; fringe benefit; se vuoi tracciare le ore (giorni lavorativi e ore da contratto); straordinari (forfait e tariffa); il tuo orario abituale (inizio, fine, pausa); infine un riepilogo da controllare prima di creare il profilo. Welfare, buoni pasto e fringe sono domande sì/no: se non li hai, quelle voci non compaiono nei mesi. Se dici che non vuoi tracciare le ore, i passi sulle ore vengono saltati. Chiudendo il wizard a metà, alla riapertura riparti da dove eri.
+2. Al primo avvio l'app apre da sola il **wizard "Iniziamo da te"**, che ti guida un passo alla volta: nome (in cima a questo primo passo c'è anche la scelta fra inglese e italiano); stipendio, mensilità (da 12 a 15) e giorno di pagamento; welfare e buoni pasto; fringe benefit; se vuoi tracciare le ore (giorni lavorativi e ore da contratto); straordinari (forfait e tariffa); il tuo orario abituale (inizio, fine, pausa); infine un riepilogo da controllare prima di creare il profilo. Welfare, buoni pasto e fringe sono domande sì/no: se non li hai, quelle voci non compaiono nei mesi. Se dici che non vuoi tracciare le ore, i passi sulle ore vengono saltati. Chiudendo il wizard a metà, alla riapertura riparti da dove eri.
 3. Per ogni mese passato, apri la card della pagina **Salary** e imposta lo stato di ogni voce. Per le ore extra, vai sulla pagina **Overtime** e logga i giorni.
 4. Per modificare i parametri in qualunque momento: icona ⚙️ in alto a destra → Impostazioni. Per azzerare tutto e ripartire: "Azzera dati" in fondo alle impostazioni.
 
@@ -150,7 +153,8 @@ Tutta la logica vive in `index.html` (markup, stili, script in unico file). I fi
 
 | Blocco | Cosa fa |
 |---|---|
-| Costanti (`VERSION`, `STORAGE_KEY`, `SYNC_KEY`, `MONTHS_IT`, `COMPONENTS`, `EXTRA_SALARY_DEFAULT_MONTHS`, `TAGLINES_*`) | Definizioni base. `COMPONENTS` è l'elenco delle voci di paga con flag (`expectedDefault`, `hasAmount`, `hasDays`) — modifica qui per aggiungere/rimuovere voci. |
+| Costanti (`VERSION`, `STORAGE_KEY`, `SYNC_KEY`, `COMPONENTS`, `EXTRA_SALARY_DEFAULT_MONTHS`) | Definizioni base. `COMPONENTS` è l'elenco delle voci di paga con flag (`expectedDefault`, `hasAmount`, `hasDays`): modifica qui per aggiungere/rimuovere voci. I loro nomi sono in `I18N` (`comp_<chiave>`). |
+| `LANG_KEY`, `I18N`, `t`, `tp`, `detectLang`, `setLang`, `applyLanguage`, `applyStaticI18n` | Lingua dell'interfaccia. `I18N` contiene tutti i testi dell'interfaccia in inglese (`en`) e italiano (`it`): etichette, messaggi, nomi di mesi e giorni, le frasi sotto l'hero (`taglines_ore`, `taglines_salary`). `t(chiave, parametri)` restituisce il testo nella lingua attiva con i segnaposto `{nome}` riempiti; `tp(chiave, n)` sceglie singolare o plurale. Il markup statico si traduce con gli attributi `data-i18n`, `data-i18n-html` e `data-i18n-attr`. `setLang` salva la scelta e ridisegna. |
 | `easterSunday`, `italianHolidays`, `workingDaysInMonth` | Calendario italiano, calcolo giorni lavorativi (rispetta i `workdays` configurati nelle settings). |
 | `paymentDateFor`, `isPaymentDue` | Determinano quando lo stipendio del mese N è "dovuto", in base a `payDay` e `payDayNextMonth`. |
 | `loadStore`, `saveStore`, `defaultSettings`, `defaultMonth`, `ensureProfile`, `ensureYear`, `activeProfile`, `runMigrations` | Persistenza e shape del dato in `localStorage`. Lo store ha forma `{ profiles: { id: { name, settings, years: { 2026: { 1: {...} } } } }, activeProfile, currentYear, _migrations }`. `runMigrations` gira a bootstrap e applica trasformazioni idempotenti taggate in `_migrations`. |
@@ -170,15 +174,18 @@ Tutta la logica vive in `index.html` (markup, stili, script in unico file). I fi
 |---|---|
 | `stipendio.v1` | Lo store principale (profili, mesi, settings, flag migrazioni). Versionata nel nome per facilitare migrazioni future. |
 | `stipendio.sync.v1` | Stato della sync cloud (PAT, gistId, user, lastSyncAt, lastError). |
+| `stipendio.lang.v1` | Lingua dell'interfaccia, `en` o `it`. Tenuta fuori dallo store principale apposta: non va nel gist e non finisce nel CSV. |
 
 ### Convenzioni difensive
 
-- **Sempre `escapeHtml(s)`** per nomi profilo, user GitHub, messaggi d'errore interpolati in HTML.
-- **Sempre `Math.min(max, Math.max(0, Number(v) || 0))`** per input numerici provenienti dall'utente (vedi `clamp` nelle settings).
-- **`saveStore()` aggiorna `_lastModified`** e fa partire la sync debounced — non bypassare scrivendo direttamente su `localStorage` se non in casi tipo `cloudPull` (dove serve evitare il ciclo).
-- **Mai chiamare `alert/confirm` nativi** — usa i wrapper `showAlert/showConfirm/showChoice`.
-- **Le migrazioni dello store vivono in `runMigrations()` e sono taggate in `store._migrations.<nome>`** — pattern idempotente: ogni migration controlla il flag prima di girare. Per aggiungerne una nuova: nuovo `if(!store._migrations.<nome>)` dentro `runMigrations`, poi setta il flag a `true`.
-- **Cache key del service worker bumpato a ogni release** (`wims-vX.Y.Z` in `sw.js`) — l'`activate` event pulisce le cache con chiave diversa, così non restano asset stantii.
+* **Sempre `escapeHtml(s)`** per nomi profilo, user GitHub, messaggi d'errore interpolati in HTML.
+* **Sempre `Math.min(max, Math.max(0, Number(v) || 0))`** per input numerici provenienti dall'utente (vedi `clamp` nelle settings).
+* **`saveStore()` aggiorna `_lastModified`** e fa partire la sync debounced: non bypassare scrivendo direttamente su `localStorage` se non in casi tipo `cloudPull` (dove serve evitare il ciclo).
+* **Mai chiamare `alert/confirm` nativi**: usa i wrapper `showAlert/showConfirm/showChoice`.
+* **Le migrazioni dello store vivono in `runMigrations()` e sono taggate in `store._migrations.<nome>`**. Il pattern è idempotente: ogni migration controlla il flag prima di girare. Per aggiungerne una nuova: nuovo `if(!store._migrations.<nome>)` dentro `runMigrations`, poi setta il flag a `true`.
+* **Cache key del service worker bumpato a ogni release** (`wims-vX.Y.Z` in `sw.js`): l'evento `activate` pulisce le cache con chiave diversa, così non restano asset stantii.
+* **Mai testi dell'interfaccia scritti nel codice**: aggiungi la chiave sia in `I18N.en` sia in `I18N.it`, poi usa `t()`. Intestazioni, sezioni e stati del CSV restano in italiano in tutte e due le lingue e non passano mai da `t()`, così i backup funzionano in entrambe.
+* **I campi numerici tengono `lang="it"`** in tutte e due le lingue: Firefox legge un campo numerico con la lingua dell'elemento, e l'italiano accetta sia `8,5` sia `8.5`.
 
 ---
 
@@ -210,9 +217,10 @@ Tutto è configurabile dall'icona ⚙️ in alto. Le impostazioni sono organizza
 
 ### Sistema
 
-- Backup CSV (export/import)
-- Sync cloud GitHub Gist (configurazione PAT + gistId)
-- Azzera dati (reset completo)
+* Lingua: inglese o italiano. Vale subito e resta solo su questo dispositivo (non va nella sync e non finisce nel CSV). La stessa scelta è nel primo passo del wizard iniziale.
+* Backup CSV (export/import)
+* Sync cloud GitHub Gist (configurazione PAT + gistId)
+* Azzera dati (reset completo)
 
 Se i valori cambiano (es. aumento di stipendio), modificarli ricalcola automaticamente anche gli importi attesi nei mesi già marcati. Le override per-mese restano sempre prevalenti sui default.
 
@@ -225,7 +233,7 @@ Dalle impostazioni → **Backup CSV** puoi:
 - **Scarica file** — esporta un CSV con tutti i profili e tutti gli anni. Convenzione italiana: separatore `;`, decimale `,`, UTF-8 con BOM (Excel/Numbers italiani lo aprono in colonne pulite).
 - **Carica file** — importa un CSV precedentemente esportato. Sovrascrive interamente i dati attuali (chiede conferma). Validazione strict: qualsiasi riga malformata → l'intero import viene rifiutato, niente stati a metà.
 
-Formato del file (tre sezioni separate da `# SETTINGS`, `# MESI` e `# STRAORDINARI`):
+Formato del file (tre sezioni separate da `# SETTINGS`, `# MESI` e `# STRAORDINARI`). Nomi delle colonne e stati sono in italiano qualunque sia la lingua dell'interfaccia, così un backup fatto in inglese si importa in italiano e viceversa:
 
 ```
 # SETTINGS

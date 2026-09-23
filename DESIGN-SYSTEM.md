@@ -340,7 +340,7 @@ Pattern unico:
 
 `.workday-row` è il selettore lun-dom: una pillola per giorno, sienna soft + sienna bordo quando selezionato.
 
-`.kind-switch` è il selettore a pillole per le scelte esclusive (tipo di giornata nel form evento, sì/no nel wizard): veri `radio`, la pillola attiva è card-elev con testo sienna-deep, o del colore del tipo (ocean per Ferie, gold per Festivo).
+`.kind-switch` è il selettore a pillole per le scelte esclusive (tipo di giornata nel form evento, sì/no nel wizard): veri `radio`, la pillola attiva è card-elev con testo sienna-deep, o del colore del tipo (ocean per Ferie, gold per Festivo). La variante `.kind-switch.compact` (pillole più basse, testo 12,5px, allineata a destra) è la scelta della lingua in cima al primo passo del wizard; nelle impostazioni la stessa scelta usa il `.kind-switch` normale. In inglese le pillole del tipo di giornata prendono la larghezza del testo ("Public holiday" è lungo), in italiano restano tre terzi uguali.
 
 Sui touch screen (`pointer: coarse`) input e select dei `.field` sono a 16px invece di 15px: sotto i 16px Safari iOS ingrandisce la pagina quando il campo riceve il cursore, e non torna indietro da solo.
 
@@ -387,7 +387,7 @@ L'app parla in **italiano** ovunque tranne due punti, ambedue intenzionali:
 ### Caratteristiche del copy
 
 1. **Frasi brevi, virgolette, pausa.** Le tagline sono tra virgolette tipografiche (`\201C`/`\201D` via pseudo-element) per dare l'idea di "detto a bassa voce".
-2. **Ironia sull'attesa.** Tutte le tagline (`TAGLINES_STIPENDIO`, `TAGLINES_ORE`) sono pensate per essere il commento dolceamaro del libro mastro che ha visto troppi 27 del mese:
+2. **Ironia sull'attesa.** Tutte le tagline (`taglines_salary` e `taglines_ore` nel dizionario `I18N`, in italiano e in inglese) sono pensate per essere il commento dolceamaro del libro mastro che ha visto troppi 27 del mese:
    - *"Il 27 non è una data. È una promessa."*
    - *"Le ore non si recuperano. I soldi sì."*
 3. **Saluti contestuali.** Buongiorno / buon pomeriggio / buonasera / buona notte cambiano in base all'ora — il libro mastro è sveglio quando lo sei tu.

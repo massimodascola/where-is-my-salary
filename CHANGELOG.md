@@ -6,6 +6,44 @@ Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni s
 
 ---
 
+## [3.8.0] — 2026-09-23
+
+The app now speaks English as well as Italian, with a switch inside the app. English is the default for the public; the Italian interface stays exactly as it was. From this release the changelog is written in English; the older entries stay in Italian.
+
+### English and Italian interface
+
+* **Every interface text lives in one dictionary**, `I18N = { en, it }`, read through `t(key, params)` with `{name}` placeholders, and `tp(key, n)` for singular and plural. It covers labels, buttons, headings, placeholders, hints, toasts, dialogs, the first-run wizard, the settings, tab names, empty states, the hero taglines, month and weekday names, status labels, `aria-label` and `title` attributes, error messages and the backup and sync texts. The static markup is translated through `data-i18n`, `data-i18n-html` and `data-i18n-attr` attributes (`applyStaticI18n`). Pay item names moved from `COMPONENTS` to the dictionary (`comp_<key>`), and so did month names and taglines: `MONTHS_IT` and `TAGLINES_*` are gone.
+* **Italian is unchanged.** Checked by rendering the same data with the 3.7.2 script and the new one, with the same clock and the same random tagline: 476 outputs out of 476 identical (both pages, every Overtime view, month cards, wizard steps and summary, entry form, alerts, sync and backup texts, CSV error messages). The static markup is identical too, once the two new language switches are left out.
+* **English copy** keeps the Italian payslip and names it plainly: 13th/14th/15th month pay, meal vouchers, fringe benefits, welfare, CCNL allowance, holiday (ferie) and public holiday (festivo). The taglines are adapted rather than translated word for word; `{payDay}` becomes an ordinal ("the 27th") and `{ticket}` an amount ("€8.50").
+* **Dates and numbers** follow the active language: `it-IT` or `en-GB`, always in euros ("1.234,56 €" or "€1,234.56"), decimal comma or point in hours and placeholders, long dates like "Monday 5 May 2026".
+
+### Language switch
+
+* **Settings, System section**: "Language / Lingua" with English and Italiano. It applies at once: the page re-renders and `<html lang>` follows, while values typed in an open sheet stay where they are.
+* **First-run wizard**: the same switch, smaller, at the top of the first step.
+* **Default**: the stored choice; without one, Italian when `navigator.language` starts with "it", English otherwise.
+* **Stored apart**, under `stipendio.lang.v1`, outside the main store: the language is not synced to the gist, not exported, and changing it doesn't touch `_lastModified`.
+
+### Data formats: no change
+
+* `stipendio.v1`, `stipendio.sync.v1`, the store shape, the migrations and the gist JSON are the same.
+* **The CSV is the same in both languages**: headers, `# SETTINGS` / `# MESI` / `# STRAORDINARI`, `ricevuto` / `mancante` / `non_atteso`, `;` separator and decimal comma. Checked on a test store: the export is byte-identical to the 3.7.2 export in English and in Italian (full and hours only), export then import then export gives the same file, a backup made in one language imports unchanged in the other, and the example in the README still imports. File names don't change either. Only the importer's error messages are translated.
+* **Number inputs keep accepting "8,5" and "8.5"**: they carry `lang="it"` in both languages. Firefox parses number fields with the element's language, so with the page in English it would have refused the decimal comma. Chrome and Safari use the device settings and are not affected.
+
+### Other
+
+* The "today" mark next to the current month comes from the dictionary (`data-today` attribute) instead of the CSS.
+* In English the day-type pills (Work, Holiday, Public holiday) take the width of their text, so "Public holiday" doesn't wrap on a narrow phone; the Italian ones keep three equal thirds.
+* The web app manifest description is now in English (`"lang": "en"`): it is static and can't follow the in-app choice.
+* Removed `formatItalianDate`, which was unused; `formatItalianDateLong` is now `formatDateLong`.
+
+### Internals
+
+* Version bumped to `3.8.0`.
+* Service worker cache key bumped to `wims-v3.8.0`.
+
+---
+
 ## [3.7.2] — 2026-09-21
 
 Bug trovato durante il lavoro sulla 3.7.1: una settimana divisa fra due mesi perdeva gli straordinari nei totali mensili. Tocca i soldi, perché `paidHoursForMonth` alimenta l'hero "quanto ti devono", le card dei mesi, la vista Anni e la voce Straordinari della pagina Salary.

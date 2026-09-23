@@ -13,7 +13,7 @@
   <b><a href="https://massimodascola.github.io/where-is-my-salary/">Open the app</a></b> · <a href="README.it.md">Leggi in italiano</a>
 </p>
 
-> **Language:** the app's interface is in Italian, because it follows Italian payslips (13th/14th month pay, meal vouchers, national holidays, CCNL overtime allowance). This README is in English; an Italian translation is in [README.it.md](README.it.md).
+> **Language:** the app is available in English and Italian. It follows the device language by default (Italian on a device set to Italian, English everywhere else), and you can change it in the settings and in the first-run wizard. In both languages it follows Italian payslips (13th/14th/15th month pay, meal vouchers, national holidays, CCNL overtime allowance). This README is in English; an Italian translation is in [README.it.md](README.it.md).
 
 ---
 
@@ -47,15 +47,16 @@ The app has two main pages, reachable from the tab bar at the bottom of the scre
 * **Installable as a PWA**: add it to the home screen of an iPhone or Android phone; it updates itself at the next launch with a network connection (network-first service worker).
 * **CSV backup**: export or import to move your data between devices (semicolon-separated, readable in Italian Excel and Numbers).
 * **Optional cloud sync**: a private GitHub gist as shared storage between Mac, iPhone and office. No new services, no extra accounts.
+* **English and Italian**: the whole interface is available in both languages, dates and amounts included (`en-GB` or `it-IT` format, always in euros). It follows the device language and can be changed in the settings at any time.
 
 ---
 
 ## Getting started (30 seconds)
 
 1. [Open the app](https://massimodascola.github.io/where-is-my-salary/), or open `index.html` with a double click: it opens in the browser.
-2. On first launch the app opens the **"Iniziamo da te"** ("Let's start with you") wizard, one step at a time: name; salary, number of monthly payments (12 to 15) and payday; welfare and meal vouchers; fringe benefits; whether you want to track hours (working days and contract hours); overtime (allowance and rate); your usual schedule (start, end, break); and a summary to check before the profile is created. Welfare, meal vouchers and fringe benefits are yes/no questions: if you don't have them, those items don't appear in the months. If you don't want to track hours, the hour steps are skipped. If you close the wizard halfway, it resumes where you left off.
+2. On first launch the app opens the **"Let's start with you"** wizard, one step at a time: name (with the English / Italian switch at the top of this first step); salary, number of monthly payments (12 to 15) and payday; welfare and meal vouchers; fringe benefits; whether you want to track hours (working days and contract hours); overtime (allowance and rate); your usual schedule (start, end, break); and a summary to check before the profile is created. Welfare, meal vouchers and fringe benefits are yes/no questions: if you don't have them, those items don't appear in the months. If you don't want to track hours, the hour steps are skipped. If you close the wizard halfway, it resumes where you left off.
 3. For every past month, open its card on the **Salary** page and set the status of each item. For extra hours, go to the **Overtime** page and log the days.
-4. To change the settings at any time: ⚙️ icon at the top right → Impostazioni (Settings). To wipe everything and start over: "Azzera dati" (Reset data) at the bottom of the settings.
+4. To change the settings at any time: ⚙️ icon at the top right (Settings). To wipe everything and start over: "Reset data" at the bottom of the settings.
 
 ---
 
@@ -148,7 +149,8 @@ All the logic lives in `index.html`. The best way to find a block is to search f
 
 | Block | What it does |
 |---|---|
-| Constants (`VERSION`, `STORAGE_KEY`, `SYNC_KEY`, `MONTHS_IT`, `COMPONENTS`, `EXTRA_SALARY_DEFAULT_MONTHS`, `TAGLINES_*`) | Base definitions. `COMPONENTS` lists the pay items with their flags (`expectedDefault`, `hasAmount`, `hasDays`): change it to add or remove items. |
+| Constants (`VERSION`, `STORAGE_KEY`, `SYNC_KEY`, `COMPONENTS`, `EXTRA_SALARY_DEFAULT_MONTHS`) | Base definitions. `COMPONENTS` lists the pay items with their flags (`expectedDefault`, `hasAmount`, `hasDays`): change it to add or remove items. Their names are in `I18N` (`comp_<key>`). |
+| `LANG_KEY`, `I18N`, `t`, `tp`, `detectLang`, `setLang`, `applyLanguage`, `applyStaticI18n` | Interface language. `I18N` holds every interface text in English (`en`) and Italian (`it`): labels, messages, month and weekday names, the hero taglines (`taglines_ore`, `taglines_salary`). `t(key, params)` returns the active language's text with `{name}` placeholders filled in; `tp(key, n)` picks the singular or plural form. The static markup is translated through `data-i18n`, `data-i18n-html` and `data-i18n-attr` attributes. `setLang` saves the choice and re-renders. |
 | `easterSunday`, `italianHolidays`, `workingDaysInMonth` | Italian calendar and working days (respecting the `workdays` in the settings). |
 | `paymentDateFor`, `isPaymentDue` | When month N's salary becomes "due", based on `payDay` and `payDayNextMonth`. |
 | `loadStore`, `saveStore`, `defaultSettings`, `defaultMonth`, `ensureProfile`, `ensureYear`, `activeProfile`, `runMigrations` | Persistence and data shape in `localStorage`: `{ profiles: { id: { name, settings, years: { 2026: { 1: {...} } } } }, activeProfile, currentYear, _migrations }`. `runMigrations` runs at startup and applies idempotent migrations tagged in `_migrations`. |
@@ -168,6 +170,7 @@ All the logic lives in `index.html`. The best way to find a block is to search f
 |---|---|
 | `stipendio.v1` | Main store (profiles, months, settings, migration flags). Versioned in its name to ease future migrations. |
 | `stipendio.sync.v1` | Cloud sync state (token, gist ID, user, last sync, last error). |
+| `stipendio.lang.v1` | Interface language, `en` or `it`. Kept out of the main store on purpose: it is not synced to the gist and not exported to the CSV. |
 
 ### Defensive conventions
 
@@ -177,12 +180,14 @@ All the logic lives in `index.html`. The best way to find a block is to search f
 * **Never call native `alert` / `confirm`**: use `showAlert` / `showConfirm` / `showChoice`.
 * **Store migrations live in `runMigrations()`**, each guarded by a `store._migrations.<name>` flag: to add one, add a new `if (!store._migrations.<name>)` block and set the flag to `true`.
 * **Bump the service worker cache key at every release** (`wims-vX.Y.Z` in `sw.js`): the `activate` event deletes caches with a different key.
+* **Never hard-code interface text**: add the key to both `I18N.en` and `I18N.it`, then use `t()`. CSV headers, section markers and state tokens stay Italian in both languages and never go through `t()`, so backups work across languages.
+* **Number inputs keep `lang="it"`** in both languages: Firefox reads a number field with the language of the element, and Italian accepts both `8,5` and `8.5`.
 
 ---
 
 ## Settings
 
-Everything is configurable from the ⚙️ icon at the top, in three sections: **Salary**, **Overtime**, **Sistema** (System).
+Everything is configurable from the ⚙️ icon at the top, in three sections: **Salary**, **Overtime**, **System**.
 
 ### Salary
 
@@ -207,6 +212,7 @@ Everything is configurable from the ⚙️ icon at the top, in three sections: *
 
 ### System
 
+* Language: English or Italian. It applies at once and stays on this device only (it is not synced and not exported). The same switch is on the first step of the setup wizard.
 * CSV backup (export and import)
 * GitHub Gist cloud sync (token and gist ID)
 * Reset data
@@ -217,12 +223,12 @@ If a value changes (for example a pay rise), the expected amounts are recalculat
 
 ## Backup and portability
 
-From the settings → **Backup CSV** you can:
+From the settings → **CSV backup** you can:
 
-* **Download a file**: a CSV with every profile and every year, using Italian conventions (`;` separator, `,` decimal, UTF-8 with BOM), so Italian Excel and Numbers open it in clean columns.
-* **Load a file**: imports a previously exported CSV. It replaces all current data (after asking). Strict validation: any malformed row rejects the whole import, never half a state.
+* **Export**: download a CSV with every profile and every year, using Italian conventions (`;` separator, `,` decimal, UTF-8 with BOM), so Italian Excel and Numbers open it in clean columns.
+* **Import**: load a previously exported CSV. It replaces all current data (after asking). Strict validation: any malformed row rejects the whole import, never half a state.
 
-File format (sections `# SETTINGS`, `# MESI` and `# STRAORDINARI`; column names are in Italian, as in the app):
+File format (sections `# SETTINGS`, `# MESI` and `# STRAORDINARI`). Column names and state values are in Italian whatever the interface language, so a backup made in English imports in Italian and the other way round:
 
 ```
 # SETTINGS
@@ -249,7 +255,7 @@ The parser is **tolerant**: a CSV exported by an older version (without some new
 
 ### Worked hours export
 
-"Download file" asks whether you want the **full salary CSV** or **worked hours only**. The second one is an entry-by-entry export of the Overtime calendar, with the same columns as the `# STRAORDINARI` section.
+"Export" asks whether you want **Salary (full)** or **Worked hours only**. The second one is an entry-by-entry export of the Overtime calendar, with the same columns as the `# STRAORDINARI` section.
 
 Keeping an export now and then is a good idea, both as a backup and to move your data to another phone or computer. With cloud sync on, the CSV is just an extra safety net (sync uses JSON in the gist).
 
@@ -269,7 +275,7 @@ Ideas under consideration, not promises:
 
 ## Design philosophy
 
-The look follows a small visual philosophy called **Quiet Ledger** ([`quiet-ledger-philosophy.md`](quiet-ledger-philosophy.md), in Italian): warm paper as the main surface, serif italics as the voice, a single sienna accent used like a wax seal. A quiet nod to Luca Pacioli's *Summa de Arithmetica* (Venice, 1494), the treatise that codified double-entry bookkeeping. [`DESIGN-SYSTEM.md`](DESIGN-SYSTEM.md) and [`CHANGELOG.md`](CHANGELOG.md) are in Italian too.
+The look follows a small visual philosophy called **Quiet Ledger** ([`quiet-ledger-philosophy.md`](quiet-ledger-philosophy.md), in Italian): warm paper as the main surface, serif italics as the voice, a single sienna accent used like a wax seal. A quiet nod to Luca Pacioli's *Summa de Arithmetica* (Venice, 1494), the treatise that codified double-entry bookkeeping. [`DESIGN-SYSTEM.md`](DESIGN-SYSTEM.md) is in Italian too, and so are the [`CHANGELOG.md`](CHANGELOG.md) entries before 3.8.0.
 
 ---
 

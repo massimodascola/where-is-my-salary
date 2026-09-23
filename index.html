@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -332,8 +332,10 @@
     letter-spacing: -.01em; color: var(--ink);
     text-transform: lowercase;
   }
+  /* "oggi" / "today": the text comes from the I18N dictionary through the
+     data-today attribute set in renderMonthCard. */
   .month.current .month-name::after{
-    content: "oggi"; margin-left: 8px;
+    content: attr(data-today); margin-left: 8px;
     font-family: var(--hand); font-style: normal; font-weight: 600;
     color: var(--sienna); font-size: 16px;
     transform: translateY(-2px); display: inline-block;
@@ -1492,6 +1494,21 @@
   .kind-switch input[value="festivo"]:checked + span{ background: var(--gold-tint); color: var(--gold); }
   .kind-switch input:focus-visible + span{ outline: 2px solid var(--sienna); outline-offset: 1px; }
   .field .hint:empty{ display: none; }
+  /* The English day types are longer ("Public holiday"): each pill takes the
+     width of its text instead of an equal third, so nothing wraps on a
+     narrow phone. The Italian labels keep the equal thirds. */
+  html[lang="en"] #ot-kind label{ flex: 1 1 auto; }
+  html[lang="en"] #ot-kind span{ white-space: nowrap; }
+  /* Language switch on the first wizard step: a small pill pair on the right,
+     pulled up onto the "Step 1 of 8" line. */
+  .wz-lang{ display: flex; justify-content: flex-end; margin: -32px 0 12px; }
+  .kind-switch.compact{ padding: 3px; gap: 2px; }
+  .kind-switch.compact label{
+    position: relative;
+    font-size: 12.5px; font-weight: 600;
+    color: var(--ink-muted);
+  }
+  .kind-switch.compact span{ padding: 5px 12px; }
 
   /* ---------- First-run wizard (new-profile sheet) ----------
      One .wz-step visible at a time, a thin progress bar under the sheet
@@ -1780,14 +1797,22 @@
 
 <div class="scrim" id="scrim"></div>
 
+<!-- Interface texts: elements carry data-i18n="key" (textContent),
+     data-i18n-html="key" (innerHTML, only for markup written in the I18N
+     dictionary) or data-i18n-attr="attr:key;attr:key". applyStaticI18n()
+     fills them in the active language; the text written here is the English
+     default. Number inputs carry lang="it" on purpose: it keeps the decimal
+     parsing they had before the English interface (Firefox reads the element
+     language), so both "8,5" and "8.5" are accepted in either language. -->
+
 <!-- Custom confirm modal (replaces native confirm() to avoid browser/extension quirks) -->
 <div class="confirm-overlay" id="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-message">
   <div class="confirm-card">
-    <div class="confirm-title" id="confirm-title">Conferma</div>
+    <div class="confirm-title" id="confirm-title" data-i18n="confirm">Confirm</div>
     <div class="confirm-message" id="confirm-message"></div>
     <div class="confirm-actions">
-      <button class="btn secondary" id="confirm-cancel" type="button">Annulla</button>
-      <button class="btn" id="confirm-ok" type="button">Conferma</button>
+      <button class="btn secondary" id="confirm-cancel" type="button" data-i18n="cancel">Cancel</button>
+      <button class="btn" id="confirm-ok" type="button" data-i18n="confirm">Confirm</button>
     </div>
   </div>
 </div>
@@ -1796,34 +1821,34 @@
 <div class="sheet" id="sync-sheet" role="dialog" aria-labelledby="sync-title">
   <div class="sheet-handle"></div>
   <div class="sheet-head">
-    <div class="sheet-title" id="sync-title">Configura sync cloud</div>
-    <button class="icon-btn" data-close-sheet aria-label="Chiudi">✕</button>
+    <div class="sheet-title" id="sync-title" data-i18n="sync_sheet_title">Set up cloud sync</div>
+    <button class="icon-btn" data-close-sheet aria-label="Close" data-i18n-attr="aria-label:close">✕</button>
   </div>
   <div class="sheet-body">
-    <div class="help" style="margin-bottom:14px">
-      Il sync usa un <strong>gist privato GitHub</strong> come deposito dei tuoi dati. Niente di ciò che inserisci qui esce dal tuo account GitHub.
+    <div class="help" style="margin-bottom:14px" data-i18n-html="sync_sheet_intro_html">
+      Sync uses a <strong>private GitHub gist</strong> to store your data. Nothing you enter here leaves your GitHub account.
     </div>
 
     <ol class="sync-steps">
-      <li>
-        Apri
-        <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Where%20is%20my%20Salary" target="_blank" rel="noopener">questo link</a>
-        — è la pagina GitHub per creare un Personal Access Token classico, già pre-compilata con scope <code>gist</code> (l'unico necessario).
+      <li data-i18n-html="sync_step1_html">
+        Open
+        <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Where%20is%20my%20Salary" target="_blank" rel="noopener">this link</a>:
+        it is the GitHub page to create a classic Personal Access Token, already set to the <code>gist</code> scope (the only one needed).
       </li>
-      <li>Imposta una scadenza (suggerito: 1 anno) e premi <strong>Generate token</strong> in fondo.</li>
-      <li>Copia il token (inizia con <code>ghp_</code>) e incollalo qui sotto.</li>
+      <li data-i18n-html="sync_step2_html">Set an expiration (1 year is a good choice) and press <strong>Generate token</strong> at the bottom.</li>
+      <li data-i18n-html="sync_step3_html">Copy the token (it starts with <code>ghp_</code>) and paste it below.</li>
     </ol>
 
     <div class="field" style="margin-top:14px">
       <label>Personal Access Token</label>
       <input type="password" id="sync-pat-input" placeholder="ghp_..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-      <div class="hint">Il token viene salvato solo nel <code>localStorage</code> di questo dispositivo. Se vuoi disattivare il sync, basta premere "Disconnetti" (o revocare il token da GitHub).</div>
+      <div class="hint" data-i18n-html="sync_pat_hint_html">The token is saved only in this device's <code>localStorage</code>. To turn sync off, press "Disconnect" (or revoke the token on GitHub).</div>
     </div>
 
-    <button class="btn full large" id="btn-sync-connect" type="button">Collega questo dispositivo</button>
+    <button class="btn full large" id="btn-sync-connect" type="button" data-i18n="sync_connect">Connect this device</button>
 
-    <div class="help" style="margin-top:14px; font-size:12.5px">
-      Se hai già usato il sync su un altro dispositivo, lo stesso token connetterà tutti automaticamente: l'app trova il gist esistente e tira giù i dati.
+    <div class="help" style="margin-top:14px; font-size:12.5px" data-i18n="sync_sheet_note">
+      If you already use sync on another device, the same token connects them all: the app finds the existing gist and downloads the data.
     </div>
   </div>
 </div>
@@ -1832,331 +1857,344 @@
 <div class="sheet" id="settings-sheet" role="dialog" aria-labelledby="settings-title">
   <div class="sheet-handle"></div>
   <div class="sheet-head">
-    <div class="sheet-title" id="settings-title">Le tue cifre</div>
-    <button class="icon-btn" data-close-sheet aria-label="Chiudi">✕</button>
+    <div class="sheet-title" id="settings-title" data-i18n="settings_title">Your numbers</div>
+    <button class="icon-btn" data-close-sheet aria-label="Close" data-i18n-attr="aria-label:close">✕</button>
   </div>
   <div class="sheet-body">
     <div class="field">
-      <label>Come ti chiami</label>
-      <input type="text" id="set-name" placeholder="il tuo nome" />
+      <label data-i18n="name_label">Your name</label>
+      <input type="text" id="set-name" placeholder="your name" data-i18n-attr="placeholder:name_placeholder" />
     </div>
 
-    <div class="settings-section-title">Salary</div>
+    <div class="settings-section-title" data-i18n="sec_salary">Salary</div>
     <div class="field-row">
       <div class="field">
-        <label>Stipendio mensile (€)</label>
-        <input type="number" id="set-salary" min="0" step="0.01" />
+        <label data-i18n="salary_label">Monthly salary (€)</label>
+        <input type="number" lang="it" id="set-salary" min="0" step="0.01" />
       </div>
       <div class="field">
-        <label>Mensilità annue</label>
+        <label data-i18n="mensilita_label">Payments per year</label>
         <select id="set-mensilita">
           <option value="12">12</option>
           <option value="13">13</option>
           <option value="14">14</option>
           <option value="15">15</option>
         </select>
-        <div class="hint">13a a dicembre, 14a a giugno, 15a a luglio.</div>
+        <div class="hint" data-i18n="set_mensilita_hint">13th in December, 14th in June, 15th in July.</div>
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Welfare mensile (€)</label>
-        <input type="number" id="set-welfare" min="0" step="0.01" />
+        <label data-i18n="set_welfare_label">Monthly welfare (€)</label>
+        <input type="number" lang="it" id="set-welfare" min="0" step="0.01" />
       </div>
       <div class="field">
-        <label>Ticket per giorno (€)</label>
-        <input type="number" id="set-ticket" min="0" step="0.01" />
+        <label data-i18n="set_ticket_label">Meal voucher (€/day)</label>
+        <input type="number" lang="it" id="set-ticket" min="0" step="0.01" />
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Fringe annuale (€)</label>
-        <input type="number" id="set-fringe" min="0" step="0.01" />
+        <label data-i18n="set_fringe_label">Yearly fringe (€)</label>
+        <input type="number" lang="it" id="set-fringe" min="0" step="0.01" />
       </div>
       <div class="field">
-        <label>Mese del fringe</label>
+        <label data-i18n="set_fringe_month_label">Fringe month</label>
         <select id="set-fringe-month"></select>
       </div>
     </div>
     <div class="field" style="margin-top:-8px">
-      <div class="hint">Welfare, ticket e fringe a 0 se non li hai: quelle voci non compaiono nei mesi.</div>
+      <div class="hint" data-i18n="set_zero_hint">Set welfare, meal vouchers and fringe to 0 if you don't have them: those items won't appear in the months.</div>
     </div>
     <div class="field">
-      <label>Bonus standard (€)</label>
-      <input type="number" id="set-bonus" min="0" step="0.01" />
-      <div class="hint">Si applica se segni un bonus come atteso senza specificarne l'importo.</div>
+      <label data-i18n="set_bonus_label">Standard bonus (€)</label>
+      <input type="number" lang="it" id="set-bonus" min="0" step="0.01" />
+      <div class="hint" data-i18n="set_bonus_hint">Used when you mark a bonus as expected without an amount.</div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Giorno di pagamento</label>
-        <input type="number" id="set-payday" min="1" max="28" step="1" />
-        <div class="hint">Giorno del mese in cui arriva lo stipendio (1–28).</div>
+        <label data-i18n="payday_label">Payday</label>
+        <input type="number" lang="it" id="set-payday" min="1" max="28" step="1" />
+        <div class="hint" data-i18n="set_payday_hint">Day of the month your salary arrives (1-28).</div>
       </div>
       <div class="field">
-        <label>Mese di pagamento</label>
+        <label data-i18n="paymonth_label">Pay month</label>
         <select id="set-payday-month">
-          <option value="0">Stesso mese</option>
-          <option value="1">Mese successivo</option>
+          <option value="0" data-i18n="paymonth_same">Same month</option>
+          <option value="1" data-i18n="paymonth_next">Following month</option>
         </select>
-        <div class="hint">Per presenze sfalsate, lo stipendio di maggio arriva a giugno.</div>
+        <div class="hint" data-i18n="set_paymonth_hint">If you're paid in arrears, May's salary arrives in June.</div>
       </div>
     </div>
 
-    <div class="settings-section-title">Overtime <label class="settings-toggle"><input type="checkbox" id="set-overtime-enabled" /><span class="toggle-track"></span></label></div>
+    <div class="settings-section-title"><span data-i18n="sec_overtime">Overtime</span> <label class="settings-toggle"><input type="checkbox" id="set-overtime-enabled" /><span class="toggle-track"></span></label></div>
     <div class="field">
-      <label>Giorni lavorativi</label>
+      <label data-i18n="workdays_label">Working days</label>
       <div class="workday-row" id="set-workdays">
-        <label><input type="checkbox" value="1"><span>Lun</span></label>
-        <label><input type="checkbox" value="2"><span>Mar</span></label>
-        <label><input type="checkbox" value="3"><span>Mer</span></label>
-        <label><input type="checkbox" value="4"><span>Gio</span></label>
-        <label><input type="checkbox" value="5"><span>Ven</span></label>
-        <label><input type="checkbox" value="6"><span>Sab</span></label>
-        <label><input type="checkbox" value="7"><span>Dom</span></label>
+        <label><input type="checkbox" value="1"><span>Mon</span></label>
+        <label><input type="checkbox" value="2"><span>Tue</span></label>
+        <label><input type="checkbox" value="3"><span>Wed</span></label>
+        <label><input type="checkbox" value="4"><span>Thu</span></label>
+        <label><input type="checkbox" value="5"><span>Fri</span></label>
+        <label><input type="checkbox" value="6"><span>Sat</span></label>
+        <label><input type="checkbox" value="7"><span>Sun</span></label>
       </div>
-      <div class="hint">Ore fuori da questi giorni (es. weekend) sono 100% straordinario, senza forfait.</div>
+      <div class="hint" data-i18n="set_workdays_hint">Hours outside these days (e.g. weekends) are 100% overtime, with no allowance.</div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Ore contratto (h/settimana)</label>
-        <input type="number" id="set-contratto" min="0" step="0.5" />
-        <div class="hint">Le ore da contratto sono coperte dallo stipendio.</div>
+        <label data-i18n="set_contract_label">Contract hours (h/week)</label>
+        <input type="number" lang="it" id="set-contratto" min="0" step="0.5" />
+        <div class="hint" data-i18n="set_contract_hint">Contract hours are covered by your salary.</div>
       </div>
       <div class="field">
-        <label>Forfait straord. (h/settimana)</label>
-        <input type="number" id="set-forfait" min="0" step="0.5" />
-        <div class="hint">Ore in più oltre il contratto, comunque coperte dallo stipendio.</div>
+        <label data-i18n="set_forfait_label">CCNL allowance (h/week)</label>
+        <input type="number" lang="it" id="set-forfait" min="0" step="0.5" />
+        <div class="hint" data-i18n="set_forfait_hint">Extra hours beyond the contract that your salary still covers.</div>
       </div>
     </div>
     <div class="field">
-      <label>Tariffa straord. (€/h)</label>
-      <input type="number" id="set-tariffa" min="0" step="0.01" />
-      <div class="hint">Sopra le (contratto + forfait) ore settimanali contano come straordinari pagati a questa tariffa.</div>
+      <label data-i18n="set_rate_label">Overtime rate (€/h)</label>
+      <input type="number" lang="it" id="set-tariffa" min="0" step="0.01" />
+      <div class="hint" data-i18n="set_rate_hint">Hours above (contract + allowance) per week count as overtime paid at this rate.</div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label for="set-inizio">Ora inizio abituale</label>
+        <label for="set-inizio" data-i18n="set_start_label">Usual start time</label>
         <input type="time" id="set-inizio" />
       </div>
       <div class="field">
-        <label for="set-fine">Ora fine abituale</label>
+        <label for="set-fine" data-i18n="set_end_label">Usual end time</label>
         <input type="time" id="set-fine" />
       </div>
     </div>
     <div class="field">
-      <label for="set-pausa">Pausa predefinita (minuti)</label>
-      <input type="number" id="set-pausa" min="0" max="720" step="5" />
-      <div class="hint">Orario e pausa sono già impostati in ogni nuovo evento; se un giorno sono diversi li cambi lì. Lascia vuoti inizio e fine se il tuo orario cambia ogni giorno.</div>
+      <label for="set-pausa" data-i18n="set_break_label">Default break (minutes)</label>
+      <input type="number" lang="it" id="set-pausa" min="0" max="720" step="5" />
+      <div class="hint" data-i18n="set_break_hint">Every new entry starts with these hours and this break; on days that differ, change them in the entry. Leave start and end empty if your hours change every day.</div>
     </div>
 
-    <div class="settings-section-title">Sistema</div>
+    <div class="settings-section-title" data-i18n="sec_system">System</div>
+    <div class="field">
+      <label id="set-lang-label" data-i18n="lang_label">Language / Lingua</label>
+      <div class="kind-switch" role="radiogroup" aria-labelledby="set-lang-label">
+        <label><input type="radio" name="set-lang" value="en" /><span>English</span></label>
+        <label><input type="radio" name="set-lang" value="it" /><span>Italiano</span></label>
+      </div>
+    </div>
     <div class="sync-block" id="sync-block">
       <div class="sync-head">
-        <div class="sync-title">Sync tra dispositivi</div>
-        <div class="sync-state-pill" id="sync-state-pill" data-status="off">spento</div>
+        <div class="sync-title" data-i18n="sync_block_title">Sync across devices</div>
+        <div class="sync-state-pill" id="sync-state-pill" data-status="off">off</div>
       </div>
       <div class="sync-body" id="sync-body"></div>
     </div>
 
     <div class="backup-block">
-      <div class="backup-title">Backup CSV</div>
+      <div class="backup-title" data-i18n="backup_title">CSV backup</div>
       <div class="backup-stats" id="backup-stats"></div>
       <div class="btn-row" style="margin-top:10px">
-        <button class="btn secondary" id="btn-export" type="button">⬇ Scarica file</button>
-        <button class="btn secondary" id="btn-import-file" type="button">⬆ Carica file</button>
+        <button class="btn secondary" id="btn-export" type="button" data-i18n="btn_export">⬇ Export</button>
+        <button class="btn secondary" id="btn-import-file" type="button" data-i18n="btn_import">⬆ Import</button>
       </div>
       <input type="file" id="file-import" accept=".csv,text/csv" style="display:none" />
-      <div class="help" style="margin-top:12px; font-size:12.5px">
-        Scarica un CSV con tutti i profili e tutti gli anni. Caricalo per ripristinare un backup (sostituisce i dati attuali). Se usi il sync cloud (sopra), il backup CSV ti serve solo come misura extra.
+      <div class="help" style="margin-top:12px; font-size:12.5px" data-i18n="backup_help">
+        Export a CSV with every profile and every year. Import it to restore a backup (it replaces the current data). If you use cloud sync (above), the CSV backup is just an extra safety net.
       </div>
     </div>
   </div>
   <div class="sheet-foot">
     <div class="btn-row">
-      <button class="btn danger" id="btn-delete-profile" type="button">Azzera dati</button>
-      <button class="btn" id="btn-save-settings" type="button">Salva</button>
+      <button class="btn danger" id="btn-delete-profile" type="button" data-i18n="btn_reset">Reset data</button>
+      <button class="btn" id="btn-save-settings" type="button" data-i18n="save">Save</button>
     </div>
   </div>
 </div>
 
 <!-- First-run wizard: creates the profile one step at a time. The inputs keep
      the np-* ids read by createProfileFromWizard(); the JS only decides which
-     .wz-step is visible. Steps about hours are skipped when the user answers
-     "no" to tracking them. -->
+     .wz-step is visible and writes its title (wz_title_<step> in I18N). Steps
+     about hours are skipped when the user answers "no" to tracking them. -->
 <div class="sheet" id="new-profile-sheet" role="dialog" aria-labelledby="np-title">
   <div class="sheet-handle"></div>
   <div class="sheet-head">
-    <div class="sheet-title" id="np-title">Iniziamo da te</div>
-    <button class="icon-btn" data-close-sheet aria-label="Chiudi">✕</button>
+    <div class="sheet-title" id="np-title" data-i18n="wz_title_nome">Let's start with you</div>
+    <button class="icon-btn" data-close-sheet aria-label="Close" data-i18n-attr="aria-label:close">✕</button>
   </div>
   <div class="wz-progress" aria-hidden="true"><div class="wz-progress-bar" id="wz-bar"></div></div>
   <div class="sheet-body" id="wz-body">
     <div class="wz-count" id="wz-count"></div>
 
-    <section class="wz-step" data-step="nome" data-title="Iniziamo da te">
-      <p class="wz-intro">Qualche domanda veloce per preparare l'app, un passo alla volta. Tutto si può cambiare dopo dalle impostazioni.</p>
+    <section class="wz-step" data-step="nome">
+      <div class="wz-lang">
+        <div class="kind-switch compact" role="radiogroup" aria-label="Language / Lingua" data-i18n-attr="aria-label:lang_label">
+          <label><input type="radio" name="np-lang" value="en" /><span>English</span></label>
+          <label><input type="radio" name="np-lang" value="it" /><span>Italiano</span></label>
+        </div>
+      </div>
+      <p class="wz-intro" data-i18n="wz_intro_nome">A few quick questions to set up the app, one step at a time. You can change everything later in the settings.</p>
       <div class="field">
-        <label for="np-name">Come ti chiami</label>
-        <input type="text" id="np-name" placeholder="il tuo nome" autocomplete="given-name" />
+        <label for="np-name" data-i18n="name_label">Your name</label>
+        <input type="text" id="np-name" placeholder="your name" data-i18n-attr="placeholder:name_placeholder" autocomplete="given-name" />
       </div>
     </section>
 
-    <section class="wz-step" data-step="stipendio" data-title="Lo stipendio">
-      <p class="wz-intro">Quanto ti arriva ogni mese, quante mensilità hai all'anno e quando ti pagano.</p>
+    <section class="wz-step" data-step="stipendio">
+      <p class="wz-intro" data-i18n="wz_intro_stipendio">How much you get each month, how many monthly payments you have a year and when you're paid.</p>
       <div class="field-row">
         <div class="field">
-          <label for="np-salary">Stipendio mensile (€)</label>
-          <input type="number" id="np-salary" min="0" step="0.01" placeholder="0,00" />
+          <label for="np-salary" data-i18n="salary_label">Monthly salary (€)</label>
+          <input type="number" lang="it" id="np-salary" min="0" step="0.01" placeholder="0.00" data-i18n-attr="placeholder:ph_zero_amount" />
         </div>
         <div class="field">
-          <label for="np-mensilita">Mensilità annue</label>
+          <label for="np-mensilita" data-i18n="mensilita_label">Payments per year</label>
           <select id="np-mensilita">
             <option value="12">12</option>
             <option value="13">13</option>
             <option value="14">14</option>
             <option value="15">15</option>
           </select>
-          <div class="hint">13ª a dicembre, 14ª a giugno, 15ª a luglio.</div>
+          <div class="hint" data-i18n="wz_mensilita_hint">13th in December, 14th in June, 15th in July.</div>
         </div>
       </div>
       <div class="field-row">
         <div class="field">
-          <label for="np-payday">Giorno di pagamento</label>
-          <input type="number" id="np-payday" min="1" max="28" step="1" value="27" />
-          <div class="hint">Il giorno del mese in cui arriva (1-28).</div>
+          <label for="np-payday" data-i18n="payday_label">Payday</label>
+          <input type="number" lang="it" id="np-payday" min="1" max="28" step="1" value="27" />
+          <div class="hint" data-i18n="wz_payday_hint">The day of the month it arrives (1-28).</div>
         </div>
         <div class="field">
-          <label for="np-payday-month">Mese di pagamento</label>
+          <label for="np-payday-month" data-i18n="paymonth_label">Pay month</label>
           <select id="np-payday-month">
-            <option value="0">Stesso mese</option>
-            <option value="1">Mese successivo</option>
+            <option value="0" data-i18n="paymonth_same">Same month</option>
+            <option value="1" data-i18n="paymonth_next">Following month</option>
           </select>
-          <div class="hint">Con le presenze sfalsate lo stipendio di maggio arriva a giugno.</div>
+          <div class="hint" data-i18n="wz_paymonth_hint">If you're paid in arrears, May's salary arrives in June.</div>
         </div>
       </div>
     </section>
 
-    <section class="wz-step" data-step="welfare" data-title="Welfare e buoni pasto">
-      <p class="wz-intro">Se non li hai, rispondi no: quelle voci non compariranno nei mesi.</p>
+    <section class="wz-step" data-step="welfare">
+      <p class="wz-intro" data-i18n="wz_intro_welfare">If you don't have them, answer no: those items won't appear in the months.</p>
       <div class="field">
-        <div class="wz-q" id="np-q-welfare">Hai un welfare aziendale?</div>
+        <div class="wz-q" id="np-q-welfare" data-i18n="wz_q_welfare">Do you get company welfare?</div>
         <div class="kind-switch" role="radiogroup" aria-labelledby="np-q-welfare">
-          <label><input type="radio" name="np-has-welfare" value="si" /><span>Sì</span></label>
-          <label><input type="radio" name="np-has-welfare" value="no" checked /><span>No</span></label>
+          <label><input type="radio" name="np-has-welfare" value="si" /><span data-i18n="yes">Yes</span></label>
+          <label><input type="radio" name="np-has-welfare" value="no" checked /><span data-i18n="no">No</span></label>
         </div>
       </div>
       <div class="field" data-show-if="np-has-welfare">
-        <label for="np-welfare">Welfare al mese (€)</label>
-        <input type="number" id="np-welfare" min="0" step="0.01" placeholder="es. 400" />
+        <label for="np-welfare" data-i18n="wz_welfare_label">Welfare per month (€)</label>
+        <input type="number" lang="it" id="np-welfare" min="0" step="0.01" placeholder="e.g. 400" data-i18n-attr="placeholder:ph_welfare" />
       </div>
       <div class="field wz-gap">
-        <div class="wz-q" id="np-q-ticket">Ricevi i buoni pasto?</div>
+        <div class="wz-q" id="np-q-ticket" data-i18n="wz_q_ticket">Do you get meal vouchers?</div>
         <div class="kind-switch" role="radiogroup" aria-labelledby="np-q-ticket">
-          <label><input type="radio" name="np-has-ticket" value="si" /><span>Sì</span></label>
-          <label><input type="radio" name="np-has-ticket" value="no" checked /><span>No</span></label>
+          <label><input type="radio" name="np-has-ticket" value="si" /><span data-i18n="yes">Yes</span></label>
+          <label><input type="radio" name="np-has-ticket" value="no" checked /><span data-i18n="no">No</span></label>
         </div>
       </div>
       <div class="field" data-show-if="np-has-ticket">
-        <label for="np-ticket">Valore di un buono (€ per giorno lavorato)</label>
-        <input type="number" id="np-ticket" min="0" step="0.01" placeholder="es. 8" />
-        <div class="hint">L'app li moltiplica da sola per i giorni lavorativi del mese.</div>
+        <label for="np-ticket" data-i18n="wz_ticket_label">Value of one voucher (€ per day worked)</label>
+        <input type="number" lang="it" id="np-ticket" min="0" step="0.01" placeholder="e.g. 8" data-i18n-attr="placeholder:ph_ticket" />
+        <div class="hint" data-i18n="wz_ticket_hint">The app multiplies it by the working days of each month for you.</div>
       </div>
     </section>
 
-    <section class="wz-step" data-step="fringe" data-title="Fringe benefit">
-      <p class="wz-intro">Il fringe benefit di solito arriva una volta l'anno, in un mese preciso.</p>
+    <section class="wz-step" data-step="fringe">
+      <p class="wz-intro" data-i18n="wz_intro_fringe">Fringe benefits usually arrive once a year, in a specific month.</p>
       <div class="field">
-        <div class="wz-q" id="np-q-fringe">Hai un fringe benefit?</div>
+        <div class="wz-q" id="np-q-fringe" data-i18n="wz_q_fringe">Do you get fringe benefits?</div>
         <div class="kind-switch" role="radiogroup" aria-labelledby="np-q-fringe">
-          <label><input type="radio" name="np-has-fringe" value="si" /><span>Sì</span></label>
-          <label><input type="radio" name="np-has-fringe" value="no" checked /><span>No</span></label>
+          <label><input type="radio" name="np-has-fringe" value="si" /><span data-i18n="yes">Yes</span></label>
+          <label><input type="radio" name="np-has-fringe" value="no" checked /><span data-i18n="no">No</span></label>
         </div>
       </div>
       <div class="field-row" data-show-if="np-has-fringe">
         <div class="field">
-          <label for="np-fringe">Importo annuale (€)</label>
-          <input type="number" id="np-fringe" min="0" step="0.01" placeholder="es. 1000" />
+          <label for="np-fringe" data-i18n="wz_fringe_label">Yearly amount (€)</label>
+          <input type="number" lang="it" id="np-fringe" min="0" step="0.01" placeholder="e.g. 1000" data-i18n-attr="placeholder:ph_fringe" />
         </div>
         <div class="field">
-          <label for="np-fringe-month">Mese in cui arriva</label>
+          <label for="np-fringe-month" data-i18n="wz_fringe_month_label">Month it arrives</label>
           <select id="np-fringe-month"></select>
         </div>
       </div>
     </section>
 
-    <section class="wz-step" data-step="ore" data-title="Le tue ore">
-      <p class="wz-intro">L'app può contare le ore che lavori e calcolare gli straordinari che non ti sono stati pagati.</p>
+    <section class="wz-step" data-step="ore">
+      <p class="wz-intro" data-i18n="wz_intro_ore">The app can count the hours you work and work out the overtime you haven't been paid for.</p>
       <div class="field">
-        <div class="wz-q" id="np-q-overtime">Vuoi tenere traccia delle ore?</div>
+        <div class="wz-q" id="np-q-overtime" data-i18n="wz_q_overtime">Do you want to track your hours?</div>
         <div class="kind-switch" role="radiogroup" aria-labelledby="np-q-overtime">
-          <label><input type="radio" name="np-has-overtime" value="si" checked /><span>Sì</span></label>
-          <label><input type="radio" name="np-has-overtime" value="no" /><span>No</span></label>
+          <label><input type="radio" name="np-has-overtime" value="si" checked /><span data-i18n="yes">Yes</span></label>
+          <label><input type="radio" name="np-has-overtime" value="no" /><span data-i18n="no">No</span></label>
         </div>
       </div>
       <div data-show-if="np-has-overtime">
         <div class="field">
-          <label>Giorni lavorativi</label>
+          <label data-i18n="workdays_label">Working days</label>
           <div class="workday-row" id="np-workdays">
-            <label><input type="checkbox" value="1" checked><span>Lun</span></label>
-            <label><input type="checkbox" value="2" checked><span>Mar</span></label>
-            <label><input type="checkbox" value="3" checked><span>Mer</span></label>
-            <label><input type="checkbox" value="4" checked><span>Gio</span></label>
-            <label><input type="checkbox" value="5" checked><span>Ven</span></label>
-            <label><input type="checkbox" value="6"><span>Sab</span></label>
-            <label><input type="checkbox" value="7"><span>Dom</span></label>
+            <label><input type="checkbox" value="1" checked><span>Mon</span></label>
+            <label><input type="checkbox" value="2" checked><span>Tue</span></label>
+            <label><input type="checkbox" value="3" checked><span>Wed</span></label>
+            <label><input type="checkbox" value="4" checked><span>Thu</span></label>
+            <label><input type="checkbox" value="5" checked><span>Fri</span></label>
+            <label><input type="checkbox" value="6"><span>Sat</span></label>
+            <label><input type="checkbox" value="7"><span>Sun</span></label>
           </div>
-          <div class="hint">Le ore fatte fuori da questi giorni (es. nel weekend) contano tutte come straordinario.</div>
+          <div class="hint" data-i18n="wz_workdays_hint">Hours worked outside these days (e.g. at weekends) all count as overtime.</div>
         </div>
         <div class="field">
-          <label for="np-contratto">Ore da contratto a settimana</label>
-          <input type="number" id="np-contratto" min="0" step="0.5" value="40" />
-          <div class="hint">Le ore già pagate dallo stipendio.</div>
+          <label for="np-contratto" data-i18n="wz_contract_label">Contract hours per week</label>
+          <input type="number" lang="it" id="np-contratto" min="0" step="0.5" value="40" />
+          <div class="hint" data-i18n="wz_contract_hint">The hours your salary already pays for.</div>
         </div>
       </div>
     </section>
 
-    <section class="wz-step" data-step="straordinari" data-title="Gli straordinari">
-      <p class="wz-intro">Oltre le ore da contratto, più l'eventuale forfait, ogni ora conta come straordinario.</p>
+    <section class="wz-step" data-step="straordinari">
+      <p class="wz-intro" data-i18n="wz_intro_straordinari">Beyond your contract hours, plus any allowance, every hour counts as overtime.</p>
       <div class="field">
-        <label for="np-forfait">Forfait straordinari (h/settimana)</label>
-        <input type="number" id="np-forfait" min="0" step="0.5" value="0" />
-        <div class="hint">Ore in più già coperte dallo stipendio. Lascia 0 se non ce l'hai.</div>
+        <label for="np-forfait" data-i18n="wz_forfait_label">CCNL overtime allowance (h/week)</label>
+        <input type="number" lang="it" id="np-forfait" min="0" step="0.5" value="0" />
+        <div class="hint" data-i18n="wz_forfait_hint">Extra hours your salary already covers. Leave 0 if you don't have one.</div>
       </div>
       <div class="field">
-        <label for="np-tariffa">Tariffa straordinario (€/h)</label>
-        <input type="number" id="np-tariffa" min="0" step="0.01" value="0" />
-        <div class="hint">Se non la sai lascia 0: vedrai le ore, senza l'importo in euro.</div>
+        <label for="np-tariffa" data-i18n="wz_rate_label">Overtime rate (€/h)</label>
+        <input type="number" lang="it" id="np-tariffa" min="0" step="0.01" value="0" />
+        <div class="hint" data-i18n="wz_rate_hint">If you don't know it, leave 0: you'll see the hours, without the amount in euros.</div>
       </div>
     </section>
 
-    <section class="wz-step" data-step="orario" data-title="Il tuo orario">
-      <p class="wz-intro">L'orario che fai di solito: lo trovi già impostato ogni volta che aggiungi un giorno, e lo cambi solo quando serve.</p>
+    <section class="wz-step" data-step="orario">
+      <p class="wz-intro" data-i18n="wz_intro_orario">The hours you usually work: every day you add starts with them, and you change them only when needed.</p>
       <div class="field-row">
         <div class="field">
-          <label for="np-inizio">Ora inizio</label>
+          <label for="np-inizio" data-i18n="start_time">Start time</label>
           <input type="time" id="np-inizio" value="09:00" />
         </div>
         <div class="field">
-          <label for="np-fine">Ora fine</label>
+          <label for="np-fine" data-i18n="end_time">End time</label>
           <input type="time" id="np-fine" value="18:00" />
         </div>
       </div>
       <div class="field">
-        <label for="np-pausa">Pausa (minuti)</label>
-        <input type="number" id="np-pausa" min="0" max="720" step="5" value="30" />
-        <div class="hint">Se il tuo orario cambia ogni giorno, lascia vuoti inizio e fine.</div>
+        <label for="np-pausa" data-i18n="wz_break_label">Break (minutes)</label>
+        <input type="number" lang="it" id="np-pausa" min="0" max="720" step="5" value="30" />
+        <div class="hint" data-i18n="wz_break_hint">If your hours change every day, leave start and end empty.</div>
       </div>
     </section>
 
-    <section class="wz-step" data-step="riepilogo" data-title="Tutto pronto">
-      <p class="wz-intro">Controlla i dati prima di iniziare. Tocca una riga per cambiarla.</p>
+    <section class="wz-step" data-step="riepilogo">
+      <p class="wz-intro" data-i18n="wz_intro_riepilogo">Check your answers before you start. Tap a row to change it.</p>
       <div class="wz-summary" id="wz-summary"></div>
     </section>
   </div>
   <div class="sheet-foot">
     <div class="btn-row">
-      <button class="btn secondary" id="wz-back" type="button">Indietro</button>
-      <button class="btn" id="wz-next" type="button">Avanti</button>
+      <button class="btn secondary" id="wz-back" type="button" data-i18n="back">Back</button>
+      <button class="btn" id="wz-next" type="button" data-i18n="next">Next</button>
     </div>
   </div>
 </div>
@@ -2165,66 +2203,66 @@
 <div class="sheet" id="ot-event-sheet" role="dialog" aria-labelledby="ot-event-title">
   <div class="sheet-handle"></div>
   <div class="sheet-head">
-    <div class="sheet-title" id="ot-event-title">Nuovo evento</div>
-    <button class="icon-btn" data-close-sheet aria-label="Chiudi">✕</button>
+    <div class="sheet-title" id="ot-event-title" data-i18n="ot_new">New entry</div>
+    <button class="icon-btn" data-close-sheet aria-label="Close" data-i18n-attr="aria-label:close">✕</button>
   </div>
   <div class="sheet-body">
     <div class="field">
-      <label>Data</label>
+      <label data-i18n="date_label">Date</label>
       <input type="date" id="ot-data" />
     </div>
     <div class="field">
-      <label id="ot-kind-label">Tipo di giornata</label>
+      <label id="ot-kind-label" data-i18n="day_kind_label">Day type</label>
       <div class="kind-switch" id="ot-kind" role="radiogroup" aria-labelledby="ot-kind-label">
-        <label><input type="radio" name="ot-kind" value="lavoro" checked /><span>Lavoro</span></label>
-        <label><input type="radio" name="ot-kind" value="ferie" /><span>Ferie</span></label>
-        <label><input type="radio" name="ot-kind" value="festivo" /><span>Festivo</span></label>
+        <label><input type="radio" name="ot-kind" value="lavoro" checked /><span data-i18n="kind_work">Work</span></label>
+        <label><input type="radio" name="ot-kind" value="ferie" /><span data-i18n="kind_pto">Holiday</span></label>
+        <label><input type="radio" name="ot-kind" value="festivo" /><span data-i18n="kind_holiday">Public holiday</span></label>
       </div>
       <div class="hint" id="ot-kind-hint"></div>
     </div>
     <div class="field-row" id="ot-time-row">
       <div class="field">
-        <label>Ora inizio</label>
+        <label data-i18n="start_time">Start time</label>
         <input type="time" id="ot-inizio" />
       </div>
       <div class="field">
-        <label>Ora fine</label>
+        <label data-i18n="end_time">End time</label>
         <input type="time" id="ot-fine" />
       </div>
     </div>
     <div class="field" id="ot-pausa-field">
-      <label>Pausa (opzionale)</label>
+      <label data-i18n="break_optional">Break (optional)</label>
       <div class="duration-picker" id="ot-pausa">
         <div class="dp-group">
-          <button type="button" class="dp-btn" data-dp-act="dec" data-dp-target="h" aria-label="Diminuisci ore">−</button>
+          <button type="button" class="dp-btn" data-dp-act="dec" data-dp-target="h" aria-label="Decrease hours" data-i18n-attr="aria-label:dec_hours">−</button>
           <span><span class="dp-val" id="ot-pausa-h">0</span><span class="dp-unit">h</span></span>
-          <button type="button" class="dp-btn" data-dp-act="inc" data-dp-target="h" aria-label="Aumenta ore">+</button>
+          <button type="button" class="dp-btn" data-dp-act="inc" data-dp-target="h" aria-label="Increase hours" data-i18n-attr="aria-label:inc_hours">+</button>
         </div>
         <div class="dp-group">
-          <button type="button" class="dp-btn" data-dp-act="dec" data-dp-target="m" aria-label="Diminuisci minuti">−</button>
+          <button type="button" class="dp-btn" data-dp-act="dec" data-dp-target="m" aria-label="Decrease minutes" data-i18n-attr="aria-label:dec_minutes">−</button>
           <span><span class="dp-val" id="ot-pausa-m">0</span><span class="dp-unit">m</span></span>
-          <button type="button" class="dp-btn" data-dp-act="inc" data-dp-target="m" aria-label="Aumenta minuti">+</button>
+          <button type="button" class="dp-btn" data-dp-act="inc" data-dp-target="m" aria-label="Increase minutes" data-i18n-attr="aria-label:inc_minutes">+</button>
         </div>
       </div>
     </div>
     <div class="field">
-      <label>Nota (opzionale)</label>
-      <input type="text" id="ot-nota" placeholder="es. trasferta Milano" maxlength="120" />
+      <label data-i18n="note_optional">Note (optional)</label>
+      <input type="text" id="ot-nota" placeholder="e.g. business trip to Milan" data-i18n-attr="placeholder:note_placeholder" maxlength="120" />
     </div>
     <div class="field" id="ot-notov-field">
       <label class="settings-toggle field-toggle">
-        <span class="field-toggle-label">Non contare come straordinario</span>
+        <span class="field-toggle-label" data-i18n="not_ot_label">Don't count as overtime</span>
         <input type="checkbox" id="ot-not-overtime" />
         <span class="toggle-track"></span>
       </label>
-      <div class="hint">Le ore restano registrate come lavorate, ma non confluiscono nel totale straordinari del mese.</div>
+      <div class="hint" data-i18n="not_ot_hint">The hours stay logged as worked, but don't count towards the month's overtime.</div>
     </div>
     <div id="ot-hours-preview" class="help" style="margin-top:8px"></div>
   </div>
   <div class="sheet-foot">
     <div class="btn-row">
-      <button class="btn danger" id="btn-ot-delete" type="button" style="display:none">Elimina</button>
-      <button class="btn" id="btn-ot-save" type="button">Salva evento</button>
+      <button class="btn danger" id="btn-ot-delete" type="button" style="display:none" data-i18n="delete">Delete</button>
+      <button class="btn" id="btn-ot-save" type="button" data-i18n="save_entry">Save entry</button>
     </div>
   </div>
 </div>
@@ -2239,10 +2277,10 @@
       </div>
     </div>
     <div class="spacer"></div>
-    <button class="icon-btn sync-pill" id="sync-indicator" data-status="off" aria-label="Stato sync cloud" title="Sync cloud" type="button" style="display:none">
+    <button class="icon-btn sync-pill" id="sync-indicator" data-status="off" aria-label="Cloud sync status" title="Cloud sync" data-i18n-attr="aria-label:sync_aria;title:sync_title_short" type="button" style="display:none">
       <span class="sync-icon">☁</span>
     </button>
-    <button class="icon-btn" id="btn-settings" aria-label="Impostazioni" title="Impostazioni">
+    <button class="icon-btn" id="btn-settings" aria-label="Settings" title="Settings" data-i18n-attr="aria-label:settings_aria;title:settings_aria">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1A2 2 0 1 1 4.3 16.9l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1A2 2 0 1 1 7.1 4.3l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1A2 2 0 1 1 19.7 7l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     </button>
   </div>
@@ -2259,12 +2297,12 @@
   <div class="app-version"><span id="version-tag"></span></div>
 </div>
 
-<nav class="tabbar" id="tabbar" aria-label="Sezioni">
-  <button class="tab active" type="button" data-tab="stipendio" aria-label="Salary">
-    <span class="tab-label">Salary</span>
+<nav class="tabbar" id="tabbar" aria-label="Sections" data-i18n-attr="aria-label:tabs_aria">
+  <button class="tab active" type="button" data-tab="stipendio" aria-label="Salary" data-i18n-attr="aria-label:tab_salary">
+    <span class="tab-label" data-i18n="tab_salary">Salary</span>
   </button>
-  <button class="tab" type="button" data-tab="ore" aria-label="Overtime">
-    <span class="tab-label">Overtime</span>
+  <button class="tab" type="button" data-tab="ore" aria-label="Overtime" data-i18n-attr="aria-label:tab_overtime">
+    <span class="tab-label" data-i18n="tab_overtime">Overtime</span>
   </button>
 </nav>
 
@@ -2277,29 +2315,1019 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.7.2";
+const VERSION = "3.8.0";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
 const GIST_FILENAME = "where-is-my-salary-data.json";
-const MONTHS_IT = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+/* ============================================================ *
+ *  Interface language: English and Italian
+ *
+ *  Every user-facing string lives in I18N, one key with one text per
+ *  language. t(key, params) returns the active language's text with the
+ *  {name} placeholders filled in (arrays, like month names, come back as
+ *  they are); tp(key, n, params) picks key_one or key_other by count.
+ *  Static markup is translated through data-i18n attributes, see
+ *  applyStaticI18n(). The Italian texts are the ones the app had before
+ *  3.8.0, unchanged.
+ *
+ *  The choice lives under its own localStorage key (LANG_KEY), outside the
+ *  main store, so it is never synced to the gist nor exported. Data formats
+ *  don't depend on it: CSV headers, section markers and state tokens
+ *  (ricevuto / mancante / non_atteso) stay Italian in both languages, so a
+ *  backup made in one language imports in the other.
+ *
+ *  To add a string: add the key to both I18N.en and I18N.it, then use t().
+ * ============================================================ */
+const LANG_KEY = "stipendio.lang.v1";
+const LANGS = ["en", "it"];
+// Locale for dates and numbers; currency stays EUR in both.
+const LOCALES = { en: "en-GB", it: "it-IT" };
+// Stored choice first; otherwise Italian when the device language is
+// Italian, English for everyone else.
+function detectLang(){
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if(LANGS.includes(saved)) return saved;
+  } catch(e){}
+  const nav = (typeof navigator !== "undefined" && navigator.language) || "";
+  return nav.toLowerCase().startsWith("it") ? "it" : "en";
+}
+let LANG = detectLang();
+const locale = () => LOCALES[LANG];
 
+const I18N = {
+  en: {
+    // General
+    cancel: "Cancel",
+    confirm: "Confirm",
+    ok: "OK",
+    heads_up: "Heads up",
+    choose: "Choose",
+    close: "Close",
+    save: "Save",
+    delete: "Delete",
+    back: "Back",
+    next: "Next",
+    yes: "Yes",
+    no: "No",
+    replace: "Replace",
+    error_prefix: "Error: {msg}",
+    lang_label: "Language / Lingua",
+    today: "today",
+    signature: "counted by hand",
+    from_file: 'from file "{name}"',
+    file_read_error: "Couldn't read the file.",
+    create_profile_first: "Create a profile first.",
+
+    // Calendar words
+    months: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+    // Month names inside a sentence ("paid in December").
+    months_text: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+    // Monday first (ISO), for the calendar header and the workday pills.
+    weekdays_short: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+    weekdays_initial: ["M","T","W","T","F","S","S"],
+    // Monday first, inside a sentence (wizard summary).
+    weekdays_text: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+    // Sunday first, like Date.getDay().
+    weekdays_long: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+    date_long: "{weekday} {d} {month} {y}",
+    days_one: "{n} day",
+    days_other: "{n} days",
+
+    // Greetings, by time of day
+    greet_night: "still up",
+    greet_morning: "good morning",
+    greet_afternoon: "good afternoon",
+    greet_evening: "good evening",
+
+    // Top bar, tab bar, pickers
+    tabs_aria: "Sections",
+    tab_salary: "Salary",
+    tab_overtime: "Overtime",
+    settings_aria: "Settings",
+    sync_aria: "Cloud sync status",
+    sync_title_short: "Cloud sync",
+    prev_year: "Previous year",
+    next_year: "Next year",
+    prev_month: "Previous month",
+    next_month: "Next month",
+    prev_week: "Previous week",
+    next_week: "Next week",
+
+    // Pay items (COMPONENTS keys)
+    comp_salary: "Salary",
+    comp_salary13: "13th month pay",
+    comp_salary14: "14th month pay",
+    comp_salary15: "15th month pay",
+    comp_welfare: "Welfare",
+    comp_ticket: "Meal vouchers",
+    comp_fringe: "Fringe benefits",
+    comp_bonus: "Bonus",
+    comp_refund: "Expense refund",
+    comp_overtime: "Overtime",
+
+    // Month status pill
+    status_not_due: "not due",
+    status_all_received: "all received",
+    status_short: "missing {amount}",
+    status_owed: "owed {amount}",
+    status_upcoming: "upcoming",
+    status_pending: "pending",
+
+    // Salary page
+    empty_aria: "Create my profile",
+    empty_title_html: '<span class="empty-greet">Hi,</span><br/>let\'s start counting.',
+    empty_text: "Tap here (or press Enter) to enter your numbers. You'll see right away what you've received and what you're still owed.",
+    empty_cta: "+ Create my profile",
+    hero_missing_month: "Amount you were owed by {month} {year} that hasn't arrived yet.",
+    hero_missing_year: "Amount you were owed by the end of {year} that hasn't arrived yet.",
+    hero_all_good: "All in order. You've received every last cent you were owed.",
+    hero_setup: "Set up your numbers in the settings, then mark the months below.",
+    stat_received: "Received",
+    stat_expected: "Expected {year}",
+    stat_missing: "Missing",
+    year_title: "The year",
+    legend_received: "received",
+    legend_missing: "to receive",
+    legend_not_due: "not due",
+    recap_title: "Summary by item · {year}",
+    recap_detail: "Received {received} of {expected}",
+    help_html: '<strong>How it works.</strong> For each item press <span class="pip-ok"></span> if you received it, <span class="pip-miss"></span> if it was due but hasn\'t arrived yet, <span class="pip-na"></span> if it isn\'t due that month. Meal vouchers are worked out automatically from Italian working days: tap the number to override it (holidays, sick leave, remote work). For bonuses and refunds, enter the amount expected that month.',
+    state_received: "Received",
+    state_missing: "Missing",
+    state_not_due: "Not due",
+    state_group_aria: "{item} status",
+    fringe_paid_in: "paid in {month}",
+    ticket_detail: "{amount} × {input} days",
+    overtime_detail: "{gross}h worked · {input} h × €{rate}",
+
+    // Overtime page
+    ore_no_profile: "Create a profile first to log your hours.",
+    ore_hero_owed: "Overtime earned through {month} {year}, not paid yet.",
+    ore_hero_ok: "All overtime marked as received. Everything's in order.",
+    ore_hero_empty: "Add your overtime and it will show up here.",
+    stat_this_week: "This week",
+    stat_ot_year: "Overtime {year}",
+    view_days: "Days",
+    view_weeks: "Weeks",
+    view_months: "Months",
+    view_years: "Years",
+    add_entry: "Add entry",
+    no_years: "No years with logged entries yet.",
+    k_worked: "Worked",
+    k_to_pay: "To be paid",
+    k_pto: "Holiday",
+    k_amount: "Amount",
+    omc_worked: "worked",
+    omc_overtime: "overtime",
+    omc_pto_one: "holiday day",
+    omc_pto_other: "holiday days",
+    no_weeks: "No weeks with entries in {year}.",
+    week_n: "Week {n}",
+    back_months: "‹ Months",
+    back_days: "‹ Days",
+    cal_hours_worked: "Hours worked",
+    cal_std_days_note: "(days off at {h} h)",
+    cal_ot_calc: "Calculated overtime",
+    cal_hours_to_pay_html: "Hours to pay <small>(override)</small>",
+    no_days_html: 'No days with entries yet.<br/>Tap "+" to add one.',
+    dd_no_entries: "No entries logged.",
+    dd_add_here: "+ Add an entry here",
+    dd_add_another: "+ Add another entry",
+    dd_pto_day: "Holiday",
+    dd_holiday_day: "Public holiday",
+    dd_break: " · break {p}",
+    badge_holiday: "public holiday",
+    badge_pto: "holiday",
+    badge_not_ot: "not overtime",
+    ore_import_invalid: "This file isn't a valid hours CSV.\n\n{msg}",
+
+    // Overtime entry form
+    ot_new: "New entry",
+    ot_edit: "Edit entry",
+    date_label: "Date",
+    day_kind_label: "Day type",
+    kind_work: "Work",
+    kind_pto: "Holiday",
+    kind_holiday: "Public holiday",
+    start_time: "Start time",
+    end_time: "End time",
+    break_optional: "Break (optional)",
+    dec_hours: "Decrease hours",
+    inc_hours: "Increase hours",
+    dec_minutes: "Decrease minutes",
+    inc_minutes: "Increase minutes",
+    note_optional: "Note (optional)",
+    note_placeholder: "e.g. business trip to Milan",
+    not_ot_label: "Don't count as overtime",
+    not_ot_hint: "The hours stay logged as worked, but don't count towards the month's overtime.",
+    save_entry: "Save entry",
+    hint_pto: "No times: it counts as {h} hours within the weekly threshold, because your salary pays for it anyway. Extra hours on the other days are still overtime. It's blue in the calendar.",
+    hint_holiday: "No times: it counts as a normal {h}-hour working day towards the weekly threshold. It's gold in the calendar.",
+    prev_holiday: "Public holiday: counts as {h} hours worked.",
+    prev_pto_nonworkday: "This isn't one of your working days: holidays can only be logged on days you work.",
+    prev_pto: "Holiday: counts as {h} hours.",
+    prev_duration: "Duration: {h} h",
+    prev_empty: "Enter start and end times to see the duration.",
+    err_no_date: "The date is missing",
+    err_pto_nonworkday: "{day} isn't one of your working days.\n\nHolidays can only be logged on days you work: you can change your working days in the settings, Overtime section.",
+    err_no_times: "Enter start and end times",
+    err_bad_times: "Invalid times",
+    err_event_end: "The end time must be after the start time.\n\nEntries across midnight aren't supported: log two separate entries.",
+    toast_entry_saved: "Entry saved",
+    confirm_delete_entry: "Delete this entry?",
+    toast_entry_deleted: "Entry deleted",
+
+    // Settings sheet
+    settings_title: "Your numbers",
+    name_label: "Your name",
+    name_placeholder: "your name",
+    sec_salary: "Salary",
+    sec_overtime: "Overtime",
+    sec_system: "System",
+    salary_label: "Monthly salary (€)",
+    mensilita_label: "Payments per year",
+    set_mensilita_hint: "13th in December, 14th in June, 15th in July.",
+    set_welfare_label: "Monthly welfare (€)",
+    set_ticket_label: "Meal voucher (€/day)",
+    set_fringe_label: "Yearly fringe (€)",
+    set_fringe_month_label: "Fringe month",
+    set_zero_hint: "Set welfare, meal vouchers and fringe to 0 if you don't have them: those items won't appear in the months.",
+    set_bonus_label: "Standard bonus (€)",
+    set_bonus_hint: "Used when you mark a bonus as expected without an amount.",
+    payday_label: "Payday",
+    set_payday_hint: "Day of the month your salary arrives (1-28).",
+    paymonth_label: "Pay month",
+    paymonth_same: "Same month",
+    paymonth_next: "Following month",
+    set_paymonth_hint: "If you're paid in arrears, May's salary arrives in June.",
+    workdays_label: "Working days",
+    set_workdays_hint: "Hours outside these days (e.g. weekends) are 100% overtime, with no allowance.",
+    set_contract_label: "Contract hours (h/week)",
+    set_contract_hint: "Contract hours are covered by your salary.",
+    set_forfait_label: "CCNL allowance (h/week)",
+    set_forfait_hint: "Extra hours beyond the contract that your salary still covers.",
+    set_rate_label: "Overtime rate (€/h)",
+    set_rate_hint: "Hours above (contract + allowance) per week count as overtime paid at this rate.",
+    set_start_label: "Usual start time",
+    set_end_label: "Usual end time",
+    set_break_label: "Default break (minutes)",
+    set_break_hint: "Every new entry starts with these hours and this break; on days that differ, change them in the entry. Leave start and end empty if your hours change every day.",
+    btn_reset: "Reset data",
+    err_usual_end: "The usual end time must be after the start time.",
+    toast_settings_saved: "Settings saved",
+    reset_msg: "This deletes all months, settings and overtime. It can't be undone.",
+    reset_title: "Reset all data?",
+    reset_ok: "Reset",
+    toast_data_reset: "Data reset",
+
+    // First-run wizard
+    wz_title_nome: "Let's start with you",
+    wz_title_stipendio: "Your salary",
+    wz_title_welfare: "Welfare and meal vouchers",
+    wz_title_fringe: "Fringe benefits",
+    wz_title_ore: "Your hours",
+    wz_title_straordinari: "Overtime",
+    wz_title_orario: "Your schedule",
+    wz_title_riepilogo: "All set",
+    wz_intro_nome: "A few quick questions to set up the app, one step at a time. You can change everything later in the settings.",
+    wz_intro_stipendio: "How much you get each month, how many monthly payments you have a year and when you're paid.",
+    wz_intro_welfare: "If you don't have them, answer no: those items won't appear in the months.",
+    wz_intro_fringe: "Fringe benefits usually arrive once a year, in a specific month.",
+    wz_intro_ore: "The app can count the hours you work and work out the overtime you haven't been paid for.",
+    wz_intro_straordinari: "Beyond your contract hours, plus any allowance, every hour counts as overtime.",
+    wz_intro_orario: "The hours you usually work: every day you add starts with them, and you change them only when needed.",
+    wz_intro_riepilogo: "Check your answers before you start. Tap a row to change it.",
+    ph_zero_amount: "0.00",
+    wz_mensilita_hint: "13th in December, 14th in June, 15th in July.",
+    wz_payday_hint: "The day of the month it arrives (1-28).",
+    wz_paymonth_hint: "If you're paid in arrears, May's salary arrives in June.",
+    wz_q_welfare: "Do you get company welfare?",
+    wz_welfare_label: "Welfare per month (€)",
+    ph_welfare: "e.g. 400",
+    wz_q_ticket: "Do you get meal vouchers?",
+    wz_ticket_label: "Value of one voucher (€ per day worked)",
+    ph_ticket: "e.g. 8",
+    wz_ticket_hint: "The app multiplies it by the working days of each month for you.",
+    wz_q_fringe: "Do you get fringe benefits?",
+    wz_fringe_label: "Yearly amount (€)",
+    ph_fringe: "e.g. 1000",
+    wz_fringe_month_label: "Month it arrives",
+    wz_q_overtime: "Do you want to track your hours?",
+    wz_workdays_hint: "Hours worked outside these days (e.g. at weekends) all count as overtime.",
+    wz_contract_label: "Contract hours per week",
+    wz_contract_hint: "The hours your salary already pays for.",
+    wz_forfait_label: "CCNL overtime allowance (h/week)",
+    wz_forfait_hint: "Extra hours your salary already covers. Leave 0 if you don't have one.",
+    wz_rate_label: "Overtime rate (€/h)",
+    wz_rate_hint: "If you don't know it, leave 0: you'll see the hours, without the amount in euros.",
+    wz_break_label: "Break (minutes)",
+    wz_break_hint: "If your hours change every day, leave start and end empty.",
+    wz_count: "Step {i} of {n}",
+    wz_create: "Create my profile",
+    wz_back_summary: "Back to summary",
+    wz_err_name: "Enter your name to continue",
+    wz_err_welfare: "Enter the welfare amount, or answer no",
+    wz_err_ticket: "Enter the meal voucher value, or answer no",
+    wz_err_fringe: "Enter the fringe amount, or answer no",
+    wz_err_workdays: "Pick at least one working day",
+    wz_err_end: "The end time must be after the start time",
+    sum_name: "Name",
+    sum_salary: "Salary",
+    sum_salary_val: "{amount} × {n} payments",
+    sum_payment: "Payday",
+    sum_pay_next: "the {day} of the following month",
+    sum_pay_same: "the {day} of the same month",
+    sum_welfare: "Welfare",
+    sum_per_month: "{amount} a month",
+    sum_ticket: "Meal vouchers",
+    sum_per_day: "{amount} a day",
+    sum_fringe: "Fringe benefits",
+    sum_fringe_val: "{amount} in {month}",
+    sum_hours: "Hours",
+    sum_hours_val: "{days} · {h} h a week",
+    sum_overtime: "Overtime",
+    sum_allowance: "allowance {h} h · ",
+    sum_per_hour: "{amount} an hour",
+    sum_hours_only: "hours only",
+    sum_schedule: "Schedule",
+    sum_not_set: "not set",
+    sum_break: "break {n} min",
+    sum_hours_ot: "Hours and overtime",
+    sum_no: "no",
+    toast_name_missing: "The name is missing",
+    toast_profile_created: "Profile created",
+
+    // CSV backup
+    backup_title: "CSV backup",
+    btn_export: "⬇ Export",
+    btn_import: "⬆ Import",
+    backup_help: "Export a CSV with every profile and every year. Import it to restore a backup (it replaces the current data). If you use cloud sync (above), the CSV backup is just an extra safety net.",
+    backup_stats_one: "{n} profile · updated {date}",
+    backup_stats_other: "{n} profiles · updated {date}",
+    export_title: "Export backup",
+    export_msg: "Which CSV do you want to download?",
+    import_choice_title: "Import backup",
+    import_choice_msg: "What kind of CSV are you loading?",
+    csv_kind_full: "Salary (full)",
+    csv_kind_hours: "Worked hours only",
+    toast_file_downloaded: "File downloaded: check your Downloads folder",
+    no_entries_to_export: "No entries to export.",
+    toast_hours_downloaded: "Hours downloaded",
+    download_failed: "Couldn't download the file: {msg}",
+    csv_invalid: "This file isn't a valid CSV backup.\n\n{msg}",
+    data_unreadable: "Unreadable data",
+    settings_section_missing: "The SETTINGS section is missing",
+    import_confirm: "Incoming profiles: {n}.\n\nThe current data in this browser will be replaced. If in doubt, export a backup first.",
+    import_title: "Import data {source}?",
+    toast_imported_profiles_one: "Imported {n} profile",
+    toast_imported_profiles_other: "Imported {n} profiles",
+    ore_import_confirm: "Incoming entries: {n}.\nCurrent entries: {existing}.\n\nThe overtime of profile \"{name}\" will be replaced.",
+    ore_import_title: "Import hours {source}?",
+    toast_imported_entries_one: "Imported {n} entry",
+    toast_imported_entries_other: "Imported {n} entries",
+    num_invalid: 'Invalid number: "{v}"',
+    csv_unknown_section: 'Unknown section on line {line}: "{text}"',
+    csv_outside_section: "Data outside any section on line {line}",
+    csv_bad_header: "Wrong {section} section header on line {line}.\nExpected: {expected}\nFound: {found}",
+    csv_col_count: "Wrong number of columns on line {line}: {found} instead of {expected}",
+    csv_no_name: "Profile without a name in the {section} section on line {line}",
+    csv_bad_time_settings: 'Invalid time in SETTINGS on line {line} (column {col}): "{v}"',
+    csv_bad_year: 'Invalid year on line {line}: "{v}"',
+    csv_bad_month: 'Invalid month on line {line}: "{v}"',
+    csv_bad_state: 'Invalid state "{v}" on line {line} (column {col}). Use ricevuto / mancante / non_atteso.',
+    csv_bad_date: 'Invalid date on line {line}: "{v}" (format YYYY-MM-DD)',
+    csv_bad_start: 'Invalid start time on line {line}: "{v}"',
+    csv_bad_end: 'Invalid end time on line {line}: "{v}"',
+    csv_no_profiles: "The file has no profiles in the SETTINGS section",
+    csv_orphan: 'Profile "{name}" has rows in {section} but is missing from SETTINGS',
+    ore_csv_empty: "The file is empty.",
+    ore_csv_bad_header: "Wrong header.\nExpected: {expected}\nFound: {found}",
+    ore_csv_col_count: "Line {line}: {found} columns instead of {expected}",
+    ore_csv_bad_date: 'Line {line}: invalid date "{v}"',
+    ore_csv_bad_start: 'Line {line}: invalid start time "{v}"',
+    ore_csv_bad_end: 'Line {line}: invalid end time "{v}"',
+
+    // Cloud sync
+    sync_sheet_title: "Set up cloud sync",
+    sync_sheet_intro_html: "Sync uses a <strong>private GitHub gist</strong> to store your data. Nothing you enter here leaves your GitHub account.",
+    sync_step1_html: 'Open <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Where%20is%20my%20Salary" target="_blank" rel="noopener">this link</a>: it is the GitHub page to create a classic Personal Access Token, already set to the <code>gist</code> scope (the only one needed).',
+    sync_step2_html: "Set an expiration (1 year is a good choice) and press <strong>Generate token</strong> at the bottom.",
+    sync_step3_html: "Copy the token (it starts with <code>ghp_</code>) and paste it below.",
+    sync_pat_hint_html: 'The token is saved only in this device\'s <code>localStorage</code>. To turn sync off, press "Disconnect" (or revoke the token on GitHub).',
+    sync_connect: "Connect this device",
+    sync_sheet_note: "If you already use sync on another device, the same token connects them all: the app finds the existing gist and downloads the data.",
+    sync_block_title: "Sync across devices",
+    sync_pill_off: "off",
+    sync_pill_idle: "on",
+    sync_pill_syncing: "syncing…",
+    sync_pill_error: "error",
+    sync_tip_off: "Cloud sync off",
+    sync_tip_idle: "Sync on · last: {time}",
+    sync_tip_syncing: "Syncing…",
+    sync_tip_error: "Sync error: {msg}",
+    unknown: "unknown",
+    gh_no_token: "Token not set",
+    gh_401: "Token rejected (401). Check that it has the 'gist' scope and hasn't expired.",
+    gh_403: "Access denied (403). The scope is probably missing.",
+    gh_empty_token: "Empty token.",
+    gist_invalid: "The gist doesn't contain valid data.",
+    toast_cloud_updated: "Updated from the cloud",
+    disconnect: "Disconnect",
+    disconnect_msg: "Your data stays in this browser but won't be synced with the cloud any more. The gist on GitHub isn't deleted (you can delete it yourself on GitHub).",
+    disconnect_title: "Disconnect cloud sync?",
+    toast_sync_disconnected: "Sync disconnected",
+    sync_off_info_html: "Your data stays in this device's browser. To have the same data on your phone too (and the other way round), connect a private GitHub gist as shared storage. <strong>Free</strong>, no new services: all you need is a Personal Access Token.",
+    sync_configure_btn: "Set up sync with GitHub",
+    never: "never",
+    sync_connected_html: "Connected as <code>{user}</code> · gist <code>{gist}</code><br/>\n      Last sync: <strong>{last}</strong>",
+    sync_now: "↻ Sync now",
+    toast_synced: "Synced",
+    paste_token_first: "Paste the token first",
+    checking: "Checking…",
+    toast_sync_on: "Sync on",
+    connect_failed: "Couldn't connect:\n{msg}",
+    unknown_error: "Unknown error",
+    sync_error_title: "Cloud sync error",
+
+    // Taglines under the hero, one picked per page load. {payDay} and
+    // {ticket} come from the profile (see interpolateTagline).
+    taglines_ore: [
+      "You can't get the hours back. The money, you can.",
+      "Lots of hours worked. You count them: your employer counts differently.",
+      "Time is money. Especially when nobody pays you for it.",
+      "This weekend too, huh. Well done. Odd.",
+      "Clocking off at 5:30 is a myth your contract made up.",
+      "Hours in surplus, pay in deficit.",
+      "You did the overtime. Now be your own union rep.",
+      "Count your hours before someone else does it for you.",
+      "Extra hours don't keep dinner warm.",
+      "You're not overdoing it. Your payslip is underdoing it.",
+      "Tomorrow you leave at 6. Promise. Maybe.",
+      "The more hours you work, the less time you have to ask why.",
+      "An extra hour here is an hour less somewhere else. At least make peace with the numbers.",
+      "If you count the minutes, you're a professional.",
+      "Salary gets paid at the end of the month. Hours get paid from memory: yours.",
+      "You're building the future. They'll pay you in the past.",
+      "Extra hours are like Christmas presents: nobody expects them, everybody keeps them.",
+      "You gave 110% again today. Tomorrow you'll see what's left of the 100.",
+      "One more hour? To the boss, that's one hour too many to pay you for.",
+      "Extra hours are an investment. In your boss, not in you.",
+      "They call you flexible because \"exploited\" doesn't look good in an email.",
+      "There are two kinds of colleagues: those who leave on time and those who read this app.",
+      "Work harder and everything will work out. (Spoiler: for someone who isn't you.)",
+      "Coffee breaks aren't paid. Neither are you, apparently.",
+      "The sun has already gone down. You haven't.",
+      "Five extra minutes are nothing. Thirty extra minutes are last month.",
+      "Your hours aren't your CV. But they're definitely your evening.",
+      "Are they doing a favour? They are. To themselves.",
+      "The hours nobody writes down are the ones that weigh the most.",
+      "To the boss you're a resource. To the budget, a cost. To you, an hour less with someone.",
+    ],
+    taglines_salary: [
+      "The {payDay} isn't a date. It's a promise.",
+      "Salary arrived? Good. Check again.",
+      "It's not what you earn. It's what they should be paying you.",
+      "Patience is a virtue. Your IBAN, not so much.",
+      "Count the days. Then the missing ones.",
+      "The boss has a short memory. Luckily, you have this app.",
+      "Waiting for payday is the one thing everyone does consistently.",
+      "You have the right to dream. And to a {ticket} meal voucher.",
+      "The longer you wait, the more it feels like a matter of principle. It's maths.",
+      "You work to live. Living to work was something else.",
+      "Every missing euro is a story to tell someone.",
+      "A good payslip is half the job. The other half is remembering it.",
+      "The sums get done at the end. Even if the app does them on the {payDay}.",
+      "It's not little. It's what there is. That's different.",
+      "Welfare isn't optional. Fringe benefits are, sort of.",
+      "Between saying and paying, there's a whole month.",
+      "Some people count sheep to fall asleep. You count the days to the {payDay}.",
+      "Waiting for your salary is like waiting for spring: it's late, but it comes.",
+      "Your salary is the only thing that makes you happy late.",
+      "Your salary is the first lie they tell you and the last one you believe.",
+      "How much do you earn? Exactly what you need, minus one thing.",
+      "They pay little because they think love for the job is enough. Try paying the rent with love.",
+      "Your salary is a whisper. Your bills are a megaphone.",
+      "If you feel rich on the {payDay}, you have a problem. If you feel poor on the 5th, you have two.",
+      "Every month starts again from zero. So does your bank account.",
+      "Net pay is what's left after the taxman has had his hands in your pockets.",
+      "Pay rise: two words, two lies.",
+      "The good old days, when the only problem was the vending machine coffee.",
+      "Fringe benefits are a present you buy with money you already had.",
+      "The 13th month pay is also known as \"getting back what they took during the year\".",
+    ],
+  },
+
+  it: {
+    // General
+    cancel: "Annulla",
+    confirm: "Conferma",
+    ok: "OK",
+    heads_up: "Attenzione",
+    choose: "Scegli",
+    close: "Chiudi",
+    save: "Salva",
+    delete: "Elimina",
+    back: "Indietro",
+    next: "Avanti",
+    yes: "Sì",
+    no: "No",
+    replace: "Sostituisci",
+    error_prefix: "Errore: {msg}",
+    lang_label: "Lingua / Language",
+    today: "oggi",
+    signature: "contato a mano",
+    from_file: 'dal file "{name}"',
+    file_read_error: "Impossibile leggere il file.",
+    create_profile_first: "Crea prima un profilo.",
+
+    // Calendar words
+    months: ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"],
+    months_text: ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"],
+    weekdays_short: ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"],
+    weekdays_initial: ["L","M","M","G","V","S","D"],
+    weekdays_text: ["lun","mar","mer","gio","ven","sab","dom"],
+    weekdays_long: ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"],
+    date_long: "{weekday} {d} {month} {y}",
+    days_one: "{n} giorno",
+    days_other: "{n} giorni",
+
+    // Greetings, by time of day
+    greet_night: "buona notte",
+    greet_morning: "buongiorno",
+    greet_afternoon: "buon pomeriggio",
+    greet_evening: "buonasera",
+
+    // Top bar, tab bar, pickers
+    tabs_aria: "Sezioni",
+    tab_salary: "Salary",
+    tab_overtime: "Overtime",
+    settings_aria: "Impostazioni",
+    sync_aria: "Stato sync cloud",
+    sync_title_short: "Sync cloud",
+    prev_year: "Anno precedente",
+    next_year: "Anno successivo",
+    prev_month: "Mese precedente",
+    next_month: "Mese successivo",
+    prev_week: "Settimana precedente",
+    next_week: "Settimana successiva",
+
+    // Pay items (COMPONENTS keys)
+    comp_salary: "Stipendio",
+    comp_salary13: "Tredicesima",
+    comp_salary14: "Quattordicesima",
+    comp_salary15: "Quindicesima",
+    comp_welfare: "Welfare",
+    comp_ticket: "Buoni pasto",
+    comp_fringe: "Fringe benefit",
+    comp_bonus: "Bonus",
+    comp_refund: "Rimborso spese",
+    comp_overtime: "Straordinari",
+
+    // Month status pill
+    status_not_due: "non spettava",
+    status_all_received: "tutto incassato",
+    status_short: "manca {amount}",
+    status_owed: "da ricevere {amount}",
+    status_upcoming: "in arrivo",
+    status_pending: "in attesa",
+
+    // Salary page
+    empty_aria: "Crea il mio profilo",
+    empty_title_html: '<span class="empty-greet">Ciao,</span><br/>iniziamo a contare.',
+    empty_text: "Tocca qui (o premi Invio) per inserire le tue cifre. Da subito vedrai cosa hai ricevuto e cosa ancora ti spetta.",
+    empty_cta: "+ Crea il mio profilo",
+    hero_missing_month: "Importo che ti spettava entro {month} {year}, ma che non è ancora arrivato.",
+    hero_missing_year: "Importo che ti spettava entro fine anno {year}, ma che non è ancora arrivato.",
+    hero_all_good: "Tutto in ordine. Hai ricevuto fino all'ultimo centesimo che ti spettava.",
+    hero_setup: "Configura le tue cifre dalle impostazioni e poi marca i mesi qui sotto.",
+    stat_received: "Incassato",
+    stat_expected: "Atteso {year}",
+    stat_missing: "Mancante",
+    year_title: "L'anno",
+    legend_received: "ricevuto",
+    legend_missing: "da ricevere",
+    legend_not_due: "non spetta",
+    recap_title: "Riepilogo per voce — {year}",
+    recap_detail: "Ricevuto {received} di {expected}",
+    help_html: '<strong>Come funziona.</strong> Per ogni voce premi <span class="pip-ok"></span> se l\'hai ricevuta, <span class="pip-miss"></span> se ti spettava ma non è ancora arrivata, <span class="pip-na"></span> se quel mese non ti spetta. I buoni pasto si calcolano in automatico sui giorni lavorativi italiani — tocca il numero per sovrascriverlo (ferie, malattia, smart working). Per bonus e rimborsi inserisci l\'importo previsto del mese.',
+    state_received: "Ricevuto",
+    state_missing: "Mancante",
+    state_not_due: "Non spettato",
+    state_group_aria: "Stato {item}",
+    fringe_paid_in: "pagato a {month}",
+    ticket_detail: "{amount} × {input} giorni",
+    overtime_detail: "{gross}h lavorate · {input} h × {rate}€",
+
+    // Overtime page
+    ore_no_profile: "Crea prima un profilo per registrare le ore.",
+    ore_hero_owed: "Straordinari maturati entro {month} {year}, ancora da incassare.",
+    ore_hero_ok: "Tutti gli straordinari segnati come ricevuti. Tutto in ordine.",
+    ore_hero_empty: "Aggiungi i tuoi straordinari — appariranno qui.",
+    stat_this_week: "Settimana corrente",
+    stat_ot_year: "Straord. {year}",
+    view_days: "Giorni",
+    view_weeks: "Settimane",
+    view_months: "Mesi",
+    view_years: "Anni",
+    add_entry: "Aggiungi evento",
+    no_years: "Nessun anno con eventi registrati.",
+    k_worked: "Lavorate",
+    k_to_pay: "Da pagare",
+    k_pto: "Ferie",
+    k_amount: "Importo",
+    omc_worked: "lavorate",
+    omc_overtime: "straordinari",
+    omc_pto_one: "giorno di ferie",
+    omc_pto_other: "giorni di ferie",
+    no_weeks: "Nessuna settimana con eventi in {year}.",
+    week_n: "Settimana {n}",
+    back_months: "‹ Mesi",
+    back_days: "‹ Giorni",
+    cal_hours_worked: "Ore lavorate",
+    cal_std_days_note: "(ferie e festivi a {h} h)",
+    cal_ot_calc: "Straordinari calcolati",
+    cal_hours_to_pay_html: "Ore da pagare <small>(override)</small>",
+    no_days_html: 'Nessun giorno con eventi.<br/>Tocca "+ Aggiungi evento" per inserirne uno.',
+    dd_no_entries: "Nessun evento registrato.",
+    dd_add_here: "+ Aggiungi evento qui",
+    dd_add_another: "+ Aggiungi un altro evento",
+    dd_pto_day: "Giornata di ferie",
+    dd_holiday_day: "Giornata festiva",
+    dd_break: " · pausa {p}",
+    badge_holiday: "festivo",
+    badge_pto: "ferie",
+    badge_not_ot: "non strord.",
+    ore_import_invalid: "Il file non è un CSV ore valido.\n\n{msg}",
+
+    // Overtime entry form
+    ot_new: "Nuovo evento",
+    ot_edit: "Modifica evento",
+    date_label: "Data",
+    day_kind_label: "Tipo di giornata",
+    kind_work: "Lavoro",
+    kind_pto: "Ferie",
+    kind_holiday: "Festivo",
+    start_time: "Ora inizio",
+    end_time: "Ora fine",
+    break_optional: "Pausa (opzionale)",
+    dec_hours: "Diminuisci ore",
+    inc_hours: "Aumenta ore",
+    dec_minutes: "Diminuisci minuti",
+    inc_minutes: "Aumenta minuti",
+    note_optional: "Nota (opzionale)",
+    note_placeholder: "es. trasferta Milano",
+    not_ot_label: "Non contare come straordinario",
+    not_ot_hint: "Le ore restano registrate come lavorate, ma non confluiscono nel totale straordinari del mese.",
+    save_entry: "Salva evento",
+    hint_pto: "Niente orari: vale {h} ore dentro la soglia settimanale, perché lo stipendio te la paga comunque. Le ore in più degli altri giorni restano straordinari. Nel calendario è blu.",
+    hint_holiday: "Niente orari: conta come una normale giornata lavorativa di {h} ore verso la soglia settimanale. Nel calendario è oro.",
+    prev_holiday: "Giornata festiva: conta come {h} ore lavorate.",
+    prev_pto_nonworkday: "Questo giorno non è tra i tuoi giorni lavorativi: le ferie si segnano solo nei giorni in cui lavori.",
+    prev_pto: "Giornata di ferie: conta come {h} ore.",
+    prev_duration: "Durata: {h} h",
+    prev_empty: "Inserisci ora inizio e fine per vedere la durata.",
+    err_no_date: "Manca la data",
+    err_pto_nonworkday: "{day} non è tra i tuoi giorni lavorativi.\n\nLe ferie si segnano solo nei giorni in cui lavori: i giorni lavorativi si cambiano nelle impostazioni, sezione Overtime.",
+    err_no_times: "Inserisci ora di inizio e fine",
+    err_bad_times: "Orari non validi",
+    err_event_end: "L'ora di fine deve essere dopo l'ora di inizio.\n\nGli eventi a cavallo della mezzanotte non sono supportati: registra due eventi separati.",
+    toast_entry_saved: "Evento salvato",
+    confirm_delete_entry: "Eliminare questo evento?",
+    toast_entry_deleted: "Evento eliminato",
+
+    // Settings sheet
+    settings_title: "Le tue cifre",
+    name_label: "Come ti chiami",
+    name_placeholder: "il tuo nome",
+    sec_salary: "Salary",
+    sec_overtime: "Overtime",
+    sec_system: "Sistema",
+    salary_label: "Stipendio mensile (€)",
+    mensilita_label: "Mensilità annue",
+    set_mensilita_hint: "13a a dicembre, 14a a giugno, 15a a luglio.",
+    set_welfare_label: "Welfare mensile (€)",
+    set_ticket_label: "Ticket per giorno (€)",
+    set_fringe_label: "Fringe annuale (€)",
+    set_fringe_month_label: "Mese del fringe",
+    set_zero_hint: "Welfare, ticket e fringe a 0 se non li hai: quelle voci non compaiono nei mesi.",
+    set_bonus_label: "Bonus standard (€)",
+    set_bonus_hint: "Si applica se segni un bonus come atteso senza specificarne l'importo.",
+    payday_label: "Giorno di pagamento",
+    set_payday_hint: "Giorno del mese in cui arriva lo stipendio (1–28).",
+    paymonth_label: "Mese di pagamento",
+    paymonth_same: "Stesso mese",
+    paymonth_next: "Mese successivo",
+    set_paymonth_hint: "Per presenze sfalsate, lo stipendio di maggio arriva a giugno.",
+    workdays_label: "Giorni lavorativi",
+    set_workdays_hint: "Ore fuori da questi giorni (es. weekend) sono 100% straordinario, senza forfait.",
+    set_contract_label: "Ore contratto (h/settimana)",
+    set_contract_hint: "Le ore da contratto sono coperte dallo stipendio.",
+    set_forfait_label: "Forfait straord. (h/settimana)",
+    set_forfait_hint: "Ore in più oltre il contratto, comunque coperte dallo stipendio.",
+    set_rate_label: "Tariffa straord. (€/h)",
+    set_rate_hint: "Sopra le (contratto + forfait) ore settimanali contano come straordinari pagati a questa tariffa.",
+    set_start_label: "Ora inizio abituale",
+    set_end_label: "Ora fine abituale",
+    set_break_label: "Pausa predefinita (minuti)",
+    set_break_hint: "Orario e pausa sono già impostati in ogni nuovo evento; se un giorno sono diversi li cambi lì. Lascia vuoti inizio e fine se il tuo orario cambia ogni giorno.",
+    btn_reset: "Azzera dati",
+    err_usual_end: "L'ora di fine abituale deve essere dopo l'ora di inizio.",
+    toast_settings_saved: "Impostazioni salvate",
+    reset_msg: "Verranno cancellati tutti i mesi, le impostazioni e gli straordinari. Questa azione non è reversibile.",
+    reset_title: "Azzerare i dati?",
+    reset_ok: "Azzera",
+    toast_data_reset: "Dati azzerati",
+
+    // First-run wizard
+    wz_title_nome: "Iniziamo da te",
+    wz_title_stipendio: "Lo stipendio",
+    wz_title_welfare: "Welfare e buoni pasto",
+    wz_title_fringe: "Fringe benefit",
+    wz_title_ore: "Le tue ore",
+    wz_title_straordinari: "Gli straordinari",
+    wz_title_orario: "Il tuo orario",
+    wz_title_riepilogo: "Tutto pronto",
+    wz_intro_nome: "Qualche domanda veloce per preparare l'app, un passo alla volta. Tutto si può cambiare dopo dalle impostazioni.",
+    wz_intro_stipendio: "Quanto ti arriva ogni mese, quante mensilità hai all'anno e quando ti pagano.",
+    wz_intro_welfare: "Se non li hai, rispondi no: quelle voci non compariranno nei mesi.",
+    wz_intro_fringe: "Il fringe benefit di solito arriva una volta l'anno, in un mese preciso.",
+    wz_intro_ore: "L'app può contare le ore che lavori e calcolare gli straordinari che non ti sono stati pagati.",
+    wz_intro_straordinari: "Oltre le ore da contratto, più l'eventuale forfait, ogni ora conta come straordinario.",
+    wz_intro_orario: "L'orario che fai di solito: lo trovi già impostato ogni volta che aggiungi un giorno, e lo cambi solo quando serve.",
+    wz_intro_riepilogo: "Controlla i dati prima di iniziare. Tocca una riga per cambiarla.",
+    ph_zero_amount: "0,00",
+    wz_mensilita_hint: "13ª a dicembre, 14ª a giugno, 15ª a luglio.",
+    wz_payday_hint: "Il giorno del mese in cui arriva (1-28).",
+    wz_paymonth_hint: "Con le presenze sfalsate lo stipendio di maggio arriva a giugno.",
+    wz_q_welfare: "Hai un welfare aziendale?",
+    wz_welfare_label: "Welfare al mese (€)",
+    ph_welfare: "es. 400",
+    wz_q_ticket: "Ricevi i buoni pasto?",
+    wz_ticket_label: "Valore di un buono (€ per giorno lavorato)",
+    ph_ticket: "es. 8",
+    wz_ticket_hint: "L'app li moltiplica da sola per i giorni lavorativi del mese.",
+    wz_q_fringe: "Hai un fringe benefit?",
+    wz_fringe_label: "Importo annuale (€)",
+    ph_fringe: "es. 1000",
+    wz_fringe_month_label: "Mese in cui arriva",
+    wz_q_overtime: "Vuoi tenere traccia delle ore?",
+    wz_workdays_hint: "Le ore fatte fuori da questi giorni (es. nel weekend) contano tutte come straordinario.",
+    wz_contract_label: "Ore da contratto a settimana",
+    wz_contract_hint: "Le ore già pagate dallo stipendio.",
+    wz_forfait_label: "Forfait straordinari (h/settimana)",
+    wz_forfait_hint: "Ore in più già coperte dallo stipendio. Lascia 0 se non ce l'hai.",
+    wz_rate_label: "Tariffa straordinario (€/h)",
+    wz_rate_hint: "Se non la sai lascia 0: vedrai le ore, senza l'importo in euro.",
+    wz_break_label: "Pausa (minuti)",
+    wz_break_hint: "Se il tuo orario cambia ogni giorno, lascia vuoti inizio e fine.",
+    wz_count: "Passo {i} di {n}",
+    wz_create: "Crea il mio profilo",
+    wz_back_summary: "Torna al riepilogo",
+    wz_err_name: "Scrivi il tuo nome per continuare",
+    wz_err_welfare: "Inserisci l'importo del welfare, oppure rispondi no",
+    wz_err_ticket: "Inserisci il valore del buono pasto, oppure rispondi no",
+    wz_err_fringe: "Inserisci l'importo del fringe, oppure rispondi no",
+    wz_err_workdays: "Scegli almeno un giorno lavorativo",
+    wz_err_end: "L'ora di fine deve essere dopo l'ora di inizio",
+    sum_name: "Nome",
+    sum_salary: "Stipendio",
+    sum_salary_val: "{amount} × {n} mensilità",
+    sum_payment: "Pagamento",
+    sum_pay_next: "il {day} del mese dopo",
+    sum_pay_same: "il {day} dello stesso mese",
+    sum_welfare: "Welfare",
+    sum_per_month: "{amount} al mese",
+    sum_ticket: "Buoni pasto",
+    sum_per_day: "{amount} al giorno",
+    sum_fringe: "Fringe benefit",
+    sum_fringe_val: "{amount} a {month}",
+    sum_hours: "Ore",
+    sum_hours_val: "{days} · {h} h a settimana",
+    sum_overtime: "Straordinari",
+    sum_allowance: "forfait {h} h · ",
+    sum_per_hour: "{amount} l'ora",
+    sum_hours_only: "solo le ore",
+    sum_schedule: "Orario",
+    sum_not_set: "non impostato",
+    sum_break: "pausa {n} min",
+    sum_hours_ot: "Ore e straordinari",
+    sum_no: "no",
+    toast_name_missing: "Manca il nome",
+    toast_profile_created: "Profilo creato",
+
+    // CSV backup
+    backup_title: "Backup CSV",
+    btn_export: "⬇ Scarica file",
+    btn_import: "⬆ Carica file",
+    backup_help: "Scarica un CSV con tutti i profili e tutti gli anni. Caricalo per ripristinare un backup (sostituisce i dati attuali). Se usi il sync cloud (sopra), il backup CSV ti serve solo come misura extra.",
+    backup_stats_one: "{n} profilo · aggiornato al {date}",
+    backup_stats_other: "{n} profili · aggiornato al {date}",
+    export_title: "Scarica backup",
+    export_msg: "Quale CSV vuoi scaricare?",
+    import_choice_title: "Carica backup",
+    import_choice_msg: "Che tipo di CSV stai caricando?",
+    csv_kind_full: "Stipendio (completo)",
+    csv_kind_hours: "Solo ore lavorate",
+    toast_file_downloaded: "File scaricato — controlla la cartella Download",
+    no_entries_to_export: "Nessun evento da esportare.",
+    toast_hours_downloaded: "Ore scaricate",
+    download_failed: "Impossibile scaricare il file: {msg}",
+    csv_invalid: "Il file non è un backup CSV valido.\n\n{msg}",
+    data_unreadable: "Dati non leggibili",
+    settings_section_missing: "Manca la sezione SETTINGS",
+    import_confirm: "Profili in arrivo: {n}.\n\nI dati attuali nel browser saranno sostituiti. Se hai dubbi, fai prima un backup con \"Scarica file\".",
+    import_title: "Importare i dati {source}?",
+    toast_imported_profiles_one: "Importati {n} profilo",
+    toast_imported_profiles_other: "Importati {n} profili",
+    ore_import_confirm: "Eventi in arrivo: {n}.\nEventi attuali: {existing}.\n\nGli straordinari del profilo \"{name}\" saranno sostituiti.",
+    ore_import_title: "Importare ore {source}?",
+    toast_imported_entries_one: "Importati {n} eventi",
+    toast_imported_entries_other: "Importati {n} eventi",
+    num_invalid: 'Numero non valido: "{v}"',
+    csv_unknown_section: 'Sezione sconosciuta a riga {line}: "{text}"',
+    csv_outside_section: "Dato fuori sezione a riga {line}",
+    csv_bad_header: "Intestazione sezione {section} non corretta a riga {line}.\nAttesa: {expected}\nTrovata: {found}",
+    csv_col_count: "Numero colonne errato a riga {line}: {found} invece di {expected}",
+    csv_no_name: "Profilo senza nome in sezione {section} a riga {line}",
+    csv_bad_time_settings: 'Orario non valido in SETTINGS a riga {line} (colonna {col}): "{v}"',
+    csv_bad_year: 'Anno non valido a riga {line}: "{v}"',
+    csv_bad_month: 'Mese non valido a riga {line}: "{v}"',
+    csv_bad_state: 'Stato "{v}" non valido a riga {line} (colonna {col}). Usa ricevuto / mancante / non_atteso.',
+    csv_bad_date: 'Data non valida a riga {line}: "{v}" (formato YYYY-MM-DD)',
+    csv_bad_start: 'Ora inizio non valida a riga {line}: "{v}"',
+    csv_bad_end: 'Ora fine non valida a riga {line}: "{v}"',
+    csv_no_profiles: "Il file non contiene profili nella sezione SETTINGS",
+    csv_orphan: 'Il profilo "{name}" ha righe in {section} ma manca in SETTINGS',
+    ore_csv_empty: "Il file è vuoto.",
+    ore_csv_bad_header: "Intestazione non corretta.\nAttesa: {expected}\nTrovata: {found}",
+    ore_csv_col_count: "Riga {line}: {found} colonne invece di {expected}",
+    ore_csv_bad_date: 'Riga {line}: data non valida "{v}"',
+    ore_csv_bad_start: 'Riga {line}: ora inizio "{v}" non valida',
+    ore_csv_bad_end: 'Riga {line}: ora fine "{v}" non valida',
+
+    // Cloud sync
+    sync_sheet_title: "Configura sync cloud",
+    sync_sheet_intro_html: "Il sync usa un <strong>gist privato GitHub</strong> come deposito dei tuoi dati. Niente di ciò che inserisci qui esce dal tuo account GitHub.",
+    sync_step1_html: 'Apri <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Where%20is%20my%20Salary" target="_blank" rel="noopener">questo link</a> — è la pagina GitHub per creare un Personal Access Token classico, già pre-compilata con scope <code>gist</code> (l\'unico necessario).',
+    sync_step2_html: "Imposta una scadenza (suggerito: 1 anno) e premi <strong>Generate token</strong> in fondo.",
+    sync_step3_html: "Copia il token (inizia con <code>ghp_</code>) e incollalo qui sotto.",
+    sync_pat_hint_html: 'Il token viene salvato solo nel <code>localStorage</code> di questo dispositivo. Se vuoi disattivare il sync, basta premere "Disconnetti" (o revocare il token da GitHub).',
+    sync_connect: "Collega questo dispositivo",
+    sync_sheet_note: "Se hai già usato il sync su un altro dispositivo, lo stesso token connetterà tutti automaticamente: l'app trova il gist esistente e tira giù i dati.",
+    sync_block_title: "Sync tra dispositivi",
+    sync_pill_off: "spento",
+    sync_pill_idle: "attivo",
+    sync_pill_syncing: "sync…",
+    sync_pill_error: "errore",
+    sync_tip_off: "Sync cloud spento",
+    sync_tip_idle: "Sync attivo · ultimo: {time}",
+    sync_tip_syncing: "Sincronizzazione in corso…",
+    sync_tip_error: "Errore sync: {msg}",
+    unknown: "sconosciuto",
+    gh_no_token: "Token non configurato",
+    gh_401: "Token rifiutato (401). Controlla che abbia scope 'gist' e non sia scaduto.",
+    gh_403: "Accesso negato (403). Probabilmente scope mancante.",
+    gh_empty_token: "Token vuoto.",
+    gist_invalid: "Il gist non contiene dati validi.",
+    toast_cloud_updated: "Aggiornato dal cloud",
+    disconnect: "Disconnetti",
+    disconnect_msg: "I tuoi dati restano nel browser ma non saranno più aggiornati con il cloud. Il gist su GitHub non viene cancellato (puoi farlo manualmente dal sito GitHub).",
+    disconnect_title: "Scollegare il sync cloud?",
+    toast_sync_disconnected: "Sync disconnesso",
+    sync_off_info_html: "I dati restano nel browser di questo dispositivo. Per averli identici anche sul telefono (e viceversa), collega un gist GitHub privato come deposito comune. <strong>Gratis</strong>, niente nuovi servizi: ti serve solo un Personal Access Token.",
+    sync_configure_btn: "Configura sync con GitHub",
+    never: "mai",
+    sync_connected_html: "Connesso come <code>{user}</code> · gist <code>{gist}</code><br/>\n      Ultimo sync: <strong>{last}</strong>",
+    sync_now: "↻ Sincronizza ora",
+    toast_synced: "Sincronizzato",
+    paste_token_first: "Incolla prima il token",
+    checking: "Verifico…",
+    toast_sync_on: "Sync attivato",
+    connect_failed: "Non sono riuscito a collegarmi:\n{msg}",
+    unknown_error: "Errore sconosciuto",
+    sync_error_title: "Errore sync cloud",
+
+    // Taglines under the hero, one picked per page load.
+    taglines_ore: [
+      "Le ore non si recuperano. I soldi sì.",
+      "Lavorate tanto. Conta tu, che il datore conta diverso.",
+      "Il tempo è denaro. Soprattutto quando non te lo pagano.",
+      "Anche questo weekend, eh. Bravo. Strano.",
+      "Le 17:30 sono un'invenzione del CCNL.",
+      "Ore in eccesso, stipendio in difetto.",
+      "Hai fatto gli straordinari. Adesso fai anche il sindacato.",
+      "Contati le ore, prima che lo faccia qualcun altro.",
+      "Le ore extra non scaldano la cena.",
+      "Non stai esagerando. Sta esagerando la busta paga.",
+      "Domani esci alle 18. Promesso. Forse.",
+      "Più ore fai, meno tempo ti resta per chiederti perché.",
+      "Un'ora in più qui è un'ora in meno altrove. Pace, almeno con i numeri.",
+      "Se conti i minuti, sei un professionista.",
+      "Lo stipendio si paga a fine mese. Le ore si pagano a memoria — la tua.",
+      // — raddoppio v3.4 —
+      "Stai costruendo il futuro. Ti pagheranno nel passato.",
+      "Le ore in più sono come i regali natalizi: nessuno se le aspetta, tutti le tengono.",
+      "Anche oggi hai dato il 110%. Domani vedrai cosa rimane del 100.",
+      "Un'ora in più? Per il padrone è un'ora di troppo da pagarti.",
+      "Le ore extra sono un investimento. Sul tuo capo, non su di te.",
+      "Ti chiamano flessibile perché \"sfruttato\" non sta bene in un'email.",
+      "Esistono due tipi di colleghi: quelli che escono in orario e quelli che leggono questa app.",
+      "Lavora di più, e tutto si sistemerà. (Spoiler: solo per chi non sei tu.)",
+      "Le pause caffè non si pagano. Ma neanche tu, sembrerebbe.",
+      "Il sole è già tramontato. Tu no.",
+      "Cinque minuti in più non sono niente. Trenta minuti in più sono il mese scorso.",
+      "Le tue ore non sono il tuo curriculum. Ma di sicuro sono la tua sera.",
+      "Ti stanno facendo un favore? Loro. A loro.",
+      "Le ore non documentate sono quelle che pesano di più.",
+      "Per il padrone sei una risorsa. Per il bilancio, un costo. Per te, un'ora in meno con qualcuno.",
+    ],
+    taglines_salary: [
+      "Il {payDay} non è una data. È una promessa.",
+      "Lo stipendio è arrivato? Bene. Ricontrolla.",
+      "Non è quanto guadagni. È quanto ti dovrebbero pagare.",
+      "La pazienza è una virtù. L'IBAN no.",
+      "Conta i giorni. Poi i mancati.",
+      "Il padrone ha la memoria corta. Tu, per fortuna, hai questa app.",
+      "Aspettare lo stipendio è l'unica cosa che si fa con costanza.",
+      "Hai diritto di sognare. E di un ticket da {ticket}.",
+      "Più aspetti, più sembra una questione di principio. È matematica.",
+      "Lavori per vivere. Vivere per lavorare era un'altra cosa.",
+      "Ogni euro mancante è una storia da raccontare a qualcuno.",
+      "Buona busta paga è metà del lavoro. L'altra metà è ricordarsela.",
+      "I conti si fanno alla fine. Anche se l'app li fa al {payDay}.",
+      "Non è poco. È quello che c'è. È diverso.",
+      "Il welfare non è facoltativo. Il fringe sì, ma anche meno.",
+      // — raddoppio v3.4 —
+      "Tra il dire e il pagare c'è di mezzo il mese.",
+      "C'è chi conta le pecore per dormire. Tu conti i giorni al {payDay}.",
+      "Aspettare il salario è come aspettare la primavera: tarda, ma arriva.",
+      "Lo stipendio è l'unica cosa che ti rende felice in ritardo.",
+      "Il salario è la prima bugia che ti raccontano, l'ultima che credi.",
+      "Quanto guadagni? Esattamente quello che ti serve, meno una cosa.",
+      "Pagano poco perché credono che basti l'amore per il lavoro. Provateci voi, a pagare l'affitto con l'amore.",
+      "Lo stipendio è un sussurro. Le bollette sono un megafono.",
+      "Se ti senti ricco il {payDay}, hai un problema. Se ti senti povero il 5, ne hai due.",
+      "Ogni mese ricomincia da zero. Anche il conto.",
+      "Il netto è quello che resta dopo che lo Stato ha messo le mani in tasca anche a chi non ce le ha.",
+      "Aumento di stipendio: una parola, due bugie.",
+      "I bei tempi quando il problema era solo il caffè della macchinetta.",
+      "Il fringe è il regalo che ti fai con i soldi che già avevi.",
+      "La 13a si chiama anche \"recupero del furto compiuto durante l'anno\".",
+    ],
+  },
+};
+
+// Active-language text for `key`, with {name} placeholders taken from
+// `params`. Falls back to English, then to the key itself, so a missing
+// translation shows up as a readable key instead of breaking the page.
+function t(key, params){
+  const dict = I18N[LANG] || I18N.en;
+  let s = Object.prototype.hasOwnProperty.call(dict, key) ? dict[key] : I18N.en[key];
+  if(s == null){ console.warn("i18n: missing key", key); return key; }
+  if(typeof s !== "string" || !params) return s;
+  return s.replace(/\{(\w+)\}/g, (m, k) => Object.prototype.hasOwnProperty.call(params, k) ? String(params[k]) : m);
+}
+// Count-dependent text: key_one for 1, key_other otherwise; {n} is the count.
+function tp(key, n, params){
+  return t(`${key}_${n === 1 ? "one" : "other"}`, Object.assign({ n }, params || {}));
+}
+// Calendar helpers on top of the dictionary (m0 = 0..11).
+const monthName = m0 => t("months")[m0];
+const monthText = m0 => t("months_text")[m0];
+// Decimal comma in Italian, point in English. For numbers shown in the UI
+// only: the CSV keeps its own fixed Italian format (fmtNum / parseNum).
+const decimalSep = () => (LANG === "it" ? "," : ".");
+function fmtFixed(n, digits){
+  return (Number(n) || 0).toFixed(digits).replace(".", decimalSep());
+}
+// "27" in Italian ("il 27"), "27th" in English ("the 27th").
+function dayOfMonthLabel(n){
+  if(LANG !== "en") return String(n);
+  const v = n % 100;
+  const suffix = (v >= 11 && v <= 13) ? "th" : ({ 1: "st", 2: "nd", 3: "rd" })[n % 10] || "th";
+  return n + suffix;
+}
+
+// Pay items. The display name is I18N "comp_<key>" (see compLabel).
 const COMPONENTS = [
-  { key:"salary",   label:"Stipendio",      icon:"💼", expectedDefault:true,  hasAmount:false, hasDays:false },
+  { key:"salary",   icon:"💼", expectedDefault:true,  hasAmount:false, hasDays:false },
   // Extra mensilità — they show up only in the dedicated month when the
   // profile's `mensilita` setting reaches the threshold. Default state is
   // "missing" so they count as expected in the right month and remain
   // invisible otherwise.
-  { key:"salary13", label:"Tredicesima",    icon:"🎄", expectedDefault:true,  hasAmount:false, hasDays:false, extraSalary:13 },
-  { key:"salary14", label:"Quattordicesima",icon:"🌞", expectedDefault:true,  hasAmount:false, hasDays:false, extraSalary:14 },
-  { key:"salary15", label:"Quindicesima",   icon:"✨", expectedDefault:true,  hasAmount:false, hasDays:false, extraSalary:15 },
-  { key:"welfare",  label:"Welfare",        icon:"🌿", expectedDefault:true,  hasAmount:false, hasDays:false },
-  { key:"ticket",   label:"Buoni pasto",    icon:"🍱", expectedDefault:true,  hasAmount:false, hasDays:true  },
-  { key:"fringe",   label:"Fringe benefit", icon:"🎁", expectedDefault:false, hasAmount:false, hasDays:false },
-  { key:"bonus",    label:"Bonus",          icon:"⭐", expectedDefault:false, hasAmount:true,  hasDays:false },
-  { key:"refund",   label:"Rimborso spese", icon:"🧾", expectedDefault:false, hasAmount:true,  hasDays:false },
-  { key:"overtime", label:"Straordinari",   icon:"🕐", expectedDefault:true,  hasAmount:false, hasDays:false },
+  { key:"salary13", icon:"🎄", expectedDefault:true,  hasAmount:false, hasDays:false, extraSalary:13 },
+  { key:"salary14", icon:"🌞", expectedDefault:true,  hasAmount:false, hasDays:false, extraSalary:14 },
+  { key:"salary15", icon:"✨", expectedDefault:true,  hasAmount:false, hasDays:false, extraSalary:15 },
+  { key:"welfare",  icon:"🌿", expectedDefault:true,  hasAmount:false, hasDays:false },
+  { key:"ticket",   icon:"🍱", expectedDefault:true,  hasAmount:false, hasDays:true  },
+  { key:"fringe",   icon:"🎁", expectedDefault:false, hasAmount:false, hasDays:false },
+  { key:"bonus",    icon:"⭐", expectedDefault:false, hasAmount:true,  hasDays:false },
+  { key:"refund",   icon:"🧾", expectedDefault:false, hasAmount:true,  hasDays:false },
+  { key:"overtime", icon:"🕐", expectedDefault:true,  hasAmount:false, hasDays:false },
 ];
+const compLabel = c => t("comp_" + c.key);
 
 // Fixed default months for extra salary payments (13a, 14a, 15a).
 // Keyed by mensilità index (13/14/15) → m0+1 (1=Jan..12=Dec).
@@ -2424,7 +3452,7 @@ function grossHoursForMonth(events, year, m0){
 function ptoDayCount(events){
   return new Set((events || []).filter(e => e.pto && e.data).map(e => e.data)).size;
 }
-const giorniStr = n => `${n} ${n === 1 ? "giorno" : "giorni"}`;
+const giorniStr = n => tp("days", n);
 function isoDayOfWeek(dateStr){
   // Returns 1..7 (Monday..Sunday).
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -2677,8 +3705,13 @@ function activeProfile(){
 }
 
 /* ----- Money formatting ----- */
-const fmtEUR = new Intl.NumberFormat("it-IT", { style:"currency", currency:"EUR" });
-function eur(n){ return fmtEUR.format(Number(n) || 0); }
+// Euro in the active language's locale ("1.234,56 €" / "€1,234.56"),
+// one cached formatter per language.
+const _eurFormatters = {};
+function eurFormatter(){
+  return _eurFormatters[LANG] || (_eurFormatters[LANG] = new Intl.NumberFormat(locale(), { style:"currency", currency:"EUR" }));
+}
+function eur(n){ return eurFormatter().format(Number(n) || 0); }
 
 // Inline width sized to value/placeholder. Returns a `style="width: Nch"`
 // fragment so the input hugs its content without truncating long numbers
@@ -2775,12 +3808,12 @@ function monthStatus(profile, year, m0){
     else if(cell.state === "missing"){ expected += exp; if(due) missingPast += exp; }
   }
   let label, cls;
-  if(expected === 0){ label = "non spettava"; cls = ""; }
-  else if(received >= expected - 0.01){ label = "tutto incassato"; cls = "ok"; }
-  else if(received > 0 && missingPast > 0){ label = `manca ${eur(missingPast)}`; cls = "warn"; }
-  else if(missingPast > 0){ label = `da ricevere ${eur(missingPast)}`; cls = "danger"; }
-  else if(!due){ label = "in arrivo"; cls = "future"; }
-  else { label = "in attesa"; cls = "warn"; }
+  if(expected === 0){ label = t("status_not_due"); cls = ""; }
+  else if(received >= expected - 0.01){ label = t("status_all_received"); cls = "ok"; }
+  else if(received > 0 && missingPast > 0){ label = t("status_short", { amount: eur(missingPast) }); cls = "warn"; }
+  else if(missingPast > 0){ label = t("status_owed", { amount: eur(missingPast) }); cls = "danger"; }
+  else if(!due){ label = t("status_upcoming"); cls = "future"; }
+  else { label = t("status_pending"); cls = "warn"; }
   // isPast/isCurrent/isFuture kept in the return shape for callers that
   // still use them for color hints (renderMonthCard's comp-amount class).
   return { label, cls, expected, received, missingPast, isPast: due, isCurrent: false, isFuture: !due };
@@ -2794,82 +3827,19 @@ const $$ = sel => Array.from(document.querySelectorAll(sel));
 
 // Current tab — "stipendio" or "ore".
 let currentTab = "stipendio";
-// Ironic one-liners shown under the hero sub line. Chosen once per page load
-// (refresh for a new one). Two pools — one per tab — so the tone fits.
-const TAGLINES_ORE = [
-  "Le ore non si recuperano. I soldi sì.",
-  "Lavorate tanto. Conta tu, che il datore conta diverso.",
-  "Il tempo è denaro. Soprattutto quando non te lo pagano.",
-  "Anche questo weekend, eh. Bravo. Strano.",
-  "Le 17:30 sono un'invenzione del CCNL.",
-  "Ore in eccesso, stipendio in difetto.",
-  "Hai fatto gli straordinari. Adesso fai anche il sindacato.",
-  "Contati le ore, prima che lo faccia qualcun altro.",
-  "Le ore extra non scaldano la cena.",
-  "Non stai esagerando. Sta esagerando la busta paga.",
-  "Domani esci alle 18. Promesso. Forse.",
-  "Più ore fai, meno tempo ti resta per chiederti perché.",
-  "Un'ora in più qui è un'ora in meno altrove. Pace, almeno con i numeri.",
-  "Se conti i minuti, sei un professionista.",
-  "Lo stipendio si paga a fine mese. Le ore si pagano a memoria — la tua.",
-  // — raddoppio v3.4 —
-  "Stai costruendo il futuro. Ti pagheranno nel passato.",
-  "Le ore in più sono come i regali natalizi: nessuno se le aspetta, tutti le tengono.",
-  "Anche oggi hai dato il 110%. Domani vedrai cosa rimane del 100.",
-  "Un'ora in più? Per il padrone è un'ora di troppo da pagarti.",
-  "Le ore extra sono un investimento. Sul tuo capo, non su di te.",
-  "Ti chiamano flessibile perché \"sfruttato\" non sta bene in un'email.",
-  "Esistono due tipi di colleghi: quelli che escono in orario e quelli che leggono questa app.",
-  "Lavora di più, e tutto si sistemerà. (Spoiler: solo per chi non sei tu.)",
-  "Le pause caffè non si pagano. Ma neanche tu, sembrerebbe.",
-  "Il sole è già tramontato. Tu no.",
-  "Cinque minuti in più non sono niente. Trenta minuti in più sono il mese scorso.",
-  "Le tue ore non sono il tuo curriculum. Ma di sicuro sono la tua sera.",
-  "Ti stanno facendo un favore? Loro. A loro.",
-  "Le ore non documentate sono quelle che pesano di più.",
-  "Per il padrone sei una risorsa. Per il bilancio, un costo. Per te, un'ora in meno con qualcuno.",
-];
-const TAGLINES_STIPENDIO = [
-  "Il {payDay} non è una data. È una promessa.",
-  "Lo stipendio è arrivato? Bene. Ricontrolla.",
-  "Non è quanto guadagni. È quanto ti dovrebbero pagare.",
-  "La pazienza è una virtù. L'IBAN no.",
-  "Conta i giorni. Poi i mancati.",
-  "Il padrone ha la memoria corta. Tu, per fortuna, hai questa app.",
-  "Aspettare lo stipendio è l'unica cosa che si fa con costanza.",
-  "Hai diritto di sognare. E di un ticket da {ticket}.",
-  "Più aspetti, più sembra una questione di principio. È matematica.",
-  "Lavori per vivere. Vivere per lavorare era un'altra cosa.",
-  "Ogni euro mancante è una storia da raccontare a qualcuno.",
-  "Buona busta paga è metà del lavoro. L'altra metà è ricordarsela.",
-  "I conti si fanno alla fine. Anche se l'app li fa al {payDay}.",
-  "Non è poco. È quello che c'è. È diverso.",
-  "Il welfare non è facoltativo. Il fringe sì, ma anche meno.",
-  // — raddoppio v3.4 —
-  "Tra il dire e il pagare c'è di mezzo il mese.",
-  "C'è chi conta le pecore per dormire. Tu conti i giorni al {payDay}.",
-  "Aspettare il salario è come aspettare la primavera: tarda, ma arriva.",
-  "Lo stipendio è l'unica cosa che ti rende felice in ritardo.",
-  "Il salario è la prima bugia che ti raccontano, l'ultima che credi.",
-  "Quanto guadagni? Esattamente quello che ti serve, meno una cosa.",
-  "Pagano poco perché credono che basti l'amore per il lavoro. Provateci voi, a pagare l'affitto con l'amore.",
-  "Lo stipendio è un sussurro. Le bollette sono un megafono.",
-  "Se ti senti ricco il {payDay}, hai un problema. Se ti senti povero il 5, ne hai due.",
-  "Ogni mese ricomincia da zero. Anche il conto.",
-  "Il netto è quello che resta dopo che lo Stato ha messo le mani in tasca anche a chi non ce le ha.",
-  "Aumento di stipendio: una parola, due bugie.",
-  "I bei tempi quando il problema era solo il caffè della macchinetta.",
-  "Il fringe è il regalo che ti fai con i soldi che già avevi.",
-  "La 13a si chiama anche \"recupero del furto compiuto durante l'anno\".",
-];
+// Ironic one-liners shown under the hero sub line (I18N "taglines_ore" and
+// "taglines_salary"). Chosen once per page load (refresh for a new one). Two
+// pools — one per tab — so the tone fits. The pick is kept as an index, so
+// switching language shows the same line in the other language.
 let _oreTagline = null;
 let _stipTagline = null;
 // Format the ticket value the way it appears in a sentence — drop trailing
-// zero cents so "10 euro" reads natural and "8,50 euro" keeps its decimals.
+// zero cents so "10 euro" reads natural and "8,50 euro" keeps its decimals
+// (English: "€10", "€8.50").
 function ticketPhrase(n){
   const v = Number(n) || 0;
-  const body = v === Math.floor(v) ? String(v) : v.toFixed(2).replace(".", ",");
-  return `${body} euro`;
+  const body = v === Math.floor(v) ? String(v) : fmtFixed(v, 2);
+  return LANG === "it" ? `${body} euro` : `€${body}`;
 }
 // Replace `{ticket}` and `{payDay}` (and any future placeholders) with
 // values from the active profile's settings. Kept in a separate helper so
@@ -2882,15 +3852,17 @@ function interpolateTagline(text){
   const payDay = p ? (p.settings.payDay || 27) : 27;
   return text
     .replace(/\{ticket\}/g, ticketPhrase(ticket))
-    .replace(/\{payDay\}/g, String(payDay));
+    .replace(/\{payDay\}/g, dayOfMonthLabel(payDay));
 }
 function pickOreTagline(){
-  if(_oreTagline == null) _oreTagline = TAGLINES_ORE[Math.floor(Math.random() * TAGLINES_ORE.length)];
-  return interpolateTagline(_oreTagline);
+  const list = t("taglines_ore");
+  if(_oreTagline == null) _oreTagline = Math.floor(Math.random() * list.length);
+  return interpolateTagline(list[_oreTagline % list.length]);
 }
 function pickStipTagline(){
-  if(_stipTagline == null) _stipTagline = TAGLINES_STIPENDIO[Math.floor(Math.random() * TAGLINES_STIPENDIO.length)];
-  return interpolateTagline(_stipTagline);
+  const list = t("taglines_salary");
+  if(_stipTagline == null) _stipTagline = Math.floor(Math.random() * list.length);
+  return interpolateTagline(list[_stipTagline % list.length]);
 }
 
 // Ore page state. Top-level views = giorni/settimane/mesi/anni.
@@ -2937,16 +3909,24 @@ function switchTab(name){
   }
   currentTab = name;
   $$(".page").forEach(p => p.classList.toggle("active", p.dataset.page === name));
-  $$(".tabbar .tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+  $$(".tabbar .tab").forEach(tab => tab.classList.toggle("active", tab.dataset.tab === name));
 }
 
-const hStr = h => (Number(h) || 0).toFixed(1).replace(".", ",") + " h";
+const hStr = h => fmtFixed(h, 1) + " h";
+// Greeting for the hero, by time of day.
+function greeting(now){
+  const h = now.getHours();
+  if(h < 6) return t("greet_night");
+  if(h < 12) return t("greet_morning");
+  if(h < 19) return t("greet_afternoon");
+  return t("greet_evening");
+}
 
 function renderPageOre(){
   const main = $("#main-ore");
   const p = activeProfile();
   if(!p){
-    main.innerHTML = `<div class="ore-empty">Crea prima un profilo per registrare le ore.</div>`;
+    main.innerHTML = `<div class="ore-empty">${t("ore_no_profile")}</div>`;
     return;
   }
   const events = p.overtime || [];
@@ -3003,34 +3983,28 @@ function renderPageOre(){
   const buildHoursHtml = (h) => {
     const hi = Math.floor(h);
     const lo = String(Math.round((h - hi) * 10)).padStart(1, "0");
-    return `${hi}<span class="cents">,${lo} h</span>`;
+    return `${hi}<span class="cents">${decimalSep()}${lo} h</span>`;
   };
   if(isMoney){
     const split = splitEur(owedAmount);
-    amountHtml = `${split.currency} ${split.intPart}<span class="cents">,${split.fracPart}</span>`;
+    amountHtml = `${split.currency} ${split.intPart}<span class="cents">${split.decimal}${split.fracPart}</span>`;
     hoursHtml = buildHoursHtml(owedHours);
   } else {
     amountHtml = buildHoursHtml(owedHours);
   }
   if((isMoney ? owedAmount : owedHours) > 0){
     heroCls = "danger";
-    heroSub = `Straordinari maturati entro ${MONTHS_IT[curM].toLowerCase()} ${curYear}, ancora da incassare.`;
+    heroSub = t("ore_hero_owed", { month: monthText(curM), year: curYear });
   } else if(hasEvents){
     heroCls = "ok";
-    heroSub = "Tutti gli straordinari segnati come ricevuti. Tutto in ordine.";
+    heroSub = t("ore_hero_ok");
     hoursHtml = "";
   } else {
-    heroSub = "Aggiungi i tuoi straordinari — appariranno qui.";
+    heroSub = t("ore_hero_empty");
     hoursHtml = "";
   }
 
-  const greet = (() => {
-    const h = today.getHours();
-    if(h < 6) return "buona notte";
-    if(h < 12) return "buongiorno";
-    if(h < 19) return "buon pomeriggio";
-    return "buonasera";
-  })();
+  const greet = greeting(today);
 
   main.innerHTML = `
     <div class="hero">
@@ -3046,31 +4020,31 @@ function renderPageOre(){
       <div class="hero-tagline">${escapeHtml(pickOreTagline())}</div>
       <div class="hero-stats">
         <div class="hero-stat">
-          <div class="k">Settimana corrente</div>
+          <div class="k">${t("stat_this_week")}</div>
           <div class="v">${hStr(weekHours)}</div>
         </div>
         <div class="hero-stat">
-          <div class="k">${MONTHS_IT[curM]} ${curYear}</div>
+          <div class="k">${monthName(curM)} ${curYear}</div>
           <div class="v">${hStr(thisMonthHours)}</div>
         </div>
         <div class="hero-stat">
-          <div class="k">Straord. ${curYear}</div>
+          <div class="k">${t("stat_ot_year", { year: curYear })}</div>
           <div class="v">${hStr(thisYearOvertimeHours)}</div>
         </div>
       </div>
     </div>
 
     <div class="ore-switcher">
-      <button data-view="giorni" class="${activeTab==='giorni'?'active':''}">Giorni</button>
-      <button data-view="settimane" class="${activeTab==='settimane'?'active':''}">Settimane</button>
-      <button data-view="mesi" class="${activeTab==='mesi'?'active':''}">Mesi</button>
-      <button data-view="anni" class="${activeTab==='anni'?'active':''}">Anni</button>
+      <button data-view="giorni" class="${activeTab==='giorni'?'active':''}">${t("view_days")}</button>
+      <button data-view="settimane" class="${activeTab==='settimane'?'active':''}">${t("view_weeks")}</button>
+      <button data-view="mesi" class="${activeTab==='mesi'?'active':''}">${t("view_months")}</button>
+      <button data-view="anni" class="${activeTab==='anni'?'active':''}">${t("view_years")}</button>
     </div>
 
     ${body}
 
     <div class="ore-add-fab-wrap">
-      <button class="btn ore-add-fab" id="btn-ot-add" type="button" aria-label="Aggiungi evento" title="Aggiungi evento">+</button>
+      <button class="btn ore-add-fab" id="btn-ot-add" type="button" aria-label="${t("add_entry")}" title="${t("add_entry")}">+</button>
     </div>
   `;
 
@@ -3096,15 +4070,15 @@ function renderOreYearView(p){
     byYear[y].ferie = ptoDayCount(eventsInYear(events, Number(y)));
   }
   const years = Object.values(byYear).sort((a, b) => b.y - a.y);
-  if(years.length === 0) return `<div class="ore-empty">Nessun anno con eventi registrati.</div>`;
+  if(years.length === 0) return `<div class="ore-empty">${t("no_years")}</div>`;
   return `<div class="ore-year-list">${years.map(yy => `
     <div class="ore-year-row" data-y="${yy.y}">
       <div class="oyr-label">${yy.y}</div>
       <div class="oyr-stats">
-        <div><span class="k">Lavorate</span> <span class="v">${hStr(yy.hours)}</span></div>
-        <div><span class="k">Da pagare</span> <span class="v">${hStr(yy.paid)}</span></div>
-        ${yy.ferie > 0 ? `<div><span class="k">Ferie</span> <span class="v ocean">${giorniStr(yy.ferie)}</span></div>` : ""}
-        ${tariffa > 0 ? `<div><span class="k">Importo</span> <span class="v sienna">${eur(yy.paid * tariffa)}</span></div>` : ""}
+        <div><span class="k">${t("k_worked")}</span> <span class="v">${hStr(yy.hours)}</span></div>
+        <div><span class="k">${t("k_to_pay")}</span> <span class="v">${hStr(yy.paid)}</span></div>
+        ${yy.ferie > 0 ? `<div><span class="k">${t("k_pto")}</span> <span class="v ocean">${giorniStr(yy.ferie)}</span></div>` : ""}
+        ${tariffa > 0 ? `<div><span class="k">${t("k_amount")}</span> <span class="v sienna">${eur(yy.paid * tariffa)}</span></div>` : ""}
       </div>
     </div>
   `).join("")}</div>`;
@@ -3113,7 +4087,7 @@ function renderOreYearView(p){
 function renderOreMonthView(p){
   const events = p.overtime || [];
   const tariffa = Number(p.settings.tariffaOraStraord) || 0;
-  const cards = MONTHS_IT.map((name, m0) => {
+  const cards = t("months").map((name, m0) => {
     const gross = grossHoursForMonth(events, oreYear, m0);
     const paid = paidHoursForMonth(events, oreYear, m0, p.settings.forfaitOreSett, p.settings.workdays, p.settings.oreContrattoSett);
     const ferie = ptoDayCount(eventsInMonth(events, oreYear, m0));
@@ -3122,26 +4096,26 @@ function renderOreMonthView(p){
       <div class="omc-name">${name}</div>
       <div class="omc-row">
         <span class="omc-num">${hStr(gross)}</span>
-        <span class="omc-lab">lavorate</span>
+        <span class="omc-lab">${t("omc_worked")}</span>
       </div>
       <div class="omc-row straord">
         <span class="omc-num">${hStr(paid)}</span>
-        <span class="omc-lab">straordinari</span>
+        <span class="omc-lab">${t("omc_overtime")}</span>
       </div>
       ${ferie > 0 ? `<div class="omc-row ferie">
         <span class="omc-num">${ferie}</span>
-        <span class="omc-lab">${ferie === 1 ? "giorno" : "giorni"} di ferie</span>
+        <span class="omc-lab">${tp("omc_pto", ferie)}</span>
       </div>` : ""}
       ${has && tariffa > 0 ? `<div class="omc-amt">${eur(paid * tariffa)}</div>` : ""}
     </div>`;
   }).join("");
   return `
     <div class="section-head">
-      <div class="section-title">Mesi</div>
+      <div class="section-title">${t("view_months")}</div>
       <div class="year-picker">
-        <button data-action="year-prev" aria-label="Anno precedente">‹</button>
+        <button data-action="year-prev" aria-label="${t("prev_year")}">‹</button>
         <span class="y">${oreYear}</span>
-        <button data-action="year-next" aria-label="Anno successivo">›</button>
+        <button data-action="year-next" aria-label="${t("next_year")}">›</button>
       </div>
     </div>
     <div class="ore-month-grid">${cards}</div>
@@ -3172,26 +4146,26 @@ function renderOreWeekView(p){
   }
   const weeks = Object.values(byWeek).sort((a, b) => a.iw - b.iw);
   const head = `<div class="section-head">
-    <div class="section-title">Settimane</div>
+    <div class="section-title">${t("view_weeks")}</div>
     <div class="year-picker">
-      <button data-action="year-prev" aria-label="Anno precedente">‹</button>
+      <button data-action="year-prev" aria-label="${t("prev_year")}">‹</button>
       <span class="y">${oreYear}</span>
-      <button data-action="year-next" aria-label="Anno successivo">›</button>
+      <button data-action="year-next" aria-label="${t("next_year")}">›</button>
     </div>
   </div>`;
   if(weeks.length === 0){
-    return head + `<div class="ore-empty">Nessuna settimana con eventi in ${oreYear}.</div>`;
+    return head + `<div class="ore-empty">${t("no_weeks", { year: oreYear })}</div>`;
   }
   const rows = weeks.map(w => {
     const gross = w.workH + w.weekendH + w.notOvertimeH;
     const paid = Math.max(0, w.workH - threshold) + w.weekendH;
     return `<div class="ore-week-row" data-iw="${w.iw}">
-      <div class="owr-label">Settimana ${w.iw}</div>
+      <div class="owr-label">${t("week_n", { n: w.iw })}</div>
       <div class="owr-stats">
-        <div><span class="k">Lavorate</span> <span class="v">${hStr(gross)}</span></div>
-        <div><span class="k">Da pagare</span> <span class="v">${hStr(paid)}</span></div>
-        ${w.ferieDates.size > 0 ? `<div><span class="k">Ferie</span> <span class="v ocean">${giorniStr(w.ferieDates.size)}</span></div>` : ""}
-        ${tariffa > 0 ? `<div><span class="k">Importo</span> <span class="v sienna">${eur(paid * tariffa)}</span></div>` : ""}
+        <div><span class="k">${t("k_worked")}</span> <span class="v">${hStr(gross)}</span></div>
+        <div><span class="k">${t("k_to_pay")}</span> <span class="v">${hStr(paid)}</span></div>
+        ${w.ferieDates.size > 0 ? `<div><span class="k">${t("k_pto")}</span> <span class="v ocean">${giorniStr(w.ferieDates.size)}</span></div>` : ""}
+        ${tariffa > 0 ? `<div><span class="k">${t("k_amount")}</span> <span class="v sienna">${eur(paid * tariffa)}</span></div>` : ""}
       </div>
     </div>`;
   }).join("");
@@ -3215,35 +4189,35 @@ function renderOreCalendarView(p){
   const hasStandardDays = monthEvents.some(e => e.pto || e.holiday);
   return `
     <div class="ore-subhead">
-      <button class="ore-back-btn" data-action="back-mesi" type="button">‹ Mesi</button>
+      <button class="ore-back-btn" data-action="back-mesi" type="button">${t("back_months")}</button>
       <div class="year-picker">
-        <button data-action="month-prev" aria-label="Mese precedente">‹</button>
-        <span class="y">${MONTHS_IT[oreMonthIdx]} ${oreYear}</span>
-        <button data-action="month-next" aria-label="Mese successivo">›</button>
+        <button data-action="month-prev" aria-label="${t("prev_month")}">‹</button>
+        <span class="y">${monthName(oreMonthIdx)} ${oreYear}</span>
+        <button data-action="month-next" aria-label="${t("next_month")}">›</button>
       </div>
     </div>
     ${renderCalendar(oreYear, oreMonthIdx, events, p.settings.workdays)}
     <div class="ore-month-summary">
       <div class="oms-row">
-        <div class="oms-label">Ore lavorate${hasStandardDays ? ` <small>(ferie e festivi a 8 h)</small>` : ""}</div>
+        <div class="oms-label">${t("cal_hours_worked")}${hasStandardDays ? ` <small>${t("cal_std_days_note", { h: STANDARD_DAY_HOURS })}</small>` : ""}</div>
         <div class="oms-value">${hStr(gross)}</div>
       </div>
       ${ferie > 0 ? `
       <div class="oms-row">
-        <div class="oms-label">Ferie</div>
+        <div class="oms-label">${t("k_pto")}</div>
         <div class="oms-value ocean">${giorniStr(ferie)}</div>
       </div>` : ""}
       <div class="oms-row">
-        <div class="oms-label">Straordinari calcolati</div>
+        <div class="oms-label">${t("cal_ot_calc")}</div>
         <div class="oms-value">${hStr(autoPaid)}</div>
       </div>
       <div class="oms-row">
-        <div class="oms-label">Ore da pagare <small>(override)</small></div>
-        <input type="number" id="oms-override" min="0" max="744" step="0.5" value="${override != null ? override : ""}" placeholder="${autoPaid.toFixed(1).replace('.',',')}" />
+        <div class="oms-label">${t("cal_hours_to_pay_html")}</div>
+        <input type="number" lang="it" id="oms-override" min="0" max="744" step="0.5" value="${override != null ? override : ""}" placeholder="${fmtFixed(autoPaid, 1)}" />
       </div>
       ${tariffa > 0 ? `
       <div class="oms-row total">
-        <div class="oms-label">Importo</div>
+        <div class="oms-label">${t("k_amount")}</div>
         <div class="oms-value sienna">${eur(importo)}</div>
       </div>` : ""}
     </div>
@@ -3255,7 +4229,7 @@ function renderOreDayList(p){
   const events = (p.overtime || []).slice()
     .sort((a, b) => (b.data || "").localeCompare(a.data || ""));
   if(events.length === 0){
-    return `<div class="ore-empty">Nessun giorno con eventi.<br/>Tocca "+ Aggiungi evento" per inserirne uno.</div>`;
+    return `<div class="ore-empty">${t("no_days_html")}</div>`;
   }
   // Group by date (multiple events same day get listed together)
   const byDate = {};
@@ -3265,12 +4239,12 @@ function renderOreDayList(p){
     const evs = byDate[d];
     const totalH = evs.reduce((s, e) => s + eventHours(e), 0);
     const times = evs.map(e =>
-      e.pto ? `<span class="odr-kind pto">Ferie</span>`
-      : e.holiday ? `<span class="odr-kind festivo">Festivo</span>`
+      e.pto ? `<span class="odr-kind pto">${t("kind_pto")}</span>`
+      : e.holiday ? `<span class="odr-kind festivo">${t("kind_holiday")}</span>`
       : `${escapeHtml(e.inizio)}–${escapeHtml(e.fine)}`).join(" · ");
     const note = evs.map(e => e.nota).filter(Boolean).join(" / ");
     return `<div class="ore-day-row" data-date="${escapeHtml(d)}">
-      <div class="odr-date">${formatItalianDateLong(d)}</div>
+      <div class="odr-date">${formatDateLong(d)}</div>
       <div class="odr-mid">
         <div class="odr-times">${times}</div>
         ${note ? `<div class="odr-note">${escapeHtml(note)}</div>` : ""}
@@ -3296,7 +4270,7 @@ function renderOreDayDetail(p){
   const dow = (sel.getDay() + 6) % 7; // Mon = 0
   const monday = new Date(sel);
   monday.setDate(sel.getDate() - dow);
-  const names = ["L","M","M","G","V","S","D"];
+  const names = t("weekdays_initial");
   const wd = p.settings.workdays || [1,2,3,4,5];
   const eventDates = new Set((p.overtime || []).map(e => e.data));
   const festivoDates = new Set((p.overtime || []).filter(e => e.holiday).map(e => e.data));
@@ -3318,27 +4292,27 @@ function renderOreDayDetail(p){
     </button>`);
   }
 
-  const dayDate = formatItalianDateLong(date);
+  const dayDate = formatDateLong(date);
   let eventsHtml;
   if(events.length === 0){
-    eventsHtml = `<div class="ore-empty">Nessun evento registrato.</div>
-      <button class="btn full" id="dd-add" type="button" style="margin-top:10px">+ Aggiungi evento qui</button>`;
+    eventsHtml = `<div class="ore-empty">${t("dd_no_entries")}</div>
+      <button class="btn full" id="dd-add" type="button" style="margin-top:10px">${t("dd_add_here")}</button>`;
   } else {
     eventsHtml = events.map(e => `
       <div class="dd-event${e.notOvertime ? " not-overtime" : ""}${e.holiday ? " holiday" : ""}${e.pto ? " pto" : ""}" data-id="${escapeHtml(e.id)}">
-        <div class="dd-event-times">${e.pto ? "Giornata di ferie" : e.holiday ? "Giornata festiva" : `${escapeHtml(e.inizio)} → ${escapeHtml(e.fine)}${e.pausa ? ` · pausa ${escapeHtml(e.pausa)}` : ""}`}</div>
+        <div class="dd-event-times">${e.pto ? t("dd_pto_day") : e.holiday ? t("dd_holiday_day") : `${escapeHtml(e.inizio)} → ${escapeHtml(e.fine)}${e.pausa ? t("dd_break", { p: escapeHtml(e.pausa) }) : ""}`}</div>
         ${e.nota ? `<div class="dd-event-note">${escapeHtml(e.nota)}</div>` : ""}
-        <div class="dd-event-hours">${hStr(eventHours(e))}${e.holiday ? ` <span class="dd-event-badge festivo">festivo</span>` : ""}${e.pto ? ` <span class="dd-event-badge ferie">ferie</span>` : ""}${e.notOvertime ? ` <span class="dd-event-badge">non strord.</span>` : ""}</div>
-      </div>`).join("") + `<button class="btn secondary full" id="dd-add" type="button" style="margin-top:12px">+ Aggiungi un altro evento</button>`;
+        <div class="dd-event-hours">${hStr(eventHours(e))}${e.holiday ? ` <span class="dd-event-badge festivo">${t("badge_holiday")}</span>` : ""}${e.pto ? ` <span class="dd-event-badge ferie">${t("badge_pto")}</span>` : ""}${e.notOvertime ? ` <span class="dd-event-badge">${t("badge_not_ot")}</span>` : ""}</div>
+      </div>`).join("") + `<button class="btn secondary full" id="dd-add" type="button" style="margin-top:12px">${t("dd_add_another")}</button>`;
   }
 
   return `
     <div class="ore-subhead">
-      <button class="ore-back-btn" data-action="back-giorni" type="button">‹ Giorni</button>
+      <button class="ore-back-btn" data-action="back-giorni" type="button">${t("back_days")}</button>
       <div class="year-picker">
-        <button data-action="week-prev" aria-label="Settimana precedente">‹</button>
-        <span class="y">Settimana ${iw}</span>
-        <button data-action="week-next" aria-label="Settimana successiva">›</button>
+        <button data-action="week-prev" aria-label="${t("prev_week")}">‹</button>
+        <span class="y">${t("week_n", { n: iw })}</span>
+        <button data-action="week-next" aria-label="${t("next_week")}">›</button>
       </div>
     </div>
     <div class="dd-week-strip">${strip.join("")}</div>
@@ -3363,13 +4337,13 @@ function selectOreDate(ds){
   oreMonthIdx = m - 1;
 }
 
-function formatItalianDateLong(yyyymmdd){
+// "lunedì 5 maggio 2026" / "Monday 5 May 2026".
+function formatDateLong(yyyymmdd){
   if(!yyyymmdd) return "";
   const [y, m, d] = yyyymmdd.split("-").map(Number);
   if(!y || !m || !d) return yyyymmdd;
   const dt = new Date(y, m-1, d);
-  const dayNames = ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
-  return `${dayNames[dt.getDay()]} ${d} ${MONTHS_IT[m-1].toLowerCase()} ${y}`;
+  return t("date_long", { weekday: t("weekdays_long")[dt.getDay()], d, month: monthText(m-1), y });
 }
 
 function wireOrePage(){
@@ -3478,12 +4452,12 @@ $("#ore-file-import").onchange = (e) => {
   reader.onload = async () => {
     try {
       const events = parseCsvOre(reader.result);
-      await applyOreImport(events, `dal file "${file.name}"`);
+      await applyOreImport(events, t("from_file", { name: file.name }));
     } catch(err){
-      showAlert("Il file non è un CSV ore valido.\n\n" + err.message);
+      showAlert(t("ore_import_invalid", { msg: err.message }));
     }
   };
-  reader.onerror = () => showAlert("Impossibile leggere il file.");
+  reader.onerror = () => showAlert(t("file_read_error"));
   reader.readAsText(file, "UTF-8");
   e.target.value = "";
 };
@@ -3518,7 +4492,7 @@ function renderCalendar(year, m0, events, workdays){
     }
   }
 
-  const headers = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+  const headers = t("weekdays_short");
   const headerRow = headers.map((h, i) =>
     `<div class="cal-h${i >= 5 ? " weekend" : ""}">${h}</div>`).join("");
 
@@ -3546,20 +4520,13 @@ function renderCalendar(year, m0, events, workdays){
   </div>`;
 }
 
-function formatItalianDate(yyyymmdd){
-  if(!yyyymmdd) return "";
-  const [y, m, d] = yyyymmdd.split("-").map(Number);
-  if(!y || !m || !d) return yyyymmdd;
-  return `${d} ${MONTHS_IT[m-1].slice(0,3).toLowerCase()} ${y}`;
-}
-
 /* ----- Overtime event form ----- */
 let editingEventId = null;
 function openOvertimeForm(eventId){
   const p = activeProfile();
   if(!p) return;
   editingEventId = eventId;
-  $("#ot-event-title").textContent = eventId ? "Modifica evento" : "Nuovo evento";
+  $("#ot-event-title").textContent = eventId ? t("ot_edit") : t("ot_new");
   $("#btn-ot-delete").style.display = eventId ? "" : "none";
   // New events start with the usual hours and break from settings.
   // Ferie/festivo events store no times, so editing one also starts from the
@@ -3602,11 +4569,11 @@ function selectedDayKind(){
 function setDayKind(kind){
   $$("input[name='ot-kind']").forEach(r => { r.checked = r.value === kind; });
 }
-const DAY_KIND_HINTS = {
-  lavoro: "",
-  ferie: `Niente orari: vale ${STANDARD_DAY_HOURS} ore dentro la soglia settimanale, perché lo stipendio te la paga comunque. Le ore in più degli altri giorni restano straordinari. Nel calendario è blu.`,
-  festivo: `Niente orari: conta come una normale giornata lavorativa di ${STANDARD_DAY_HOURS} ore verso la soglia settimanale. Nel calendario è oro.`,
-};
+function dayKindHint(kind){
+  if(kind === "ferie") return t("hint_pto", { h: STANDARD_DAY_HOURS });
+  if(kind === "festivo") return t("hint_holiday", { h: STANDARD_DAY_HOURS });
+  return "";
+}
 // Ferie and festivo are fixed standard days: hide the time/pausa inputs (and
 // the conflicting "non straordinario" toggle) since the user doesn't enter
 // hours for them. Also refreshes the hint and the preview.
@@ -3616,7 +4583,7 @@ function syncDayKindUI(){
   $("#ot-time-row").style.display = standardDay ? "none" : "";
   $("#ot-pausa-field").style.display = standardDay ? "none" : "";
   $("#ot-notov-field").style.display = standardDay ? "none" : "";
-  $("#ot-kind-hint").textContent = DAY_KIND_HINTS[kind] || "";
+  $("#ot-kind-hint").textContent = dayKindHint(kind);
   updateOvertimePreview();
 }
 $$("input[name='ot-kind']").forEach(r => r.addEventListener("change", syncDayKindUI));
@@ -3664,20 +4631,20 @@ $$("#ot-pausa .dp-btn").forEach(btn => {
 function updateOvertimePreview(){
   const kind = selectedDayKind();
   if(kind === "festivo"){
-    $("#ot-hours-preview").textContent = `Giornata festiva: conta come ${STANDARD_DAY_HOURS} ore lavorate.`;
+    $("#ot-hours-preview").textContent = t("prev_holiday", { h: STANDARD_DAY_HOURS });
     return;
   }
   if(kind === "ferie"){
     const p = activeProfile();
     const data = $("#ot-data").value;
     $("#ot-hours-preview").textContent = (p && data && !isWorkday(data, p.settings.workdays))
-      ? "Questo giorno non è tra i tuoi giorni lavorativi: le ferie si segnano solo nei giorni in cui lavori."
-      : `Giornata di ferie: conta come ${STANDARD_DAY_HOURS} ore.`;
+      ? t("prev_pto_nonworkday")
+      : t("prev_pto", { h: STANDARD_DAY_HOURS });
     return;
   }
   const e = { inizio: $("#ot-inizio").value, fine: $("#ot-fine").value, pausa: pausaPickerValue() };
   const h = eventHours(e);
-  $("#ot-hours-preview").textContent = h > 0 ? `Durata: ${h.toFixed(2).replace(".", ",")} h` : "Inserisci ora inizio e fine per vedere la durata.";
+  $("#ot-hours-preview").textContent = h > 0 ? t("prev_duration", { h: fmtFixed(h, 2) }) : t("prev_empty");
 }
 ["ot-inizio","ot-fine"].forEach(id => {
   const inp = $("#" + id);
@@ -3705,15 +4672,15 @@ $("#btn-ot-save").onclick = () => {
   const p = activeProfile();
   if(!p) return;
   const data = $("#ot-data").value;
-  if(!data){ showAlert("Manca la data"); $("#ot-data").focus(); return; }
+  if(!data){ showAlert(t("err_no_date")); $("#ot-data").focus(); return; }
   const kind = selectedDayKind();
   const holiday = kind === "festivo";
   const pto = kind === "ferie";
   // Ferie only replace a day the user would have worked: on a non-workday
   // they would push STANDARD_DAY_HOURS into the week and invent overtime.
   if(pto && !isWorkday(data, p.settings.workdays)){
-    const day = formatItalianDateLong(data);
-    showAlert(`${day.charAt(0).toUpperCase() + day.slice(1)} non è tra i tuoi giorni lavorativi.\n\nLe ferie si segnano solo nei giorni in cui lavori: i giorni lavorativi si cambiano nelle impostazioni, sezione Overtime.`);
+    const day = formatDateLong(data);
+    showAlert(t("err_pto_nonworkday", { day: day.charAt(0).toUpperCase() + day.slice(1) }));
     return;
   }
   // Ferie and festivo events carry no clock times — they count as a fixed
@@ -3724,10 +4691,10 @@ $("#btn-ot-save").onclick = () => {
   if(kind === "lavoro"){
     inizio = $("#ot-inizio").value;
     fine = $("#ot-fine").value;
-    if(!inizio || !fine){ showAlert("Inserisci ora di inizio e fine"); return; }
+    if(!inizio || !fine){ showAlert(t("err_no_times")); return; }
     const startM = parseHHMM(inizio), endM = parseHHMM(fine);
-    if(startM == null || endM == null){ showAlert("Orari non validi"); return; }
-    if(endM <= startM){ showAlert("L'ora di fine deve essere dopo l'ora di inizio.\n\nGli eventi a cavallo della mezzanotte non sono supportati: registra due eventi separati."); return; }
+    if(startM == null || endM == null){ showAlert(t("err_bad_times")); return; }
+    if(endM <= startM){ showAlert(t("err_event_end")); return; }
     notOvertime = !!$("#ot-not-overtime").checked;
     pausaVal = pausaPickerValue();
   }
@@ -3757,11 +4724,11 @@ $("#btn-ot-save").onclick = () => {
   saveStore();
   closeSheets();
   render();
-  toast("Evento salvato");
+  toast(t("toast_entry_saved"));
 };
 $("#btn-ot-delete").onclick = async () => {
   if(!editingEventId) return;
-  const ok = await showConfirm("Eliminare questo evento?", { okLabel: "Elimina", danger: true });
+  const ok = await showConfirm(t("confirm_delete_entry"), { okLabel: t("delete"), danger: true });
   if(!ok) return;
   const p = activeProfile();
   if(p && Array.isArray(p.overtime)){
@@ -3771,7 +4738,7 @@ $("#btn-ot-delete").onclick = async () => {
   saveStore();
   closeSheets();
   render();
-  toast("Evento eliminato");
+  toast(t("toast_entry_deleted"));
 };
 
 // Tab bar wiring.
@@ -3803,19 +4770,20 @@ function renderTopBar(){
   }
 }
 
-/* Utility — split eur formatted string into integer and cents parts */
+/* Utility — split eur formatted string into integer and cents parts, plus
+ * the locale's decimal separator ("," in Italian, "." in English). */
 function splitEur(amount){
-  const parts = fmtEUR.formatToParts(Number(amount) || 0);
-  let intPart = "", fracPart = "", currency = "";
+  const parts = eurFormatter().formatToParts(Number(amount) || 0);
+  let intPart = "", fracPart = "", currency = "", decimal = decimalSep();
   let inFrac = false;
   for(const p of parts){
     if(p.type === "currency") currency = p.value;
-    else if(p.type === "decimal") inFrac = true;
+    else if(p.type === "decimal"){ inFrac = true; decimal = p.value; }
     else if(p.type === "fraction") fracPart = p.value;
     else if(!inFrac && (p.type === "integer" || p.type === "group")) intPart += p.value;
     else if(p.type === "minusSign") intPart = p.value + intPart;
   }
-  return { currency, intPart, fracPart };
+  return { currency, intPart, fracPart, decimal };
 }
 
 function renderMain(){
@@ -3824,10 +4792,10 @@ function renderMain(){
   if(!p){
     // The whole card is a click target — no fragile button to fight with.
     main.innerHTML = `
-      <div class="empty" id="empty-card" role="button" tabindex="0" aria-label="Crea il mio profilo">
-        <h2><span class="empty-greet">Ciao,</span><br/>iniziamo a contare.</h2>
-        <p>Tocca qui (o premi Invio) per inserire le tue cifre. Da subito vedrai cosa hai ricevuto e cosa ancora ti spetta.</p>
-        <span class="empty-cta">+ Crea il mio profilo</span>
+      <div class="empty" id="empty-card" role="button" tabindex="0" aria-label="${t("empty_aria")}">
+        <h2>${t("empty_title_html")}</h2>
+        <p>${t("empty_text")}</p>
+        <span class="empty-cta">${t("empty_cta")}</span>
       </div>
     `;
     // Wire it every way possible. Any one of these is enough.
@@ -3853,20 +4821,16 @@ function renderMain(){
 
   let heroSub;
   if(heroAmount > 0){
-    heroSub = `Importo che ti spettava entro ${isCurrentYear ? MONTHS_IT[today.getMonth()].toLowerCase() : "fine anno"} ${year}, ma che non è ancora arrivato.`;
+    heroSub = isCurrentYear
+      ? t("hero_missing_month", { month: monthText(today.getMonth()), year })
+      : t("hero_missing_year", { year });
   } else if(totals.received > 0){
-    heroSub = "Tutto in ordine. Hai ricevuto fino all'ultimo centesimo che ti spettava.";
+    heroSub = t("hero_all_good");
   } else {
-    heroSub = "Configura le tue cifre dalle impostazioni e poi marca i mesi qui sotto.";
+    heroSub = t("hero_setup");
   }
 
-  const greet = (() => {
-    const h = today.getHours();
-    if(h < 6) return "buona notte";
-    if(h < 12) return "buongiorno";
-    if(h < 19) return "buon pomeriggio";
-    return "buonasera";
-  })();
+  const greet = greeting(today);
 
   const html = `
     <div class="hero">
@@ -3874,38 +4838,38 @@ function renderMain(){
         <span class="salute">${greet},</span>
         <span>${escapeHtml(p.name)}.</span>
       </div>
-      <div class="hero-amount ${heroClass}">${split.currency} ${split.intPart}<span class="cents">,${split.fracPart}</span></div>
+      <div class="hero-amount ${heroClass}">${split.currency} ${split.intPart}<span class="cents">${split.decimal}${split.fracPart}</span></div>
       <div class="hero-sub">${heroSub}</div>
       <div class="hero-tagline">${escapeHtml(pickStipTagline())}</div>
       <div class="hero-stats">
         <div class="hero-stat ok">
-          <div class="k">Incassato</div>
+          <div class="k">${t("stat_received")}</div>
           <div class="v">${eur(totals.received)}</div>
         </div>
         <div class="hero-stat">
-          <div class="k">Atteso ${year}</div>
+          <div class="k">${t("stat_expected", { year })}</div>
           <div class="v">${eur(totals.expected)}</div>
         </div>
         <div class="hero-stat ${totals.missing > 0 ? 'danger' : 'ok'}">
-          <div class="k">Mancante</div>
+          <div class="k">${t("stat_missing")}</div>
           <div class="v">${eur(totals.missing)}</div>
         </div>
       </div>
     </div>
 
     <div class="section-head">
-      <div class="section-title">L'anno</div>
+      <div class="section-title">${t("year_title")}</div>
       <div class="year-picker">
-        <button id="y-prev" aria-label="Anno precedente">‹</button>
+        <button id="y-prev" aria-label="${t("prev_year")}">‹</button>
         <span class="y">${year}</span>
-        <button id="y-next" aria-label="Anno successivo">›</button>
+        <button id="y-next" aria-label="${t("next_year")}">›</button>
       </div>
     </div>
 
     <div class="legend">
-      <span><span class="dot ok"></span>ricevuto</span>
-      <span><span class="dot miss"></span>da ricevere</span>
-      <span><span class="dot na"></span>non spetta</span>
+      <span><span class="dot ok"></span>${t("legend_received")}</span>
+      <span><span class="dot miss"></span>${t("legend_missing")}</span>
+      <span><span class="dot na"></span>${t("legend_not_due")}</span>
     </div>
 
     <div class="months">
@@ -3913,34 +4877,28 @@ function renderMain(){
     </div>
 
     <details style="margin-top:22px">
-      <summary>Riepilogo per voce — ${year}</summary>
+      <summary>${t("recap_title", { year })}</summary>
       <div class="recap">
         ${COMPONENTS.filter(c => componentApplies(c, p.settings)).map(c => {
-          const t = totals.perComponent[c.key];
-          const cls = t.missing > 0 ? 'danger' : (t.received > 0 ? 'ok' : 'dim');
+          const tot = totals.perComponent[c.key];
+          const cls = tot.missing > 0 ? 'danger' : (tot.received > 0 ? 'ok' : 'dim');
           return `<div class="comp">
             <div class="comp-icon">${c.icon}</div>
             <div class="comp-info">
-              <div class="comp-name">${c.label}</div>
-              <div class="comp-detail">Ricevuto ${eur(t.received)} di ${eur(t.expected)}</div>
+              <div class="comp-name">${compLabel(c)}</div>
+              <div class="comp-detail">${t("recap_detail", { received: eur(tot.received), expected: eur(tot.expected) })}</div>
             </div>
-            <div class="comp-amount ${cls}">${eur(t.missing)}</div>
+            <div class="comp-amount ${cls}">${eur(tot.missing)}</div>
           </div>`;
         }).join("")}
       </div>
     </details>
 
     <div class="help">
-      <strong>Come funziona.</strong> Per ogni voce premi
-      <span class="pip-ok"></span> se l'hai ricevuta,
-      <span class="pip-miss"></span> se ti spettava ma non è ancora arrivata,
-      <span class="pip-na"></span> se quel mese non ti spetta.
-      I buoni pasto si calcolano in automatico sui giorni lavorativi italiani —
-      tocca il numero per sovrascriverlo (ferie, malattia, smart working).
-      Per bonus e rimborsi inserisci l'importo previsto del mese.
+      ${t("help_html")}
     </div>
 
-    <div class="signature">contato a mano</div>
+    <div class="signature">${t("signature")}</div>
   `;
 
   main.innerHTML = html;
@@ -4033,48 +4991,51 @@ function renderMonthCard(profile, year, m0){
     const tri = ["received","missing","not_expected"].map(s => {
       const sel = cell.state === s ? "on" : "";
       const sym = s === "received" ? "✓" : s === "missing" ? "!" : "—";
-      const aria = s === "received" ? "Ricevuto" : s === "missing" ? "Mancante" : "Non spettato";
+      const aria = s === "received" ? t("state_received") : s === "missing" ? t("state_missing") : t("state_not_due");
       return `<button class="${sel}" data-state="${s}" aria-label="${aria}">${sym}</button>`;
     }).join("");
 
+    // Number inputs carry lang="it" so both "8,5" and "8.5" keep working in
+    // either language (see the note above the markup).
     let detail = "";
     if(c.key === "fringe"){
       const isFringeMonth = (m0+1) === Number(profile.settings.fringeMonth);
-      detail = isFringeMonth ? `${eur(profile.settings.fringe)}` : `pagato a ${(MONTHS_IT[Number(profile.settings.fringeMonth)-1] || "Dicembre").toLowerCase()}`;
+      detail = isFringeMonth ? `${eur(profile.settings.fringe)}` : t("fringe_paid_in", { month: monthText(Number(profile.settings.fringeMonth)-1) || monthText(11) });
     } else if(c.key === "ticket"){
       const auto = workingDaysInMonth(year, m0);
       const days = (cell.days != null && cell.days !== "") ? cell.days : auto;
       const w = inputWidthStyle(days, auto, 3);
-      detail = `${eur(profile.settings.ticketPerDay)} × <input type="number" class="days-input" min="0" max="31" value="${days}" placeholder="${auto}" ${w} /> giorni`;
+      detail = t("ticket_detail", { amount: eur(profile.settings.ticketPerDay), input: `<input type="number" lang="it" class="days-input" min="0" max="31" value="${days}" placeholder="${auto}" ${w} />` });
     } else if(c.key === "bonus" || c.key === "refund"){
-      const w = inputWidthStyle(cell.amount || "", "0,00", 4);
-      detail = `<input type="number" class="amount-input" data-ckey="${c.key}" min="0" step="0.01" value="${cell.amount || ""}" placeholder="0,00" ${w} /> €`;
+      const zero = fmtFixed(0, 2);
+      const w = inputWidthStyle(cell.amount || "", zero, 4);
+      detail = `<input type="number" lang="it" class="amount-input" data-ckey="${c.key}" min="0" step="0.01" value="${cell.amount || ""}" placeholder="${zero}" ${w} /> €`;
     } else if(c.key === "salary"){
       // Editable per-month override. Empty = use settings.salary as default.
-      const defaultStr = (profile.settings.salary || 0).toFixed(2).replace(".", ",");
+      const defaultStr = fmtFixed(profile.settings.salary || 0, 2);
       const val = cell.amount != null ? cell.amount : "";
       const w = inputWidthStyle(val, defaultStr, 4);
-      detail = `<input type="number" class="amount-input" data-ckey="salary" min="0" step="0.01" value="${val}" placeholder="${defaultStr}" ${w} /> €`;
+      detail = `<input type="number" lang="it" class="amount-input" data-ckey="salary" min="0" step="0.01" value="${val}" placeholder="${defaultStr}" ${w} /> €`;
     }
     else if(c.extraSalary){
       // 13a/14a/15a — editable per-month override. Empty input falls back to
       // the salary base for this month (monthly override or settings.salary).
       const fallback = data.salary.amount != null ? Number(data.salary.amount) : (profile.settings.salary || 0);
-      const defaultStr = fallback.toFixed(2).replace(".", ",");
+      const defaultStr = fmtFixed(fallback, 2);
       const val = cell.amount != null ? cell.amount : "";
       const w = inputWidthStyle(val, defaultStr, 4);
-      detail = `<input type="number" class="amount-input" data-ckey="${c.key}" min="0" step="0.01" value="${val}" placeholder="${defaultStr}" ${w} /> €`;
+      detail = `<input type="number" lang="it" class="amount-input" data-ckey="${c.key}" min="0" step="0.01" value="${val}" placeholder="${defaultStr}" ${w} /> €`;
     }
     else if(c.key === "welfare"){ detail = `${eur(profile.settings.welfare)}`; }
     else if(c.key === "overtime"){
       const gross = grossHoursForMonth(profile.overtime || [], year, m0);
       const autoPaid = paidHoursForMonth(profile.overtime || [], year, m0, profile.settings.forfaitOreSett, profile.settings.workdays, profile.settings.oreContrattoSett);
       const overrideVal = cell.hoursOverride != null ? cell.hoursOverride : "";
-      const tariffaStr = (profile.settings.tariffaOraStraord || 0).toFixed(2).replace(".", ",");
-      const grossStr = gross.toFixed(1).replace(".", ",");
-      const autoStr = autoPaid.toFixed(1).replace(".", ",");
+      const tariffaStr = fmtFixed(profile.settings.tariffaOraStraord || 0, 2);
+      const grossStr = fmtFixed(gross, 1);
+      const autoStr = fmtFixed(autoPaid, 1);
       const w = inputWidthStyle(overrideVal, autoStr, 3);
-      detail = `${grossStr}h lavorate · <input type="number" class="overtime-hours-input" min="0" max="744" step="0.25" value="${overrideVal}" placeholder="${autoStr}" ${w} /> h × ${tariffaStr}€`;
+      detail = t("overtime_detail", { gross: grossStr, rate: tariffaStr, input: `<input type="number" lang="it" class="overtime-hours-input" min="0" max="744" step="0.25" value="${overrideVal}" placeholder="${autoStr}" ${w} />` });
     }
 
     let amountClass = "dim";
@@ -4092,11 +5053,11 @@ function renderMonthCard(profile, year, m0){
       <div class="comp" data-ckey="${c.key}">
         <div class="comp-icon">${c.icon}</div>
         <div class="comp-info">
-          <div class="comp-name">${c.label}</div>
+          <div class="comp-name">${compLabel(c)}</div>
           <div class="comp-detail">${detail}</div>
         </div>
         <div class="comp-amount ${amountClass}">${amountStr}</div>
-        <div class="tri" role="group" aria-label="Stato ${c.label}">${tri}</div>
+        <div class="tri" role="group" aria-label="${t("state_group_aria", { item: compLabel(c) })}">${tri}</div>
       </div>
     `;
   }).join("");
@@ -4105,7 +5066,7 @@ function renderMonthCard(profile, year, m0){
   return `
     <div class="month ${isCurrent ? 'current' : ''} ${isOpen ? 'open' : ''}" data-m0="${m0}">
       <div class="month-head">
-        <div class="month-name">${MONTHS_IT[m0]}</div>
+        <div class="month-name"${isCurrent ? ` data-today="${t("today")}"` : ""}>${monthName(m0)}</div>
         <div class="month-status ${status.cls}">${status.label}</div>
         <div class="month-chevron">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -4179,9 +5140,7 @@ function wzReset(){
   set("np-inizio", "09:00");
   set("np-fine", "18:00");
   set("np-pausa", PAUSA_DEFAULT_MIN);
-  const fm = $("#np-fringe-month");
-  if(fm) fm.innerHTML = MONTHS_IT.map((m,i) =>
-    `<option value="${i+1}" ${i+1===12?"selected":""}>${m}</option>`).join("");
+  fillMonthSelect($("#np-fringe-month"), 12);
   const setAnswer = (name, v) => $$(`input[name='${name}']`).forEach(r => { r.checked = r.value === v; });
   setAnswer("np-has-welfare", "no");
   setAnswer("np-has-ticket", "no");
@@ -4195,7 +5154,7 @@ function openNewProfile(){
     if(!wzStarted){ wzReset(); wzStarted = true; wzFromSummary = false; }
     wzRender();
     openSheet("new-profile-sheet");
-  } catch(err){ console.error("openNewProfile failed:", err); showAlert("Errore: " + err.message); }
+  } catch(err){ console.error("openNewProfile failed:", err); showAlert(t("error_prefix", { msg: err.message })); }
 }
 window.openNewProfile = openNewProfile; // global so inline onclick can reach it
 
@@ -4203,13 +5162,12 @@ window.openNewProfile = openNewProfile; // global so inline onclick can reach it
 function wzUpdateChrome(){
   const steps = wzSteps();
   const i = steps.indexOf(wzStep);
-  const section = $(`#new-profile-sheet .wz-step[data-step='${wzStep}']`);
-  $("#np-title").textContent = section.dataset.title;
-  $("#wz-count").textContent = `Passo ${i + 1} di ${steps.length}`;
+  $("#np-title").textContent = t("wz_title_" + wzStep);
+  $("#wz-count").textContent = t("wz_count", { i: i + 1, n: steps.length });
   $("#wz-bar").style.width = `${((i + 1) / steps.length) * 100}%`;
   $("#wz-back").style.display = i === 0 ? "none" : "";
-  $("#wz-next").textContent = i === steps.length - 1 ? "Crea il mio profilo"
-    : wzFromSummary ? "Torna al riepilogo" : "Avanti";
+  $("#wz-next").textContent = i === steps.length - 1 ? t("wz_create")
+    : wzFromSummary ? t("wz_back_summary") : t("next");
 }
 // Fields unlocked by a "sì" answer carry data-show-if="<radio name>".
 function wzSyncShowIf(){
@@ -4234,26 +5192,26 @@ function wzRender(){
   }
 }
 const wzNum = id => Number($("#" + id).value) || 0;
-const wzNumStr = n => String(n).replace(".", ",");
+const wzNumStr = n => String(n).replace(".", decimalSep());
 // Returns { msg, focus } when the step can't be left yet, null otherwise.
 function wzValidate(step){
   const yes = name => wzAnswer(name) === "si";
   if(step === "nome" && !$("#np-name").value.trim()){
-    return { msg: "Scrivi il tuo nome per continuare", focus: "#np-name" };
+    return { msg: t("wz_err_name"), focus: "#np-name" };
   }
   if(step === "welfare"){
-    if(yes("np-has-welfare") && wzNum("np-welfare") <= 0) return { msg: "Inserisci l'importo del welfare, oppure rispondi no", focus: "#np-welfare" };
-    if(yes("np-has-ticket") && wzNum("np-ticket") <= 0) return { msg: "Inserisci il valore del buono pasto, oppure rispondi no", focus: "#np-ticket" };
+    if(yes("np-has-welfare") && wzNum("np-welfare") <= 0) return { msg: t("wz_err_welfare"), focus: "#np-welfare" };
+    if(yes("np-has-ticket") && wzNum("np-ticket") <= 0) return { msg: t("wz_err_ticket"), focus: "#np-ticket" };
   }
   if(step === "fringe" && yes("np-has-fringe") && wzNum("np-fringe") <= 0){
-    return { msg: "Inserisci l'importo del fringe, oppure rispondi no", focus: "#np-fringe" };
+    return { msg: t("wz_err_fringe"), focus: "#np-fringe" };
   }
   if(step === "ore" && yes("np-has-overtime") && $$("#np-workdays input:checked").length === 0){
-    return { msg: "Scegli almeno un giorno lavorativo", focus: null };
+    return { msg: t("wz_err_workdays"), focus: null };
   }
   if(step === "orario"){
     const a = parseHHMM($("#np-inizio").value), b = parseHHMM($("#np-fine").value);
-    if(a != null && b != null && b <= a) return { msg: "L'ora di fine deve essere dopo l'ora di inizio", focus: "#np-fine" };
+    if(a != null && b != null && b <= a) return { msg: t("wz_err_end"), focus: "#np-fine" };
   }
   return null;
 }
@@ -4291,23 +5249,24 @@ function wzSummaryHtml(){
   const row = (step, k, val) => rows.push(
     `<button type="button" class="wz-row" data-goto="${step}"><span class="k">${k}</span><span class="v">${val}</span></button>`);
   const payDay = Math.min(28, Math.max(1, Number(v("np-payday")) || 27));
-  row("nome", "Nome", escapeHtml(v("np-name").trim()));
-  row("stipendio", "Stipendio", `${eur(wzNum("np-salary"))} × ${escapeHtml(v("np-mensilita"))} mensilità`);
-  row("stipendio", "Pagamento", `il ${payDay} ${v("np-payday-month") === "1" ? "del mese dopo" : "dello stesso mese"}`);
-  row("welfare", "Welfare", yes("np-has-welfare") ? `${eur(wzNum("np-welfare"))} al mese` : "no");
-  row("welfare", "Buoni pasto", yes("np-has-ticket") ? `${eur(wzNum("np-ticket"))} al giorno` : "no");
-  row("fringe", "Fringe benefit", yes("np-has-fringe")
-    ? `${eur(wzNum("np-fringe"))} a ${(MONTHS_IT[Number(v("np-fringe-month")) - 1] || "Dicembre").toLowerCase()}` : "no");
+  const no = t("sum_no");
+  row("nome", t("sum_name"), escapeHtml(v("np-name").trim()));
+  row("stipendio", t("sum_salary"), t("sum_salary_val", { amount: eur(wzNum("np-salary")), n: escapeHtml(v("np-mensilita")) }));
+  row("stipendio", t("sum_payment"), t(v("np-payday-month") === "1" ? "sum_pay_next" : "sum_pay_same", { day: dayOfMonthLabel(payDay) }));
+  row("welfare", t("sum_welfare"), yes("np-has-welfare") ? t("sum_per_month", { amount: eur(wzNum("np-welfare")) }) : no);
+  row("welfare", t("sum_ticket"), yes("np-has-ticket") ? t("sum_per_day", { amount: eur(wzNum("np-ticket")) }) : no);
+  row("fringe", t("sum_fringe"), yes("np-has-fringe")
+    ? t("sum_fringe_val", { amount: eur(wzNum("np-fringe")), month: monthText(Number(v("np-fringe-month")) - 1) || monthText(11) }) : no);
   if(yes("np-has-overtime")){
-    const dayNames = ["", "lun", "mar", "mer", "gio", "ven", "sab", "dom"];
-    const days = $$("#np-workdays input:checked").map(i => dayNames[Number(i.value)]).join(", ");
-    row("ore", "Ore", `${days} · ${wzNumStr(wzNum("np-contratto"))} h a settimana`);
+    const dayNames = t("weekdays_text");
+    const days = $$("#np-workdays input:checked").map(i => dayNames[Number(i.value) - 1]).join(", ");
+    row("ore", t("sum_hours"), t("sum_hours_val", { days, h: wzNumStr(wzNum("np-contratto")) }));
     const forfait = wzNum("np-forfait"), tariffa = wzNum("np-tariffa");
-    row("straordinari", "Straordinari", `${forfait > 0 ? `forfait ${wzNumStr(forfait)} h · ` : ""}${tariffa > 0 ? `${eur(tariffa)} l'ora` : "solo le ore"}`);
+    row("straordinari", t("sum_overtime"), `${forfait > 0 ? t("sum_allowance", { h: wzNumStr(forfait) }) : ""}${tariffa > 0 ? t("sum_per_hour", { amount: eur(tariffa) }) : t("sum_hours_only")}`);
     const ini = v("np-inizio"), fin = v("np-fine");
-    row("orario", "Orario", `${ini && fin ? `${ini}-${fin}` : "non impostato"} · pausa ${wzNum("np-pausa")} min`);
+    row("orario", t("sum_schedule"), `${ini && fin ? `${ini}-${fin}` : t("sum_not_set")} · ${t("sum_break", { n: wzNum("np-pausa") })}`);
   } else {
-    row("ore", "Ore e straordinari", "no");
+    row("ore", t("sum_hours_ot"), no);
   }
   return rows.join("");
 }
@@ -4319,8 +5278,9 @@ $("#wz-summary").addEventListener("click", (e) => {
 });
 // A yes/no answer shows or hides its fields, and "Vuoi tenere traccia delle
 // ore?" also changes how many steps there are. A fresh "sì" focuses the
-// amount it unlocks.
-$$("#new-profile-sheet .kind-switch input").forEach(r => r.addEventListener("change", () => {
+// amount it unlocks. (The language switch on the first step is wired apart,
+// with the one in the settings: see wireLanguageSwitches.)
+$$("#new-profile-sheet .kind-switch:not(.compact) input").forEach(r => r.addEventListener("change", () => {
   wzSyncShowIf();
   wzUpdateChrome();
   if(r.value !== "si") return;
@@ -4348,7 +5308,7 @@ document.addEventListener("click", (e) => {
 }, false);
 function createProfileFromWizard(){
   const name = $("#np-name").value.trim();
-  if(!name){ wzStep = "nome"; wzRender(); toast("Manca il nome"); return; }
+  if(!name){ wzStep = "nome"; wzRender(); toast(t("toast_name_missing")); return; }
   const id = (name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]/g,"") || "user")
              + "-" + Math.random().toString(36).slice(2,6);
   const num = (id, fallback) => {
@@ -4394,7 +5354,7 @@ function createProfileFromWizard(){
     openMonthIdx = today.getMonth();
   }
   render();
-  toast("Profilo creato");
+  toast(t("toast_profile_created"));
 }
 
 /* Settings */
@@ -4419,8 +5379,7 @@ $("#btn-settings").onclick = () => {
   $("#set-overtime-enabled").checked = p.settings.overtimeEnabled !== false;
   const wd = Array.isArray(p.settings.workdays) ? p.settings.workdays : [1,2,3,4,5];
   $$("#set-workdays input").forEach(inp => { inp.checked = wd.includes(Number(inp.value)); });
-  $("#set-fringe-month").innerHTML = MONTHS_IT.map((m,i) =>
-    `<option value="${i+1}" ${i+1===Number(p.settings.fringeMonth)?"selected":""}>${m}</option>`).join("");
+  fillMonthSelect($("#set-fringe-month"), Number(p.settings.fringeMonth));
   refreshBackupStats();
   refreshSyncSection();
   openSheet("settings-sheet");
@@ -4434,7 +5393,7 @@ $("#btn-save-settings").onclick = () => {
   const inizio = $("#set-inizio").value, fine = $("#set-fine").value;
   const inizioM = parseHHMM(inizio), fineM = parseHHMM(fine);
   if(inizioM != null && fineM != null && fineM <= inizioM){
-    showAlert("L'ora di fine abituale deve essere dopo l'ora di inizio.");
+    showAlert(t("err_usual_end"));
     return;
   }
   p.settings.inizioDefault = inizioM != null ? inizio : "";
@@ -4459,14 +5418,14 @@ $("#btn-save-settings").onclick = () => {
   saveStore();
   closeSheets();
   render();
-  toast("Impostazioni salvate");
+  toast(t("toast_settings_saved"));
 };
 $("#btn-delete-profile").onclick = async () => {
   const p = activeProfile();
   if(!p) return;
   const ok = await showConfirm(
-    `Verranno cancellati tutti i mesi, le impostazioni e gli straordinari. Questa azione non è reversibile.`,
-    { title: "Azzerare i dati?", okLabel: "Azzera", danger: true }
+    t("reset_msg"),
+    { title: t("reset_title"), okLabel: t("reset_ok"), danger: true }
   );
   if(!ok) return;
   store.profiles = {};
@@ -4474,7 +5433,7 @@ $("#btn-delete-profile").onclick = async () => {
   saveStore();
   closeSheets();
   render();
-  toast("Dati azzerati");
+  toast(t("toast_data_reset"));
 };
 
 /* ============================================================ *
@@ -4483,8 +5442,8 @@ $("#btn-delete-profile").onclick = async () => {
 
 function backupStatsText(){
   const nProfiles = Object.keys(store.profiles || {}).length;
-  const stamp = new Date().toLocaleDateString("it-IT", { day:"numeric", month:"short", year:"numeric" });
-  return `${nProfiles} profil${nProfiles === 1 ? "o" : "i"} · aggiornato al ${stamp}`;
+  const stamp = new Date().toLocaleDateString(locale(), { day:"numeric", month:"short", year:"numeric" });
+  return tp("backup_stats", nProfiles, { date: stamp });
 }
 
 function refreshBackupStats(){
@@ -4507,6 +5466,10 @@ function refreshBackupStats(){
  *
  *  States in CSV: ricevuto / mancante / non_atteso (mapped to/from
  *  received / missing / not_expected internally).
+ *
+ *  The format is the same whatever the interface language: headers,
+ *  section markers, state tokens and number format never go through t().
+ *  Only the error messages shown to the user are translated.
  * ============================================================ */
 
 const STATE_TO_IT = { received: "ricevuto", missing: "mancante", not_expected: "non_atteso" };
@@ -4522,10 +5485,10 @@ function fmtNum(n){
 }
 function parseNum(s){
   if(s == null) return 0;
-  const t = String(s).trim().replace(/\./g, "").replace(",", ".");
-  if(t === "") return 0;
-  const n = Number(t);
-  if(!Number.isFinite(n)) throw new Error(`Numero non valido: "${s}"`);
+  const norm = String(s).trim().replace(/\./g, "").replace(",", ".");
+  if(norm === "") return 0;
+  const n = Number(norm);
+  if(!Number.isFinite(n)) throw new Error(t("num_invalid", { v: s }));
   return n;
 }
 function csvEscape(v){
@@ -4661,9 +5624,9 @@ function parseCsv(text){
       if(tag === "SETTINGS"){ section = "settings"; header = null; continue; }
       if(tag === "MESI"){ section = "months"; header = null; continue; }
       if(tag === "STRAORDINARI"){ section = "overtime"; header = null; continue; }
-      throw new Error(`Sezione sconosciuta a riga ${lineNo+1}: "${trimmed}"`);
+      throw new Error(t("csv_unknown_section", { line: lineNo+1, text: trimmed }));
     }
-    if(!section) throw new Error(`Dato fuori sezione a riga ${lineNo+1}`);
+    if(!section) throw new Error(t("csv_outside_section", { line: lineNo+1 }));
     const fields = parseCsvLine(line);
     if(!header){
       header = fields.map(s => s.trim());
@@ -4676,17 +5639,17 @@ function parseCsv(text){
       const isPrefix = header.length <= expected.length
         && header.every((h,i) => h === expected[i]);
       if(!isPrefix){
-        throw new Error(`Intestazione sezione ${section.toUpperCase()} non corretta a riga ${lineNo+1}.\nAttesa: ${expected.join(CSV_SEP)}\nTrovata: ${header.join(CSV_SEP)}`);
+        throw new Error(t("csv_bad_header", { section: section.toUpperCase(), line: lineNo+1, expected: expected.join(CSV_SEP), found: header.join(CSV_SEP) }));
       }
       continue;
     }
     if(fields.length !== header.length){
-      throw new Error(`Numero colonne errato a riga ${lineNo+1}: ${fields.length} invece di ${header.length}`);
+      throw new Error(t("csv_col_count", { line: lineNo+1, found: fields.length, expected: header.length }));
     }
     const row = Object.fromEntries(header.map((h,i) => [h, fields[i]]));
     if(section === "settings"){
       const name = (row.profilo || "").trim();
-      if(!name) throw new Error(`Profilo senza nome in sezione SETTINGS a riga ${lineNo+1}`);
+      if(!name) throw new Error(t("csv_no_name", { section: "SETTINGS", line: lineNo+1 }));
       const wdRaw = (row.giorni_lavorativi || "1,2,3,4,5").split(",")
         .map(s => Number(s.trim()))
         .filter(n => Number.isInteger(n) && n >= 1 && n <= 7);
@@ -4707,7 +5670,7 @@ function parseCsv(text){
       // v3.7: usual start/end ("HH:MM"). Empty or missing = no pre-fill.
       const orario = (col) => {
         const v = (row[col] || "").trim();
-        if(v !== "" && parseHHMM(v) == null) throw new Error(`Orario non valido in SETTINGS a riga ${lineNo+1} (colonna ${col}): "${v}"`);
+        if(v !== "" && parseHHMM(v) == null) throw new Error(t("csv_bad_time_settings", { line: lineNo+1, col, v }));
         return v;
       };
       const inizioDefault = orario("orario_inizio");
@@ -4733,16 +5696,16 @@ function parseCsv(text){
       };
     } else if(section === "months"){
       const name = (row.profilo || "").trim();
-      if(!name) throw new Error(`Profilo senza nome in sezione MESI a riga ${lineNo+1}`);
+      if(!name) throw new Error(t("csv_no_name", { section: "MESI", line: lineNo+1 }));
       const year = Number(row.anno);
       const month = Number(row.mese);
-      if(!Number.isInteger(year) || year < 1900 || year > 3000) throw new Error(`Anno non valido a riga ${lineNo+1}: "${row.anno}"`);
-      if(!Number.isInteger(month) || month < 1 || month > 12) throw new Error(`Mese non valido a riga ${lineNo+1}: "${row.mese}"`);
+      if(!Number.isInteger(year) || year < 1900 || year > 3000) throw new Error(t("csv_bad_year", { line: lineNo+1, v: row.anno }));
+      if(!Number.isInteger(month) || month < 1 || month > 12) throw new Error(t("csv_bad_month", { line: lineNo+1, v: row.mese }));
       const m = defaultMonth();
       const setState = (key, raw) => {
         const v = (raw || "").trim();
         if(v === "") return;
-        if(!(v in STATE_FROM_IT)) throw new Error(`Stato "${v}" non valido a riga ${lineNo+1} (colonna ${key}). Usa ricevuto / mancante / non_atteso.`);
+        if(!(v in STATE_FROM_IT)) throw new Error(t("csv_bad_state", { v, line: lineNo+1, col: key }));
         m[key].state = STATE_FROM_IT[v];
       };
       setState("salary", row.stipendio_stato);
@@ -4774,9 +5737,9 @@ function parseCsv(text){
       monthsByName[name][year][month] = m;
     } else if(section === "overtime"){
       const name = (row.profilo || "").trim();
-      if(!name) throw new Error(`Profilo senza nome in sezione STRAORDINARI a riga ${lineNo+1}`);
+      if(!name) throw new Error(t("csv_no_name", { section: "STRAORDINARI", line: lineNo+1 }));
       const data = (row.data || "").trim();
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Data non valida a riga ${lineNo+1}: "${data}" (formato YYYY-MM-DD)`);
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(t("csv_bad_date", { line: lineNo+1, v: data }));
       const festivoRaw = (row.festivo || "").trim().toLowerCase();
       const holiday = festivoRaw === "1" || festivoRaw === "sì" || festivoRaw === "si" || festivoRaw === "true";
       // Ferie and festivo are mutually exclusive; if a file sets both, festivo wins.
@@ -4786,8 +5749,8 @@ function parseCsv(text){
       const fine = (row.fine || "").trim();
       // Festivo and ferie events carry no clock times — don't validate them as orari.
       if(!holiday && !pto){
-        if(parseHHMM(inizio) == null) throw new Error(`Ora inizio non valida a riga ${lineNo+1}: "${inizio}"`);
-        if(parseHHMM(fine) == null) throw new Error(`Ora fine non valida a riga ${lineNo+1}: "${fine}"`);
+        if(parseHHMM(inizio) == null) throw new Error(t("csv_bad_start", { line: lineNo+1, v: inizio }));
+        if(parseHHMM(fine) == null) throw new Error(t("csv_bad_end", { line: lineNo+1, v: fine }));
       }
       const notOvRaw = (row.non_straordinario || "").trim().toLowerCase();
       const notOvertime = notOvRaw === "1" || notOvRaw === "sì" || notOvRaw === "si" || notOvRaw === "true";
@@ -4805,12 +5768,12 @@ function parseCsv(text){
 
   // Build a fresh store from the CSV. Every profile in SETTINGS must exist.
   const names = Object.keys(settingsByName);
-  if(names.length === 0) throw new Error("Il file non contiene profili nella sezione SETTINGS");
+  if(names.length === 0) throw new Error(t("csv_no_profiles"));
   for(const name of Object.keys(monthsByName)){
-    if(!(name in settingsByName)) throw new Error(`Il profilo "${name}" ha righe in MESI ma manca in SETTINGS`);
+    if(!(name in settingsByName)) throw new Error(t("csv_orphan", { name, section: "MESI" }));
   }
   for(const name of Object.keys(overtimeByName)){
-    if(!(name in settingsByName)) throw new Error(`Il profilo "${name}" ha righe in STRAORDINARI ma manca in SETTINGS`);
+    if(!(name in settingsByName)) throw new Error(t("csv_orphan", { name, section: "STRAORDINARI" }));
   }
   const profiles = {};
   for(const name of names){
@@ -4827,12 +5790,12 @@ function parseCsv(text){
 }
 
 async function applyImportedData(parsed, sourceLabel){
-  if(!parsed || typeof parsed !== "object") throw new Error("Dati non leggibili");
-  if(!parsed.profiles || typeof parsed.profiles !== "object") throw new Error("Manca la sezione SETTINGS");
+  if(!parsed || typeof parsed !== "object") throw new Error(t("data_unreadable"));
+  if(!parsed.profiles || typeof parsed.profiles !== "object") throw new Error(t("settings_section_missing"));
   const incomingCount = Object.keys(parsed.profiles).length;
   const ok = await showConfirm(
-    `Profili in arrivo: ${incomingCount}.\n\nI dati attuali nel browser saranno sostituiti. Se hai dubbi, fai prima un backup con "Scarica file".`,
-    { title: `Importare i dati ${sourceLabel}?`, okLabel: "Sostituisci", danger: true }
+    t("import_confirm", { n: incomingCount }),
+    { title: t("import_title", { source: sourceLabel }), okLabel: t("replace"), danger: true }
   );
   if(!ok) return false;
   store = parsed;
@@ -4840,7 +5803,7 @@ async function applyImportedData(parsed, sourceLabel){
   saveStore();
   closeSheets();
   render();
-  toast(`Importati ${incomingCount} profil${incomingCount === 1 ? "o" : "i"}`);
+  toast(tp("toast_imported_profiles", incomingCount));
   return true;
 }
 
@@ -4876,22 +5839,22 @@ function parseCsvOre(text){
   if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
   const raw = text.split(/\r?\n/);
   while(raw.length && raw[raw.length-1].trim() === "") raw.pop();
-  if(raw.length === 0) throw new Error("Il file è vuoto.");
+  if(raw.length === 0) throw new Error(t("ore_csv_empty"));
   const header = parseCsvLine(raw[0]).map(s => s.trim());
   // Tolerant header: require the leading columns to match ORE_COLS in order,
   // but allow the file to stop short (older exports without notOvertime).
   const minCols = 6; // profilo..nota
   if(header.length < minCols || ORE_COLS.slice(0, header.length).some((h,i) => h !== header[i])){
-    throw new Error(`Intestazione non corretta.\nAttesa: ${ORE_COLS.join(CSV_SEP)}\nTrovata: ${header.join(CSV_SEP)}`);
+    throw new Error(t("ore_csv_bad_header", { expected: ORE_COLS.join(CSV_SEP), found: header.join(CSV_SEP) }));
   }
   const events = [];
   for(let i = 1; i < raw.length; i++){
     const line = raw[i];
     if(!line.trim()) continue;
     const f = parseCsvLine(line);
-    if(f.length !== header.length) throw new Error(`Riga ${i+1}: ${f.length} colonne invece di ${header.length}`);
+    if(f.length !== header.length) throw new Error(t("ore_csv_col_count", { line: i+1, found: f.length, expected: header.length }));
     const data = f[1].trim();
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Riga ${i+1}: data non valida "${data}"`);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(t("ore_csv_bad_date", { line: i+1, v: data }));
     const festivoRaw = (f[7] || "").trim().toLowerCase();
     const holiday = festivoRaw === "1" || festivoRaw === "sì" || festivoRaw === "si" || festivoRaw === "true";
     // Ferie and festivo are mutually exclusive; if a file sets both, festivo wins.
@@ -4900,8 +5863,8 @@ function parseCsvOre(text){
     const inizio = f[2].trim(), fine = f[3].trim();
     // Festivo and ferie events carry no clock times — don't validate them as orari.
     if(!holiday && !pto){
-      if(parseHHMM(inizio) == null) throw new Error(`Riga ${i+1}: ora inizio "${inizio}" non valida`);
-      if(parseHHMM(fine) == null) throw new Error(`Riga ${i+1}: ora fine "${fine}" non valida`);
+      if(parseHHMM(inizio) == null) throw new Error(t("ore_csv_bad_start", { line: i+1, v: inizio }));
+      if(parseHHMM(fine) == null) throw new Error(t("ore_csv_bad_end", { line: i+1, v: fine }));
     }
     const notOvertimeRaw = (f[6] || "").trim().toLowerCase();
     const notOvertime = notOvertimeRaw === "1" || notOvertimeRaw === "sì" || notOvertimeRaw === "si" || notOvertimeRaw === "true";
@@ -4912,17 +5875,17 @@ function parseCsvOre(text){
 
 async function applyOreImport(events, sourceLabel){
   const p = activeProfile();
-  if(!p){ showAlert("Crea prima un profilo."); return false; }
+  if(!p){ showAlert(t("create_profile_first")); return false; }
   const existing = (p.overtime || []).length;
   const ok = await showConfirm(
-    `Eventi in arrivo: ${events.length}.\nEventi attuali: ${existing}.\n\nGli straordinari del profilo "${p.name}" saranno sostituiti.`,
-    { title: `Importare ore ${sourceLabel}?`, okLabel: "Sostituisci", danger: true }
+    t("ore_import_confirm", { n: events.length, existing, name: p.name }),
+    { title: t("ore_import_title", { source: sourceLabel }), okLabel: t("replace"), danger: true }
   );
   if(!ok) return false;
   p.overtime = events;
   saveStore();
   render();
-  toast(`Importati ${events.length} eventi`);
+  toast(tp("toast_imported_entries", events.length));
   return true;
 }
 
@@ -4940,37 +5903,38 @@ function downloadCsv(filename, data){
 
 /* --- Scarica file (CSV) — chiede prima cosa scaricare --- */
 $("#btn-export").onclick = async () => {
-  const choice = await showChoice("Scarica backup", "Quale CSV vuoi scaricare?", [
-    { key: "stipendio", label: "Stipendio (completo)" },
-    { key: "ore", label: "Solo ore lavorate", secondary: true },
+  const choice = await showChoice(t("export_title"), t("export_msg"), [
+    { key: "stipendio", label: t("csv_kind_full") },
+    { key: "ore", label: t("csv_kind_hours"), secondary: true },
   ]);
   if(!choice) return;
   try {
+    // File names stay the same in both languages, like the CSV format.
     if(choice === "stipendio"){
       const data = buildCsv(store);
       downloadCsv(`where-is-my-salary-${localDateStr(new Date())}.csv`, data);
-      toast("File scaricato — controlla la cartella Download");
+      toast(t("toast_file_downloaded"));
     } else {
       const p = activeProfile();
-      if(!p){ showAlert("Crea prima un profilo."); return; }
+      if(!p){ showAlert(t("create_profile_first")); return; }
       const events = p.overtime || [];
-      if(events.length === 0){ showAlert("Nessun evento da esportare."); return; }
+      if(events.length === 0){ showAlert(t("no_entries_to_export")); return; }
       const safe = p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "profilo";
       downloadCsv(`ore-${safe}-${localDateStr(new Date())}.csv`, buildCsvOre(p.name, events));
-      toast("Ore scaricate");
+      toast(t("toast_hours_downloaded"));
     }
   } catch(err){
     console.error(err);
-    showAlert("Impossibile scaricare il file: " + err.message);
+    showAlert(t("download_failed", { msg: err.message }));
   }
 };
 
 /* --- Carica file (CSV) — chiede prima che tipo di file caricherai --- */
 let _importMode = "stipendio"; // remembers user's choice between click and file-pick
 $("#btn-import-file").onclick = async () => {
-  const choice = await showChoice("Carica backup", "Che tipo di CSV stai caricando?", [
-    { key: "stipendio", label: "Stipendio (completo)" },
-    { key: "ore", label: "Solo ore lavorate", secondary: true },
+  const choice = await showChoice(t("import_choice_title"), t("import_choice_msg"), [
+    { key: "stipendio", label: t("csv_kind_full") },
+    { key: "ore", label: t("csv_kind_hours"), secondary: true },
   ]);
   if(!choice) return;
   _importMode = choice;
@@ -4985,12 +5949,12 @@ $("#file-import").onchange = (e) => {
   reader.onload = async () => {
     try {
       const parsed = parseCsv(reader.result);
-      await applyImportedData(parsed, `dal file "${file.name}"`);
+      await applyImportedData(parsed, t("from_file", { name: file.name }));
     } catch(err) {
-      showAlert("Il file non è un backup CSV valido.\n\n" + err.message);
+      showAlert(t("csv_invalid", { msg: err.message }));
     }
   };
-  reader.onerror = () => showAlert("Impossibile leggere il file.");
+  reader.onerror = () => showAlert(t("file_read_error"));
   reader.readAsText(file, "UTF-8");
   e.target.value = "";
 };
@@ -4998,11 +5962,11 @@ $("#file-import").onchange = (e) => {
 /* Toast */
 let toastTimer;
 function toast(msg){
-  const t = $("#toast");
-  t.textContent = msg;
-  t.classList.add("show");
+  const el = $("#toast");
+  el.textContent = msg;
+  el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
 }
 
 /* Util */
@@ -5019,12 +5983,12 @@ let _confirmResolver = null;
 function showConfirm(message, opts){
   opts = opts || {};
   const isAlert = !!opts.alert;
-  $("#confirm-title").textContent = opts.title || (isAlert ? "Attenzione" : "Conferma");
+  $("#confirm-title").textContent = opts.title || (isAlert ? t("heads_up") : t("confirm"));
   $("#confirm-message").textContent = message;
   const okBtn = $("#confirm-ok");
   const cancelBtn = $("#confirm-cancel");
-  okBtn.textContent = opts.okLabel || (isAlert ? "OK" : "Conferma");
-  cancelBtn.textContent = opts.cancelLabel || "Annulla";
+  okBtn.textContent = opts.okLabel || (isAlert ? t("ok") : t("confirm"));
+  cancelBtn.textContent = opts.cancelLabel || t("cancel");
   cancelBtn.style.display = isAlert ? "none" : "";
   okBtn.classList.toggle("danger", !!opts.danger);
   $("#confirm-overlay").classList.add("show");
@@ -5041,7 +6005,7 @@ function showAlert(message, opts){
  * or null on dismiss (Esc / overlay click). Restores the original buttons
  * afterwards so showConfirm/showAlert keep working. */
 function showChoice(title, message, options){
-  $("#confirm-title").textContent = title || "Scegli";
+  $("#confirm-title").textContent = title || t("choose");
   $("#confirm-message").textContent = message || "";
   const card = $("#confirm-overlay .confirm-card");
   const origActions = card.querySelector(".confirm-actions");
@@ -5133,31 +6097,31 @@ function setSyncStatus(s, errMsg){
     const icon = pill.querySelector(".sync-icon");
     if(icon) icon.textContent = (s === "syncing") ? "⟳" : (s === "error") ? "⚠" : "☁";
     pill.title = ({
-      off:     "Sync cloud spento",
-      idle:    "Sync attivo · ultimo: " + (syncState && syncState.lastSyncAt ? new Date(syncState.lastSyncAt).toLocaleTimeString("it-IT") : "—"),
-      syncing: "Sincronizzazione in corso…",
-      error:   "Errore sync: " + (errMsg || (syncState && syncState.lastError) || "sconosciuto"),
-    })[s];
+      off:     () => t("sync_tip_off"),
+      idle:    () => t("sync_tip_idle", { time: syncState && syncState.lastSyncAt ? new Date(syncState.lastSyncAt).toLocaleTimeString(locale()) : "—" }),
+      syncing: () => t("sync_tip_syncing"),
+      error:   () => t("sync_tip_error", { msg: errMsg || (syncState && syncState.lastError) || t("unknown") }),
+    })[s]();
   }
   // Settings sheet pill (if open)
   const sp = $("#sync-state-pill");
   if(sp){
     sp.dataset.status = s;
-    sp.textContent = ({ off:"spento", idle:"attivo", syncing:"sync…", error:"errore" })[s] || s;
+    sp.textContent = ({ off: t("sync_pill_off"), idle: t("sync_pill_idle"), syncing: t("sync_pill_syncing"), error: t("sync_pill_error") })[s] || s;
   }
   refreshSyncSection();
 }
 
 async function ghFetch(path, opts){
-  if(!syncState || !syncState.pat) throw new Error("Token non configurato");
+  if(!syncState || !syncState.pat) throw new Error(t("gh_no_token"));
   const headers = Object.assign({
     "Authorization": "Bearer " + syncState.pat,
     "Accept":        "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   }, (opts && opts.headers) || {});
   const r = await fetch("https://api.github.com" + path, Object.assign({}, opts, { headers }));
-  if(r.status === 401) throw new Error("Token rifiutato (401). Controlla che abbia scope 'gist' e non sia scaduto.");
-  if(r.status === 403) throw new Error("Accesso negato (403). Probabilmente scope mancante.");
+  if(r.status === 401) throw new Error(t("gh_401"));
+  if(r.status === 403) throw new Error(t("gh_403"));
   if(!r.ok){
     let msg = "GitHub API " + r.status;
     try { const j = await r.json(); if(j && j.message) msg += ": " + j.message; } catch(e){}
@@ -5168,7 +6132,7 @@ async function ghFetch(path, opts){
 
 async function cloudConfigure(pat){
   pat = (pat || "").trim();
-  if(!pat) throw new Error("Token vuoto.");
+  if(!pat) throw new Error(t("gh_empty_token"));
   // Pre-set so ghFetch can use it
   syncState = { pat };
   setSyncStatus("syncing");
@@ -5223,7 +6187,7 @@ async function cloudPull(replaceLocal){
     if(!file || !file.content){ setSyncStatus("idle"); return; }
     const remote = JSON.parse(file.content);
     if(!remote || typeof remote !== "object" || !remote.profiles){
-      throw new Error("Il gist non contiene dati validi.");
+      throw new Error(t("gist_invalid"));
     }
     const localT  = Number(store._lastModified)  || 0;
     const remoteT = Number(remote._lastModified) || 0;
@@ -5233,7 +6197,7 @@ async function cloudPull(replaceLocal){
       // Don't trigger a push here — that would be circular.
       localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
       render();
-      if(remoteT > localT) toast("Aggiornato dal cloud");
+      if(remoteT > localT) toast(t("toast_cloud_updated"));
     }
     syncState.lastSyncAt = new Date().toISOString();
     syncState.lastError = null;
@@ -5281,14 +6245,14 @@ function schedulePush(){
 
 async function cloudDisconnect(){
   const ok = await showConfirm(
-    "I tuoi dati restano nel browser ma non saranno più aggiornati con il cloud. Il gist su GitHub non viene cancellato (puoi farlo manualmente dal sito GitHub).",
-    { title: "Scollegare il sync cloud?", okLabel: "Disconnetti" }
+    t("disconnect_msg"),
+    { title: t("disconnect_title"), okLabel: t("disconnect") }
   );
   if(!ok) return;
   syncState = null;
   saveSyncState();
   setSyncStatus("off");
-  toast("Sync disconnesso");
+  toast(t("toast_sync_disconnected"));
 }
 
 /* --- UI of the sync section, rendered into #sync-body --- */
@@ -5298,9 +6262,9 @@ function refreshSyncSection(){
   if(!syncState || !syncState.pat || !syncState.gistId){
     body.innerHTML = `
       <div class="sync-info">
-        I dati restano nel browser di questo dispositivo. Per averli identici anche sul telefono (e viceversa), collega un gist GitHub privato come deposito comune. <strong>Gratis</strong>, niente nuovi servizi: ti serve solo un Personal Access Token.
+        ${t("sync_off_info_html")}
       </div>
-      <button class="btn full" id="btn-sync-configure" type="button">Configura sync con GitHub</button>
+      <button class="btn full" id="btn-sync-configure" type="button">${t("sync_configure_btn")}</button>
     `;
     const b = $("#btn-sync-configure");
     if(b) b.onclick = () => {
@@ -5310,25 +6274,24 @@ function refreshSyncSection(){
     };
     return;
   }
-  const last = syncState.lastSyncAt ? new Date(syncState.lastSyncAt).toLocaleString("it-IT", { dateStyle:"medium", timeStyle:"short" }) : "mai";
+  const last = syncState.lastSyncAt ? new Date(syncState.lastSyncAt).toLocaleString(locale(), { dateStyle:"medium", timeStyle:"short" }) : t("never");
   const errBlock = syncState.lastError
     ? `<div class="sync-error">⚠ ${escapeHtml(syncState.lastError)}</div>` : "";
   body.innerHTML = `
     ${errBlock}
     <div class="sync-info">
-      Connesso come <code>${escapeHtml(syncState.user || "?")}</code> · gist <code>${escapeHtml((syncState.gistId || "").slice(0,8))}</code><br/>
-      Ultimo sync: <strong>${last}</strong>
+      ${t("sync_connected_html", { user: escapeHtml(syncState.user || "?"), gist: escapeHtml((syncState.gistId || "").slice(0,8)), last })}
     </div>
     <div class="btn-row">
-      <button class="btn secondary" id="btn-sync-now" type="button">↻ Sincronizza ora</button>
-      <button class="btn secondary" id="btn-sync-disconnect" type="button">Disconnetti</button>
+      <button class="btn secondary" id="btn-sync-now" type="button">${t("sync_now")}</button>
+      <button class="btn secondary" id="btn-sync-disconnect" type="button">${t("disconnect")}</button>
     </div>
   `;
   const sn = $("#btn-sync-now");
   if(sn) sn.onclick = async () => {
     sn.disabled = true;
-    try { await cloudPull(false); await cloudPush(); toast("Sincronizzato"); }
-    catch(e){ toast("Errore: " + e.message); }
+    try { await cloudPull(false); await cloudPush(); toast(t("toast_synced")); }
+    catch(e){ toast(t("error_prefix", { msg: e.message })); }
     finally { sn.disabled = false; refreshSyncSection(); }
   };
   const sd = $("#btn-sync-disconnect");
@@ -5340,16 +6303,16 @@ $("#btn-sync-connect").onclick = async () => {
   const btn = $("#btn-sync-connect");
   const inp = $("#sync-pat-input");
   const pat = (inp.value || "").trim();
-  if(!pat){ showAlert("Incolla prima il token"); inp.focus(); return; }
-  btn.disabled = true; btn.textContent = "Verifico…";
+  if(!pat){ showAlert(t("paste_token_first")); inp.focus(); return; }
+  btn.disabled = true; btn.textContent = t("checking");
   try {
     await cloudConfigure(pat);
     closeSheets();
-    toast("Sync attivato");
+    toast(t("toast_sync_on"));
   } catch(err){
-    showAlert("Non sono riuscito a collegarmi:\n" + err.message);
+    showAlert(t("connect_failed", { msg: err.message }));
   } finally {
-    btn.disabled = false; btn.textContent = "Collega questo dispositivo";
+    btn.disabled = false; btn.textContent = t("sync_connect");
   }
 };
 
@@ -5357,19 +6320,77 @@ $("#btn-sync-connect").onclick = async () => {
 $("#sync-indicator").onclick = async () => {
   if(syncStatus === "off") return;
   if(syncStatus === "error"){
-    const msg = (syncState && syncState.lastError) || "Errore sconosciuto";
-    showAlert(msg, { title: "Errore sync cloud" });
+    const msg = (syncState && syncState.lastError) || t("unknown_error");
+    showAlert(msg, { title: t("sync_error_title") });
     return;
   }
   if(syncStatus === "syncing") return;
   try {
     await cloudPull(false);
     await cloudPush();
-    toast("Sincronizzato");
+    toast(t("toast_synced"));
   } catch(err){
-    toast("Errore: " + err.message);
+    toast(t("error_prefix", { msg: err.message }));
   }
 };
+
+/* ----- Language switch -----
+ * applyStaticI18n() writes the texts of the static markup (data-i18n*
+ * attributes, see the note above it). applyLanguage() does that plus every
+ * text built by JS, then re-renders: a switch shows up at once, and what is
+ * typed in an open sheet stays where it is (only labels change). */
+function applyStaticI18n(){
+  $$("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  // Only markup written in the I18N dictionary itself, never user data.
+  $$("[data-i18n-html]").forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+  $$("[data-i18n-attr]").forEach(el => {
+    el.dataset.i18nAttr.split(";").forEach(pair => {
+      const [attr, key] = pair.split(":").map(s => s.trim());
+      if(attr && key) el.setAttribute(attr, t(key));
+    });
+  });
+  // Workday pills: the checkbox value is the ISO weekday (1 = Monday).
+  $$(".workday-row input").forEach(inp => {
+    const label = inp.nextElementSibling;
+    if(label) label.textContent = t("weekdays_short")[Number(inp.value) - 1];
+  });
+}
+// Month <select> (fringe month) in the active language; `selected` is 1..12.
+function fillMonthSelect(sel, selected){
+  if(!sel) return;
+  sel.innerHTML = t("months").map((m,i) =>
+    `<option value="${i+1}" ${i+1===selected?"selected":""}>${m}</option>`).join("");
+}
+function setLang(lang){
+  if(!LANGS.includes(lang)) return;
+  LANG = lang;
+  // Own key, outside the store: never synced, never in the CSV.
+  try { localStorage.setItem(LANG_KEY, lang); } catch(e){}
+  applyLanguage();
+}
+function applyLanguage(){
+  document.documentElement.lang = LANG;
+  applyStaticI18n();
+  $$("input[name='set-lang'], input[name='np-lang']").forEach(r => { r.checked = r.value === LANG; });
+  // Month pickers filled by JS keep the month they show.
+  ["#set-fringe-month", "#np-fringe-month"].forEach(id => {
+    const sel = $(id);
+    if(sel && sel.options.length) fillMonthSelect(sel, Number(sel.value));
+  });
+  // Texts written by JS inside the sheets (one may be open right now).
+  if(wzStarted){
+    wzUpdateChrome();
+    if(wzStep === "riepilogo") $("#wz-summary").innerHTML = wzSummaryHtml();
+  }
+  $("#ot-event-title").textContent = editingEventId ? t("ot_edit") : t("ot_new");
+  syncDayKindUI();
+  refreshBackupStats();
+  setSyncStatus(syncStatus); // pill label, tooltip and the sync section
+  render();
+}
+$$("input[name='set-lang'], input[name='np-lang']").forEach(r => {
+  r.addEventListener("change", () => { if(r.checked) setLang(r.value); });
+});
 
 /* ----- Bootstrap ----- */
 async function bootstrap(){
@@ -5382,7 +6403,8 @@ async function bootstrap(){
   if(openMonthIdx === null && today.getFullYear() === Number(store.currentYear)){
     openMonthIdx = today.getMonth();
   }
-  render();
+  // Interface texts in the active language, then the first render.
+  applyLanguage();
   // First-time user: open the new-profile form automatically. Bypasses any
   // potential click-handler issue on the welcome card entirely.
   if(!activeProfile() && !(syncState && syncState.pat && syncState.gistId)){
