@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <b><a href="https://massimodascola.github.io/WhereIsMySalary-/">Open the app</a></b> · <a href="README.it.md">Leggi in italiano</a>
+  <b><a href="https://massimodascola.github.io/where-is-my-salary/">Open the app</a></b> · <a href="README.it.md">Leggi in italiano</a>
 </p>
 
 > **Language:** the app's interface is in Italian, because it follows Italian payslips (13th/14th month pay, meal vouchers, national holidays, CCNL overtime allowance). This README is in English; an Italian translation is in [README.it.md](README.it.md).
@@ -52,7 +52,7 @@ The app has two main pages, reachable from the tab bar at the bottom of the scre
 
 ## Getting started (30 seconds)
 
-1. [Open the app](https://massimodascola.github.io/WhereIsMySalary-/), or open `index.html` with a double click: it opens in the browser.
+1. [Open the app](https://massimodascola.github.io/where-is-my-salary/), or open `index.html` with a double click: it opens in the browser.
 2. On first launch the app opens the **"Iniziamo da te"** ("Let's start with you") wizard, one step at a time: name; salary, number of monthly payments (12 to 15) and payday; welfare and meal vouchers; fringe benefits; whether you want to track hours (working days and contract hours); overtime (allowance and rate); your usual schedule (start, end, break); and a summary to check before the profile is created. Welfare, meal vouchers and fringe benefits are yes/no questions: if you don't have them, those items don't appear in the months. If you don't want to track hours, the hour steps are skipped. If you close the wizard halfway, it resumes where you left off.
 3. For every past month, open its card on the **Salary** page and set the status of each item. For extra hours, go to the **Overtime** page and log the days.
 4. To change the settings at any time: ⚙️ icon at the top right → Impostazioni (Settings). To wipe everything and start over: "Azzera dati" (Reset data) at the bottom of the settings.
@@ -61,7 +61,7 @@ The app has two main pages, reachable from the tab bar at the bottom of the scre
 
 ## Using it on your phone
 
-The quickest way is the published version: **[massimodascola.github.io/WhereIsMySalary-](https://massimodascola.github.io/WhereIsMySalary-/)**. Open it on your phone, then:
+The quickest way is the published version: **[massimodascola.github.io/where-is-my-salary](https://massimodascola.github.io/where-is-my-salary/)**. Open it on your phone, then:
 
 * **iPhone (Safari)**: Share → **Add to Home Screen**.
 * **Android (Chrome)**: menu ⋮ → **Add to Home screen** or **Install app**.

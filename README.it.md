@@ -4,7 +4,7 @@
   <i>Mese per mese, contato a mano.</i>
 </p>
 
-<p align="center"><i>Traduzione italiana. La versione principale, in inglese, è <a href="README.md">README.md</a>.</i></p>
+<p align="center"><b><a href="https://massimodascola.github.io/where-is-my-salary/">Apri l'app</a></b> · <i>Traduzione italiana. La versione principale, in inglese, è <a href="README.md">README.md</a>.</i></p>
 
 <p align="center">
   Una piccola app per tenere traccia dello stipendio italiano e degli straordinari non pagati.<br/>
