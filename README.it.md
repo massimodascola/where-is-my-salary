@@ -290,7 +290,7 @@ Idee in attesa di valutazione, non promesse:
 
 ## Filosofia di design
 
-L'aspetto dell'app segue una piccola filosofia visiva chiamata **Quiet Ledger** (file `quiet-ledger-philosophy.md` nella repo): carta calda come superficie primaria, italico serif come voce, un singolo accento sienna usato come sigillo di ceralacca. Riferimento sotterraneo a Luca Pacioli — *Summa de Arithmetica*, Venezia 1494, il trattato che cinque secoli fa codificò la partita doppia, antenata silenziosa di ogni libro mastro personale.
+L'aspetto dell'app segue una piccola filosofia visiva chiamata **Quiet Ledger** ([`quiet-ledger-philosophy.md`](quiet-ledger-philosophy.md), in inglese): carta calda come superficie primaria, italico serif come voce, un singolo accento sienna usato come sigillo di ceralacca. Riferimento sotterraneo a Luca Pacioli: *Summa de Arithmetica*, Venezia 1494, il trattato che cinque secoli fa codificò la partita doppia, antenata silenziosa di ogni libro mastro personale. Colori, caratteri e componenti sono descritti in [`DESIGN-SYSTEM.md`](DESIGN-SYSTEM.md), ogni versione in [`CHANGELOG.md`](CHANGELOG.md): tutti e due in inglese.
 
 ---
 

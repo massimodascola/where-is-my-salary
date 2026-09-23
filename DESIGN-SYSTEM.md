@@ -1,93 +1,93 @@
-# Design System — Where is my Salary
+# Design System: Where is my Salary
 
-Documento di riferimento del design system dell'app. È un'estrazione dei token CSS, dei componenti e dei pattern presenti in `index.html`, con annotato il **perché** delle scelte — così le iterazioni future restano coerenti senza dover ricostruire l'intento ogni volta.
+Reference document for the app's design system. It is an extraction of the CSS tokens, components and patterns found in `index.html`, annotated with the **why** behind the choices, so that future iterations stay consistent without having to reconstruct the intent every time.
 
-L'estetica si rifà a **Quiet Ledger** (vedi [`quiet-ledger-philosophy.md`](./quiet-ledger-philosophy.md)): carta calda come superficie primaria, italico serif come voce, un singolo accento sienna usato come sigillo di ceralacca. La traduzione di quella filosofia in regole pratiche è quello che segue.
-
----
-
-## 1. Principi guida
-
-Tre regole che vincono in caso di dubbio:
-
-1. **Sottrarre prima di aggiungere.** Ogni icona, divider, ombra in più deve guadagnarsi il posto. Il primo istinto è togliere.
-2. **L'accento è uno solo.** Sienna `#C96442` è il rosso ceralacca. Compare nei punti di significato (numero che conta, voce dell'app, CTA primaria, "oggi"). Non si distribuisce — si concentra.
-3. **La cifra è poesia.** I numeri vivono in serif italic, tabular-nums, con aria intorno. Quando un numero deve essere letto, è grande e ha respiro; quando è solo un dato di servizio, sta zitto.
+The aesthetic draws on **Quiet Ledger** (see [`quiet-ledger-philosophy.md`](./quiet-ledger-philosophy.md)): warm paper as the primary surface, italic serif as the voice, a single sienna accent used like a wax seal. What follows translates that philosophy into practical rules.
 
 ---
 
-## 2. Colore
+## 1. Guiding principles
 
-Tutti i token sono dichiarati in `:root` (vedi `index.html:26–66`). Ogni colore è in un ruolo, non in un "ruolo generico" — significa che cambiarne uno cambia un comportamento, non un'apparenza.
+Three rules that win when in doubt:
 
-### Superfici (carta)
+1. **Subtract before adding.** Every extra icon, divider or shadow has to earn its place. The first instinct is to remove.
+2. **There is only one accent.** Sienna `#C96442` is the sealing-wax red. It appears at the points of meaning (the number that counts, the app's voice, the primary CTA, "today"). It isn't spread around: it's concentrated.
+3. **The figure is poetry.** Numbers live in serif, tabular-nums, with air around them. When a number has to be read, it is large and has room to breathe; when it's just service data, it keeps quiet.
 
-| Token            | Hex        | Uso                                                    |
+---
+
+## 2. Color
+
+All tokens are declared in `:root` (see `index.html:27-78`). Every color has a role, not a "generic role": changing one changes a behavior, not an appearance.
+
+### Surfaces (paper)
+
+| Token            | Hex        | Use                                                    |
 |------------------|------------|--------------------------------------------------------|
-| `--paper`        | `#FAF7F2`  | Sfondo applicazione, theme color iOS/Android           |
-| `--paper-tint`   | `#F5F0E6`  | Sfondi secondari (icone componente, weekend nel cal)   |
-| `--card`         | `#FFFEFB`  | Cards principali (mese, ore-card, week-row)            |
-| `--card-elev`    | `#FFFFFF`  | Cards elevate (hero, sheets, confirm card)             |
-| `--line`         | `#E8DFCF`  | Border standard                                        |
-| `--line-soft`    | `#F0E8D8`  | Divider interni (riga + riga dentro a una card)        |
+| `--paper`        | `#FAF7F2`  | App background, iOS/Android theme color                |
+| `--paper-tint`   | `#F5F0E6`  | Secondary backgrounds (item icons, weekends in the calendar) |
+| `--card`         | `#FFFEFB`  | Main cards (month, ore-card, week-row)                 |
+| `--card-elev`    | `#FFFFFF`  | Elevated cards (hero, sheets, confirm card)            |
+| `--line`         | `#E8DFCF`  | Standard border                                        |
+| `--line-soft`    | `#F0E8D8`  | Inner dividers (row after row inside a card)           |
 
-### Inchiostro (testo)
+### Ink (text)
 
-| Token          | Hex       | Uso                                                    |
+| Token          | Hex       | Use                                                    |
 |----------------|-----------|--------------------------------------------------------|
-| `--ink`        | `#2A2622` | Testo primario (titoli, nomi voce, valori cifra)       |
-| `--ink-soft`   | `#5C534A` | Testo secondario (hero-sub, hint, descrizioni)         |
-| `--ink-muted`  | `#978C7E` | Label uppercase, stato neutro, copy di servizio        |
-| `--ink-faint`  | `#BFB5A4` | Placeholder, "in arrivo", date weekend in calendario   |
+| `--ink`        | `#2A2622` | Primary text (titles, item names, figures)             |
+| `--ink-soft`   | `#5C534A` | Secondary text (hero-sub, hints, descriptions)         |
+| `--ink-muted`  | `#978C7E` | Uppercase labels, neutral state, service copy          |
+| `--ink-faint`  | `#BFB5A4` | Placeholders, "upcoming", weekend labels in the calendar |
 
-### Accento sienna (l'unico)
+### Sienna accent (the only one)
 
-| Token             | Hex                          | Uso                                                |
+| Token             | Hex                          | Use                                                |
 |-------------------|------------------------------|----------------------------------------------------|
-| `--sienna`        | `#C96442`                    | "Salary" nel logo, CTA primaria, "oggi", giorno con eventi |
-| `--sienna-deep`   | `#A4502F`                    | Hover/active dell'accento                          |
-| `--sienna-soft`   | `rgba(201,100,66,.10)`       | Background di chip attiva, "current month" outline |
-| `--sienna-tint`   | `#FAEFE8`                    | Hero radial-gradient, sezione attiva               |
+| `--sienna`        | `#C96442`                    | "Salary" in the logo, primary CTA, "today", days with entries |
+| `--sienna-deep`   | `#A4502F`                    | Hover/active state of the accent                   |
+| `--sienna-soft`   | `rgba(201,100,66,.10)`       | Active chip background, "current month" outline, hero glow |
+| `--sienna-tint`   | `#FAEFE8`                    | Warm radial glow in the page background (`body`)   |
 
-### Companions (parchi, mai protagonisti)
+### Companions (used sparingly, never the lead)
 
-| Ruolo              | Token                | Hex       | Uso                                                |
+| Role               | Token                | Hex       | Use                                                |
 |--------------------|----------------------|-----------|----------------------------------------------------|
-| Verde "ok"         | `--sage`             | `#6B8E5A` | Stato "ricevuto", hero-stat ok                     |
-| Rosso "manca"      | `--terracotta`       | `#B85449` | Stato "mancante", weekend con eventi nel cal       |
-| Oro "in attesa"    | `--gold`             | `#C29B3D` | Stato "warn" (qualcosa è arrivato, qualcosa no); giorno festivo in Overtime |
-| Blu "ferie"        | `--ocean`            | `#4F7CAC` | Giorno di ferie in Overtime: calendario, week strip, card evento, conteggi, selettore "Tipo di giornata" |
+| Green "ok"         | `--sage`             | `#6B8E5A` | "received" state, hero-stat ok                     |
+| Red "missing"      | `--terracotta`       | `#B85449` | "missing" state, weekend days with entries in the calendar |
+| Gold "pending"     | `--gold`             | `#C29B3D` | "warn" state (something arrived, something didn't); public holidays in Overtime |
+| Blue "holiday"     | `--ocean`            | `#4F7CAC` | Holiday days in Overtime: calendar, week strip, entry card, counts, "Day type" selector |
 
-Ognuno ha un `-soft` (alpha 10–12%) e un `-tint` (pastel) per backgrounds.
+Each one has a `-soft` (alpha 10 to 12%) and a `-tint` (pastel) for backgrounds.
 
-### Regole sull'uso del colore
+### Rules for using color
 
-- **Mai usare due accenti diversi nella stessa schermata** se non per significare due stati diversi (ricevuto/mancante).
-- **Il sienna non si usa per "decorare".** Si usa per indicare *significato* (questa è l'app; questa cifra è la cifra; questo giorno è oggi).
-- **Sage/terracotta/gold/ocean sono semantici**, mai estetici. Se rimuovi una semantica, rimuovi il colore.
+* **Never use two different accents on the same screen** unless they signal two different states (received/missing).
+* **Sienna is not for "decorating".** It signals *meaning* (this is the app; this figure is the figure; this day is today).
+* **Sage/terracotta/gold/ocean are semantic**, never aesthetic. If you remove a meaning, remove the color.
 
 ---
 
-## 3. Tipografia
+## 3. Typography
 
-Tre famiglie, ognuna con una voce. Caricate via Google Fonts ma con fallback a system stack (vedi `index.html:14–16` e i tokens in `:root`).
+Three families, each with its own voice. Loaded from Google Fonts with a fallback to the system stack (see `index.html:15-17` and the tokens in `:root`).
 
-### Famiglie
+### Families
 
-| Token       | Stack                                       | Voce                                                  |
+| Token       | Stack                                       | Voice                                                 |
 |-------------|---------------------------------------------|-------------------------------------------------------|
-| `--serif`   | Source Serif 4 · Charter · Georgia          | La voce intima. Cifre, titoli mese, totali, hero amount |
-| `--sans`    | Inter · -apple-system · SF Pro Text         | Il sussurro. Label, hint, body, bottoni, form         |
-| `--hand`    | Caveat · Bradley Hand · Marker Felt         | Il respiro. Saluti ("ciao,"), "oggi", firma           |
+| `--serif`   | Source Serif 4 · Charter · Georgia          | The intimate voice. Figures, month titles, totals, hero amount |
+| `--sans`    | Inter · -apple-system · SF Pro Text         | The whisper. Labels, hints, body, buttons, forms      |
+| `--hand`    | Caveat · Bradley Hand · Marker Felt         | The breath. Greetings ("good morning,", "Hi,"), "today", signature |
 
-### Scala
+### Scale
 
-Non è una scala "modulare" rigida — segue piuttosto la **funzione**. Riferimento alle dimensioni che effettivamente esistono nel CSS:
+It isn't a rigid "modular" scale: it follows **function** instead. Reference for the sizes that actually exist in the CSS:
 
-| Ruolo                       | Family    | Size                       | Weight | Style    |
+| Role                        | Family    | Size                       | Weight | Style    |
 |-----------------------------|-----------|----------------------------|--------|----------|
 | Logo (brand-name)           | serif     | `clamp(24px, 5vw, 30px)`   | 500    | regular  |
-| Logo accento (em "Salary")  | serif     | uguale                     | 500    | *italic* |
+| Logo accent (em "Salary")   | serif     | same                       | 500    | *italic* |
 | Hero amount                 | serif     | `clamp(40px, 11vw, 56px)`  | 600    | regular  |
 | Hero amount cents           | serif     | `.55em`                    | 500    | regular  |
 | Section-title               | serif     | 22px                       | 500    | *italic* |
@@ -104,101 +104,106 @@ Non è una scala "modulare" rigida — segue piuttosto la **funzione**. Riferime
 | Field label (uppercase)     | sans      | 11.5px                     | 600    | regular  |
 | Hint                        | sans      | 12.5px                     | 400    | *italic* |
 | Hero-stat key (uppercase)   | sans      | 11px                       | 600    | regular  |
-| Salute ("ciao,")            | hand      | 22px                       | 600    | regular  |
+| Salute ("good morning,")    | hand      | 22px                       | not set | regular |
 | Empty-greet                 | hand      | 22px                       | 600    | regular  |
-| "oggi" badge (current month)| hand      | 16px                       | 600    | regular  |
+| "today" badge (current month)| hand     | 16px                       | 600    | regular  |
 | Signature                   | hand      | 16px                       | 500    | regular  |
 
-### Regole tipografiche
+### Typographic rules
 
-- **`font-variant-numeric: tabular-nums`** ovunque ci siano cifre da allineare verticalmente (hero-amount, comp-amount, hero-stat .v, oms-value, owr/oyr .v, day numbers nel calendario). L'allineamento dei numeri è una questione morale (cit. *Quiet Ledger*).
-- **Italic serif per le voci intime** (saluti, sub-titoli, totali, mesi, nomi delle sezioni). Italic non è enfasi: è prossimità.
-- **Sans serif quando la funzione è strumentale** (etichette, bottoni, valori in field di form). Non grida mai.
-- **Letter-spacing negativo (-.012em ÷ -.025em)** sui titoli grandi serif per non farli sentire "spaziati" — il serif di default ha già la giusta crenatura.
-- **Letter-spacing positivo (.04em ÷ .08em) + uppercase** sulle label di servizio (`.k`, `.field label`, `.cal-h`). Sono "etichette di archivio", non vogliono distinguersi.
-- **Hand font usato solo in 4 punti** (saluti hero, "oggi", "empty-greet", signature). È il sale: se compare ovunque, perde il sapore.
+* **`font-variant-numeric: tabular-nums`** wherever figures need to line up vertically (hero-amount, comp-amount, hero-stat .v, oms-value, owr/oyr .v, the day numbers in the week strip). The alignment of numbers is a moral question (quoting *Quiet Ledger*). The month calendar cells (`.cal-c`) don't set it yet.
+* **Italic serif for the intimate voices** (greetings, subtitles, months, section names). Italic isn't emphasis: it's closeness.
+* **Sans serif when the function is instrumental** (labels, buttons, values in form fields). It never shouts.
+* **Negative letter-spacing (-.012em to -.025em)** on large serif titles, so they don't feel "spaced out": the default serif already has the right kerning.
+* **Positive letter-spacing (.04em to .08em) + uppercase** on service labels (`.k`, `.field label`, `.cal-h`). They are "archive labels" and don't want to stand out.
+* **The hand font is used in only 4 places** (hero greetings, "today", "empty-greet", signature). It's the salt: if it shows up everywhere, it loses its flavor.
 
 ---
 
-## 4. Spaziatura, raggi, ombre
+## 4. Spacing, radii, shadows
 
 ### Border radius
 
-| Token              | Valore  | Uso                                                    |
+| Token              | Value   | Use                                                    |
 |--------------------|---------|--------------------------------------------------------|
-| `--radius-card`    | 18px    | Cards (month, hero, ore-card, sheet desktop, summary)  |
-| `--radius-soft`    | 12px    | Bottoni, input pillola, day-strip                      |
-| `--radius-pill`    | 999px   | Pill (year-picker, status-pill, tri-state, tabbar)     |
+| `--radius-card`    | 18px    | Cards (month, hero, ore-card, desktop sheet, summary)  |
+| `--radius-soft`    | 12px    | Buttons, pill inputs, day strip                        |
+| `--radius-pill`    | 999px   | Pills (year-picker, status-pill, tri-state, tabbar)    |
 
-Inoltre, valori `9–11px` ricorrono per `icon-btn` e `brand-mark` (storico). Le card mese e l'hero usano i radii grandi (18px) per dare la sensazione di "blocco di carta", non di "scheda software".
+Values of 9 to 11px also recur on small elements: `.icon-btn` and `.comp-icon` (11px), form fields (10px), the `.kind-switch` pills (9px). The month cards and the hero use the large radius (18px) to feel like a "block of paper", not a "software card".
 
-### Ombre
+### Shadows
 
-Tre livelli, tutti caldi (tinta terra di Siena, mai grigi neutri):
+Three levels, all warm (an earthy sienna tint, never neutral grays):
 
-| Token             | Valore                                                                                | Uso                                              |
+| Token             | Value                                                                                 | Use                                              |
 |-------------------|---------------------------------------------------------------------------------------|--------------------------------------------------|
-| `--shadow-rest`   | `0 1px 0 rgba(125,105,75,.04), 0 1px 2px rgba(125,105,75,.06)`                        | Cards a riposo (mese, week-row, day-row, btn-sec)|
-| `--shadow-soft`   | `0 6px 18px rgba(125,105,75,.08), 0 1px 2px rgba(125,105,75,.05)`                     | Hover delle card, mese aperto                    |
-| `--shadow-warm`   | `0 14px 40px rgba(155,110,75,.12), 0 1px 2px rgba(125,105,75,.04)`                    | Hero, sheet, confirm-card, empty-card            |
+| `--shadow-rest`   | `0 1px 0 rgba(125,105,75,.04), 0 1px 2px rgba(125,105,75,.06)`                        | Cards at rest (month, week-row, day-row, btn-sec)|
+| `--shadow-soft`   | `0 6px 18px rgba(125,105,75,.08), 0 1px 2px rgba(125,105,75,.05)`                     | Card hover, current month                        |
+| `--shadow-warm`   | `0 14px 40px rgba(155,110,75,.12), 0 1px 2px rgba(125,105,75,.04)`                    | Hero, tab bar, confirm-card, empty-card, toast   |
 
-Le ombre **non sono nere abbassate** — sono ocra (RGB `125,105,75` e `155,110,75`). Differenza minuscola, percezione enorme: l'oggetto sta su carta, non galleggia sul vuoto.
+Sheets use their own upward shadow (`0 -10px 40px rgba(125,105,75,.18)`) in the same tint.
 
-### Spaziatura
+Shadows **are not dimmed black**: they are ochre (RGB `125,105,75` and `155,110,75`). A tiny difference, a huge change in perception: the object sits on paper, it doesn't float in a void.
 
-Non c'è una scala di spacing rigida (8, 16, 24…). I valori reali sono pragmatici: `4 / 6 / 8 / 10 / 12 / 14 / 18 / 22 / 26` px ricorrono spesso. Pattern principali:
+### Spacing
 
-- **Card padding**: `14px 16px` (compatte) ÷ `26px 24px 22px` (hero).
-- **Sheet body padding**: `18px 22px`. Sheet foot: `12px 22px max(16px, env(safe-area-inset-bottom))`.
-- **Gap tra card mese**: `12px`. Gap tra ore-card consecutive: `10px`. Gap tra giorno e giorno nel calendario: `4px`.
-- **Margin-top di una nuova sezione**: `22px ÷ 30px` (`.section-head` ha `margin: 30px 4px 14px`).
+There is no rigid spacing scale (8, 16, 24…). The real values are pragmatic: `4 / 6 / 8 / 10 / 12 / 14 / 18 / 22 / 26` px recur often. Main patterns:
 
-Le **safe area inset** (`env(safe-area-inset-*)`) sono rispettate in body padding e sheet-foot (l'app è installabile come PWA su iOS).
+* **Card padding**: `14px 16px` (compact) to `26px 24px 22px` (hero).
+* **Sheet body padding**: `18px 22px`. Sheet foot: `12px 22px max(16px, env(safe-area-inset-bottom))`.
+* **Gap between month cards**: `12px`. Gap between consecutive ore-cards: `10px`. Gap between days in the calendar: `4px`.
+* **Top margin of a new section**: `22px` to `30px` (`.section-head` has `margin: 30px 4px 14px`).
+
+The **safe area insets** (`env(safe-area-inset-*)`) are respected in the body padding and in the sheet-foot (the app can be installed as a PWA on iOS).
 
 ---
 
-## 5. Componenti
+## 5. Components
 
-I componenti riusati nel codice, descritti come unità con una loro grammatica.
+The components reused in the code, described as units with their own grammar.
 
 ### 5.1 Hero
 
-Card "leggio" in cima a ogni pagina (`Salary` e `Overtime`).
+The "lectern" card at the top of each page (`Salary` and `Overtime`).
 
-Struttura:
+Structure:
 ```
 .hero
-├── .hero-greeting    (saluto handwriting + nome)
-├── .hero-amount      (la cifra protagonista, serif italic enorme)
-├── .hero-sub         (frase di contesto, serif italic 14.5px)
-├── .hero-tagline     (battuta ironica tra virgolette, ink-faint)
-└── .hero-stats       (3 KPI in griglia 3 col, flex column con valore in basso)
+├── .hero-greeting    (handwritten greeting + name)
+├── .hero-amount      (the leading figure, large serif)
+├── .hero-sub         (context sentence, serif italic 14.5px)
+├── .hero-tagline     (wry line in quotation marks, ink-faint)
+└── .hero-stats       (3 KPIs in a 3-column grid, flex column with the value at the bottom)
 ```
 
-Particolarità:
-- Pseudo-element `::before` con radial-gradient sienna-soft in alto a destra (la "macchia di luce").
-- Pseudo-element `::after` con underline mosso disegnato come SVG inline (la traccia umana).
-- `.hero-amount` ha lo stato `.ok` (sage) e `.danger` (terracotta). Senza modifier è ink.
-- Le cents (`.cents`) sono il 55% della size dell'integer — il valore principale si legge, gli spiccioli no.
-- `.hero-stat` flex column con `margin-top: auto` sul valore → le tre KPI si allineano sulla stessa baseline anche quando le label vanno a capo.
+Details:
+* `::before` pseudo-element with a sienna-soft radial gradient in the top right corner (the "patch of light").
+* `::after` pseudo-element with a wavy underline drawn as inline SVG (the human trace).
+* `.hero-amount` has the `.ok` (sage) and `.danger` (terracotta) states. Without a modifier it is ink.
+* The cents (`.cents`) are 55% of the integer's size: the main value gets read, the small change doesn't.
+* `.hero-stat` is a flex column with `margin-top: auto` on the value → the three KPIs line up on the same baseline even when the labels wrap.
+* On the Overtime page `.hero-amount` sits inside a `.hero-amounts` row that can hold two figures side by side (euros and hours, same size and weight), wrapping to two lines only on very narrow screens.
 
-### 5.2 Card mese (Salary)
+### 5.2 Month card (Salary)
 
 ```
-.month  (.current se è il mese in corso, .open se accordion aperto)
+.month  (.current for the current month, .open when the accordion is open)
 ├── .month-head
-│   ├── .month-name      (serif italic lowercase)
-│   ├── .month-status    (chip semantica: ok / warn / danger / future / "non spettava")
-│   └── .month-chevron   (ruota 180° quando aperto)
-└── .month-body          (display: none di default; .open .month-body { display: block })
-    └── .comp × N        (una riga per componente visibile)
+│   ├── .month-name      (serif italic; lowercase in the Italian interface only)
+│   ├── .month-status    (semantic chip: ok / warn / danger / future / "not due")
+│   └── .month-chevron   (rotates 180° when open)
+└── .month-body          (display: none by default; .open .month-body { display: block })
+    └── .comp × N        (one row per visible item)
 ```
 
-`.month.current` ha bordo sienna + outer-ring `sienna-soft` (3px) + chip "oggi" handwriting accanto al nome. È l'unica card che parla.
+Month names come from the `months` list of the `I18N` dictionary. Lowercase is applied to the Italian interface only, via `html[lang="it"] .month-name`; English keeps the capitals.
 
-### 5.3 Componente row
+`.month.current` has a sienna border + a 3px `sienna-soft` outer ring + a handwritten "today" chip next to the name (its text comes from the `I18N` dictionary through the `data-today` attribute). It is the only card that speaks.
 
-L'unità di base nel mese. Layout grid con aree nominate (vedi `index.html:373–451`):
+### 5.3 Component row
+
+The basic unit inside a month. A grid layout with named areas (see `index.html:373-450`):
 
 ```
 desktop:                          mobile (<480px):
@@ -206,22 +211,22 @@ desktop:                          mobile (<480px):
                                   "icon amount tri"
 ```
 
-Quattro pezzi:
-1. **`.comp-icon`** — quadratino 38×38 con emoji + bordo `--line-soft` su `--paper-tint`. L'emoji è l'unica concessione visiva colorata, dentro un contenitore neutro.
-2. **`.comp-info`** — nome (`.comp-name`, sans 14.5px bold) + dettaglio (`.comp-detail`, sans 12.5px muted). Il dettaglio può contenere input inline (vedi 5.4).
-3. **`.comp-amount`** — la cifra del mese, serif tabular-nums. Modifier `.dim / .ok / .danger`. Empty → `display: none` (no trattino orfano).
-4. **`.tri`** — tri-state pill (vedi 5.5).
+Four pieces:
+1. **`.comp-icon`**: a small 38×38 square with the emoji, `--line-soft` border on `--paper-tint`. The emoji is the only colorful visual concession, inside a neutral container.
+2. **`.comp-info`**: name (`.comp-name`, sans 14.5px bold) + detail (`.comp-detail`, sans 12.5px muted). The detail can contain inline inputs (see 5.4).
+3. **`.comp-amount`**: the month's figure, serif tabular-nums. Modifiers `.dim / .ok / .danger`. Empty → `display: none` (no orphan dash).
+4. **`.tri`**: tri-state pill (see 5.5).
 
-### 5.4 Input inline nel componente
+### 5.4 Inline inputs in the component row
 
-Gli input che vivono nella riga (override stipendio, giorni ticket, importo bonus, ore straordinari, importo 13a/14a/15a) hanno una regola specifica:
+The inputs that live in the row (salary override, meal voucher days, bonus and expense refund amounts, overtime hours, 13th/14th/15th month pay amounts) follow a specific rule:
 
 ```css
 .comp-detail input{
   background: transparent;
   border: none;
   border-bottom: 1px dashed var(--line);
-  field-sizing: content;       /* auto-grow su browser moderni */
+  field-sizing: content;       /* auto-grow in modern browsers */
   width: 5ch;                  /* fallback */
   min-width: 3ch;
   max-width: 14ch;
@@ -230,11 +235,11 @@ Gli input che vivono nella riga (override stipendio, giorni ticket, importo bonu
 }
 ```
 
-Inoltre la helper JS `inputWidthStyle(value, placeholder, min)` (in `index.html:1834`) inietta `style="width: Nch"` inline su ogni render, in modo che la width "iniziale" sia già giusta prima che il browser applichi `field-sizing`. Risultato: `0,00` e `1000,00` occupano lo spazio che serve loro, niente troncamenti né buchi.
+On top of that, the JS helper `inputWidthStyle(value, placeholder, min)` (in `index.html:3721`) injects an inline `style="width: Nch"` on every render, so the "initial" width is already right before the browser applies `field-sizing`. Result: `0.00` and `1000.00` take exactly the space they need, with no truncation and no gaps.
 
 ### 5.5 Tri-state pill
 
-Tre bottoni in una pill (ricevuto / mancante / non spettato):
+Three buttons in one pill (received / missing / not due):
 
 ```
 .tri
@@ -243,188 +248,188 @@ Tre bottoni in una pill (ricevuto / mancante / non spettato):
 └── button[data-state="not_expected"]  (—)  → on: background ink-faint, color white
 ```
 
-Non c'è un "sì/no boolean" perché la semantica reale è ternaria. La differenza tra "mancante" e "non spettato" è il cuore del modello dati.
+There is no yes/no boolean because the real semantics are ternary. The difference between "missing" and "not due" is the heart of the data model.
 
-### 5.6 Tabbar flottante
+### 5.6 Floating tab bar
 
-iOS-style pill in basso, sempre visibile (`position: fixed`), con due tab: **Salary** e **Overtime**.
+An iOS-style pill at the bottom, fixed in place (`position: fixed`), with two tabs: **Salary** and **Overtime**. It disappears when there is no profile yet, or when Overtime is switched off in the settings (only Salary is left, so there is nothing to switch to).
 
-- `z-index: 25`. Sopra ci sono: scrim sheet (20+), sheet (21+), confirm-overlay (30).
-- Quando un sheet o un confirm è aperto, la tabbar viene nascosta (`body.modal-open .tabbar` / `body.overlay-open .tabbar` `→ display: none`). È stata una richiesta esplicita per non avere doppia "barra galleggiante".
-- Il tab attivo ha background `--sienna-soft` e text `--sienna-deep`. Non c'è altro indicatore (niente underline, niente badge).
+* `z-index: 25`: above the sheet scrim (20) and the sheet (21), below the confirm-overlay (30).
+* When a sheet or a confirm is open, the tab bar is hidden (`body.modal-open .tabbar` / `body.overlay-open .tabbar` `→ display: none`). This was an explicit request, to avoid having a second "floating bar".
+* The active tab has a `--sienna-soft` background and `--sienna-deep` text. There is no other indicator (no underline, no badge).
 
-### 5.7 Sheet (modal a comparsa)
+### 5.7 Sheet (slide-up modal)
 
-Pattern usato per:
-- **Settings** (`Le tue cifre`) — sezioni *Salary*, *Overtime*, *Sistema*.
-- **Wizard di primo avvio** (`Iniziamo da te`) — un passo alla volta, vedi sotto.
-- **Sync configure** (`Configura sync cloud`).
-- **Overtime event** (`Nuovo / Modifica evento`).
+Pattern used for:
+* **Settings** (`Your numbers`): sections *Salary*, *Overtime*, *System*.
+* **First-run wizard** (`Let's start with you`): one step at a time, see below.
+* **Sync setup** (`Set up cloud sync`).
+* **Overtime entry** (`New entry` / `Edit entry`).
 
-Struttura:
+Structure:
 
 ```
 .scrim (backdrop)
 .sheet
-├── .sheet-handle    (la pillola di trascinamento)
-├── .sheet-head      (titolo + chiusura)
-├── .sheet-body      (scroll area — flex: 1 1 auto, min-height: 0)
-└── .sheet-foot      (CTA primaria + secondarie, pinned in basso)
+├── .sheet-handle    (the drag handle pill)
+├── .sheet-head      (title + close)
+├── .sheet-body      (scroll area: flex: 1 1 auto, min-height: 0)
+└── .sheet-foot      (primary + secondary CTAs, pinned to the bottom)
 ```
 
-Comportamento responsive:
-- **Mobile** (< 640px): sale dal basso a tutta larghezza, copre fino a `92dvh`.
-- **Desktop**: centrato, max-width 560px, popup-style con scale-in.
+Responsive behavior:
+* **Mobile** (< 640px): slides up from the bottom at full width, covering up to `92dvh`.
+* **Desktop**: centered, max-width 560px, popup-style with a scale-in.
 
-Le sezioni interne usano `.settings-section-title` (serif italic 16px sienna, dashed underline) come heading.
+The inner sections use `.settings-section-title` (serif italic 16px sienna, dashed underline) as headings.
 
-**Wizard di primo avvio** (`#new-profile-sheet`): stesso sheet, con una `.wz-progress` (barra sienna di 3px) sotto la head, "Passo N di M" (`.wz-count`, 11px uppercase faint) e un solo `.wz-step` visibile, che si apre con una frase `.wz-intro` (serif italic). Le domande sì/no usano `.wz-q` (15px, ink) più il selettore `.kind-switch`; i campi che un "Sì" rende visibili hanno `data-show-if`. Il foglio ha altezza fissa (`min(92dvh, 680px)`, desktop `min(86vh, 680px)`) perché i bottoni Indietro/Avanti nel foot non si spostino tra un passo e l'altro. L'ultimo passo è un riepilogo `.wz-summary`: righe `.wz-row` con separatore tratteggiato, cliccabili per tornare al passo.
+**First-run wizard** (`#new-profile-sheet`): the same sheet, with a `.wz-progress` (a 3px sienna bar) under the head, "Step N of M" (`.wz-count`, 11px uppercase faint) and a single visible `.wz-step`, which opens with a `.wz-intro` sentence (serif italic). Yes/no questions use `.wz-q` (15px, ink) plus the `.kind-switch` selector; the fields that a "Yes" reveals carry `data-show-if`. The sheet has a fixed height (`min(92dvh, 680px)`, desktop `min(86vh, 680px)`) so that the Back/Next buttons in the foot don't move from one step to the next. The last step is a `.wz-summary`: `.wz-row` rows with a dashed separator, clickable to go back to that step.
 
-### 5.8 Calendario (Overtime)
+### 5.8 Calendar (Overtime)
 
-Single grid `repeat(7, minmax(0, 1fr))` con `aspect-ratio: 1` sulle celle giorno. Headers (`.cal-h`) sulla riga 1 con altezza auto. La prima cella numerica usa `grid-column-start` per allinearsi al giorno della settimana corretto (niente celle "empty" — quel pattern rompeva l'altezza della prima riga su alcuni browser).
+A single grid `repeat(7, minmax(0, 1fr))` with `aspect-ratio: 1` on the day cells. Headers (`.cal-h`) on row 1 with auto height. The first numbered cell uses `grid-column-start` to line up with the right weekday (no "empty" cells: that pattern broke the height of the first row in some browsers).
 
-Stati cella:
-- **Default**: numero ink, bordo invisibile.
-- **`.weekend`**: paper-tint background, ink-muted text.
-- **`.has-events`**: sienna full, white text, bold.
-- **`.has-events.weekend`**: terracotta (lavorare nel weekend è già un'altra cosa).
-- **`.festivo`**: gold full, white text. Vince su `.has-events`.
-- **`.pto`** (ferie): ocean full, white text. Vince su `.has-events`.
-- **`.today`**: outline 2px sienna.
+Cell states:
+* **Default**: ink number, invisible border.
+* **`.weekend`**: paper-tint background, ink-muted text.
+* **`.has-events`**: full sienna, white text, bold.
+* **`.has-events.weekend`**: terracotta (working at the weekend is another matter altogether).
+* **`.festivo`** (public holiday): full gold, white text. Wins over `.has-events`.
+* **`.pto`** (holiday): full ocean, white text. Wins over `.has-events`.
+* **`.today`**: 2px sienna outline.
 
-Nella week strip del dettaglio giorno gli stessi stati usano il `-tint` (gold-tint, ocean-tint) come sfondo; `.selected` vince sempre.
+In the week strip of the day detail the same states use the `-tint` (gold-tint, ocean-tint) as background; `.selected` always wins.
 
-Intestazione delle sotto-viste (calendario del mese, dettaglio giorno): una sola riga `.ore-subhead` con il ritorno (`‹ Mesi`, `‹ Giorni`) a sinistra e il `.year-picker` del periodo a destra (`‹ Settembre 2026 ›`, `‹ Settimana 39 ›`). Niente titolo grande: il periodo sta nel selettore, così il contenuto parte subito sotto. L'etichetta ha `min-width: 9em` perché la freccia sinistra non si sposti scorrendo mesi con nomi di lunghezza diversa.
+Header of the sub-views (month calendar, day detail): a single `.ore-subhead` row with the back button (`‹ Months`, `‹ Days`) on the left and the period's `.year-picker` on the right (`‹ September 2026 ›`, `‹ Week 39 ›`). No big title: the period lives in the picker, so the content starts right below. The label has `min-width: 9em` so that the left arrow doesn't shift while scrolling through months with names of different length.
 
-### 5.9 Bottoni
+### 5.9 Buttons
 
-Una sola famiglia, tre varianti:
+One family, three variants:
 
-| Classe              | Background          | Testo  | Quando                                       |
+| Class               | Background          | Text   | When                                         |
 |---------------------|---------------------|--------|----------------------------------------------|
-| `.btn`              | `--sienna`          | white  | CTA primaria (Salva, Crea profilo, Aggiungi) |
-| `.btn.secondary`    | `--card`            | ink    | Azione neutrale (Scarica, Carica)            |
-| `.btn.danger`       | `--terracotta`      | white  | Azione distruttiva (Azzera dati, Elimina)    |
+| `.btn`              | `--sienna`          | white  | Primary CTA (Save, Create my profile, Add entry) |
+| `.btn.secondary`    | `--card`            | ink    | Neutral action (Export, Import)              |
+| `.btn.danger`       | `--terracotta`      | white  | Destructive action (Reset data, Delete)      |
 
-Modifier: `.full` (width 100%), `.large` (padding 14px 22px, font 15px).
+Modifiers: `.full` (width 100%), `.large` (padding 14px 22px, font 15px).
 
-Tutti hanno la stessa ombra interna `inset 0 1px 0 rgba(255,255,255,.16)` per simulare la "pressione di un timbro".
+`.btn` and `.btn.danger` share the inner highlight `inset 0 1px 0 rgba(255,255,255,.16)` (under a soft sienna drop shadow) to suggest the "press of a stamp"; `.btn.secondary` replaces it with `--shadow-rest`.
 
 ### 5.10 Status pill (month-status)
 
-Chip piccola con quattro varianti semantiche:
+A small chip with four semantic variants:
 
-| Modifier   | Background          | Quando                                     |
+| Modifier   | Background          | When                                       |
 |------------|---------------------|--------------------------------------------|
-| (none)     | paper-tint          | "non spettava" (mese senza voci attese)    |
-| `.ok`      | sage-tint           | "tutto incassato"                          |
-| `.warn`    | gold-tint           | "manca X" (parziale)                       |
-| `.danger`  | terracotta-tint     | "da ricevere X" (niente ancora arrivato)   |
-| `.future`  | transparent + line  | "in arrivo"                                |
+| (none)     | paper-tint          | "not due" (month with no expected items)   |
+| `.ok`      | sage-tint           | "all received"                             |
+| `.warn`    | gold-tint           | "missing X" (partial); also the fallback "pending" |
+| `.danger`  | terracotta-tint     | "owed X" (nothing has arrived yet)         |
+| `.future`  | transparent + line  | "upcoming"                                 |
 
-Il testo varia ma i colori sono fissi e mappati 1:1 a stato → semantica.
+The text varies but the colors are fixed and map 1:1 from state to meaning.
 
 ### 5.11 Form
 
-Pattern unico:
+A single pattern:
 
 ```
 .field
 ├── label                  (sans 11.5px uppercase muted)
 ├── input / select         (paper bg, line border, radius 10px, focus → sienna ring)
-└── .hint                  (sans 12.5px italic muted, opzionale)
+└── .hint                  (sans 12.5px italic muted, optional)
 ```
 
-`.field-row` mette due `.field` affiancati in due colonne 1fr/1fr.
+`.field-row` places two `.field` side by side in two equal columns (a flex row with `flex: 1 1 0` children, so native time inputs can shrink on narrow screens).
 
-`.workday-row` è il selettore lun-dom: una pillola per giorno, sienna soft + sienna bordo quando selezionato.
+`.workday-row` is the Monday to Sunday selector: one pill per day, sienna soft + sienna border when selected.
 
-`.kind-switch` è il selettore a pillole per le scelte esclusive (tipo di giornata nel form evento, sì/no nel wizard): veri `radio`, la pillola attiva è card-elev con testo sienna-deep, o del colore del tipo (ocean per Ferie, gold per Festivo). La variante `.kind-switch.compact` (pillole più basse, testo 12,5px, allineata a destra) è la scelta della lingua in cima al primo passo del wizard; nelle impostazioni la stessa scelta usa il `.kind-switch` normale. In inglese le pillole del tipo di giornata prendono la larghezza del testo ("Public holiday" è lungo), in italiano restano tre terzi uguali.
+`.kind-switch` is the pill selector for exclusive choices (day type in the entry form, yes/no in the wizard): real `radio` inputs; the active pill is card-elev with sienna-deep text, or takes the color of its type (ocean for Holiday, gold for Public holiday). The `.kind-switch.compact` variant (lower pills, 12.5px text, aligned right) is the language choice at the top of the wizard's first step; in the settings the same choice uses the regular `.kind-switch`. In English the day-type pills take the width of their text ("Public holiday" is long); in Italian they stay three equal thirds.
 
-Sui touch screen (`pointer: coarse`) input e select dei `.field` sono a 16px invece di 15px: sotto i 16px Safari iOS ingrandisce la pagina quando il campo riceve il cursore, e non torna indietro da solo.
+On touch screens (`pointer: coarse`) the inputs and selects of `.field` are 16px instead of 15px: below 16px, iOS Safari zooms in on the page when the field gets the caret, and doesn't zoom back out on its own.
 
 ---
 
-## 6. Iconografia
+## 6. Iconography
 
-### Emoji come icone componente
+### Emoji as item icons
 
-Le voci nel mese usano emoji come icona dentro un quadratino neutro (`.comp-icon`):
+The items in a month use emoji as icons inside a neutral small square (`.comp-icon`):
 
-| Voce             | Emoji  |
+| Item             | Emoji  |
 |------------------|--------|
-| Stipendio        | 💼     |
-| Tredicesima      | 🎄     |
-| Quattordicesima  | 🌞     |
-| Quindicesima     | ✨     |
+| Salary           | 💼     |
+| 13th month pay   | 🎄     |
+| 14th month pay   | 🌞     |
+| 15th month pay   | ✨     |
 | Welfare          | 🌿     |
-| Buoni pasto      | 🍱     |
-| Fringe benefit   | 🎁     |
+| Meal vouchers    | 🍱     |
+| Fringe benefits  | 🎁     |
 | Bonus            | ⭐     |
-| Rimborso spese   | 🧾     |
-| Straordinari     | 🕐     |
+| Expense refund   | 🧾     |
+| Overtime         | 🕐     |
 
-**Regola**: l'emoji vive *solo* dentro `.comp-icon`. Non comparire in label, header, bottoni, tab. La tabbar è stata esplicitamente ripulita (niente `🕐` accanto a "Overtime") per non gridare.
+**Rule**: the emoji lives *only* inside `.comp-icon`. It doesn't appear in labels, headers, buttons or tabs. The tab bar was explicitly cleaned up (no `🕐` next to "Overtime") so that it doesn't shout.
 
-### SVG inline
+### Inline SVG
 
-I controlli (settings gear, chevron giù, year-picker freccia) sono SVG inline 16–18px con `stroke: currentColor` — così ereditano l'ink-soft del bottone contenitore e lo `--sienna` al hover.
+The controls (settings gear, month chevron) are inline SVGs of 16 to 18px with `stroke: currentColor`, so they inherit the color of their container: `--ink-soft` in the `.icon-btn`, `--sienna` on hover. The year-picker arrows are plain `‹` `›` characters that follow the same logic (`--ink-muted`, `--sienna` on hover).
 
-### Pseudo-decorazioni
+### Pseudo-decorations
 
-L'underline mosso dell'hero (`hero::after`) e i pip della legend (`.dot.ok / .miss / .na`) sono fatti senza asset esterni — SVG inline come data-URI o piccoli `<span>` colorati. Niente immagini caricate da rete.
+The hero's wavy underline (`hero::after`) and the legend pips (`.dot.ok / .miss / .na`) are made without external assets: inline SVG as a data URI, or small colored `<span>`s. No images loaded from the network.
 
 ---
 
 ## 7. Voice & tone
 
-L'app parla in **italiano** ovunque tranne due punti, ambedue intenzionali:
+The interface is available in **English** and **Italian**: English by default, Italian when the device language is Italian, and the choice can be changed in the settings (*System* section) and on the first step of the wizard. In both languages two things stay in English, both intentional:
 
-- **Logo "Where is my *Salary*"** — il nome originale, con accento italic sienna sull'ultima parola.
-- **Tab "Salary" / "Overtime"** — coerenti col logo, e ironici (cit. *"Overtime is the work you do that the paycheck doesn't see"*).
+* **Logo "Where is my *Salary*"**: the original name, with the italic sienna accent on the last word.
+* **Tabs "Salary" / "Overtime"** (and the settings sections with the same names): consistent with the logo, and wry (quoting *"Overtime is the work you do that the paycheck doesn't see"*).
 
-### Caratteristiche del copy
+### Traits of the copy
 
-1. **Frasi brevi, virgolette, pausa.** Le tagline sono tra virgolette tipografiche (`\201C`/`\201D` via pseudo-element) per dare l'idea di "detto a bassa voce".
-2. **Ironia sull'attesa.** Tutte le tagline (`taglines_salary` e `taglines_ore` nel dizionario `I18N`, in italiano e in inglese) sono pensate per essere il commento dolceamaro del libro mastro che ha visto troppi 27 del mese:
-   - *"Il 27 non è una data. È una promessa."*
-   - *"Le ore non si recuperano. I soldi sì."*
-3. **Saluti contestuali.** Buongiorno / buon pomeriggio / buonasera / buona notte cambiano in base all'ora — il libro mastro è sveglio quando lo sei tu.
-4. **Confirm/alert** sostituiscono i nativi (`showConfirm`, `showAlert`, `showChoice`) — il copy può quindi mantenere lo stesso tono ovunque.
+1. **Short sentences, quotation marks, pause.** The taglines sit between typographic quotes (`\201C`/`\201D` via pseudo-element) to give the sense of something "said quietly".
+2. **Irony about waiting.** All the taglines (`taglines_salary` and `taglines_ore` in the `I18N` dictionary, in Italian and English) are meant as the bittersweet remarks of a ledger that has seen too many 27ths of the month:
+   * *"The 27th isn't a date. It's a promise."* (the day is the payday set in the profile, 27 by default)
+   * *"You can't get the hours back. The money, you can."*
+3. **Contextual greetings.** "good morning" / "good afternoon" / "good evening" / "still up" change with the time of day: the ledger is awake when you are.
+4. **Confirm/alert dialogs** replace the native ones (`showConfirm`, `showAlert`, `showChoice`), so the copy can keep the same tone everywhere.
 
-### Glossario interno
+### Internal glossary
 
-| Termine UI           | Significato                                                  |
+| UI term              | Meaning                                                      |
 |----------------------|--------------------------------------------------------------|
-| "ricevuto"           | importo arrivato in busta — verde sage                       |
-| "mancante"           | dovuto, non ancora arrivato — terracotta                     |
-| "non spettato"       | non era previsto per quel mese — ink-faint                   |
-| "manca X"            | parzialmente arrivato                                        |
-| "da ricevere X"      | tutto ancora da incassare                                    |
-| "tutto incassato"    | mese chiuso, conti tornano                                   |
-| "in arrivo"          | mese futuro                                                  |
-| "non spettava"       | mese passato senza voci attese (vuoto legittimo)             |
-| "le tue cifre"       | titolo del sheet impostazioni                                |
-| "Azzera dati"        | non "Elimina profilo" — il termine "profilo" non esiste più  |
+| "received"           | amount that arrived in the payslip, sage green               |
+| "missing"            | due, not arrived yet, terracotta                             |
+| "not due"            | not expected for that month, ink-faint                       |
+| "missing X"          | partially arrived                                            |
+| "owed X"             | everything still to be collected                             |
+| "all received"       | month closed, the numbers add up                             |
+| "upcoming"           | month whose payday hasn't come yet                           |
+| "not due"            | month with no expected items (a legitimate blank)            |
+| "your numbers"       | title of the settings sheet                                  |
+| "Reset data"         | not "Delete profile": it wipes all the data (months, settings and overtime) at once |
 
 ---
 
 ## 8. Hierarchy & rhythm
 
-Tre regole di gerarchia visiva, in ordine di forza:
+Three rules of visual hierarchy, in order of strength:
 
-1. **Scale** — l'hero amount è 11vw, le altre cifre sono 15–18px. La differenza è di ~4×, non di ~30%. Quando una cifra deve parlare, parla forte.
-2. **Italic vs roman** — l'italic serif segnala intimità (mese, totale, saluto). Il roman serif segnala "valore di servizio" (importo nelle righe componente). Sans = strumento.
-3. **Accento sienna** — l'unico vero "shouting". Compare al massimo 2–3 volte per schermata: brand, current month, CTA. Mai per decorare.
+1. **Scale**: the hero amount is `clamp(40px, 11vw, 56px)`, the other figures are 15 to 18px. The difference is up to ~4×, not ~30%. When a figure has to speak, it speaks loudly.
+2. **Italic vs roman**: italic serif signals intimacy (month, greeting). Roman serif signals a "service value" (the amount in the component rows), and the hero amount uses it too, standing out through scale instead (point 1). Sans = tool.
+3. **Sienna accent**: the only real "shouting". It appears at most 2 or 3 times per screen: brand, current month, CTA. Never to decorate.
 
-### Ritmo
+### Rhythm
 
-Le card mese sono dodici, identiche, in colonna — la **ripetizione paziente** che dà alla griglia il carattere di registro. La stessa logica vale per `ore-month-grid` (12 quadrati) e per le sette colonne del calendario. Nessuna delle dodici card "spicca" se non per il contenuto: l'unica differenza visiva è `.current` (sienna outline) — e quella distingue solo *un* mese in *un* anno.
+The month cards are twelve, identical, in a column: the **patient repetition** that gives the grid the character of a register. The same logic applies to `ore-month-grid` (12 squares) and to the seven columns of the calendar. None of the twelve cards "stands out" except through its content: the only visual difference is `.current` (sienna outline), and it sets apart only *one* month in *one* year.
 
 ---
 
-## 9. Token reference (sintesi)
+## 9. Token reference (summary)
 
 ```css
 :root {
@@ -481,27 +486,27 @@ Le card mese sono dodici, identiche, in colonna — la **ripetizione paziente** 
 
 ---
 
-## 10. Regole di estensione
+## 10. Extension rules
 
-Quando aggiungi un componente o uno schermo nuovo:
+When you add a new component or screen:
 
-1. **Parte dai token, non da valori magici.** Se serve un colore nuovo, è un segnale: probabilmente devi rinominare il ruolo, non aggiungere un hex.
-2. **Niente nuove font.** Le tre famiglie bastano. Una quarta voce dilurebbe le esistenti.
-3. **Niente nuovi accenti.** Se hai bisogno di "spiccare", controlla prima che non sia un problema di hierarchy (scale + italic).
-4. **Ogni nuovo componente nasce con un'ombra di livello esistente.** Non inventare `box-shadow` ad hoc — usa `--shadow-rest / soft / warm`.
-5. **Mai testo intero in uppercase tranne le label di servizio.** L'uppercase è una decisione di "etichetta", non di enfasi.
-6. **Sempre `tabular-nums` su qualsiasi cifra.** L'allineamento delle cifre è una questione morale.
-7. **Niente animation > 300ms.** Le transizioni sono brevi (`.12–.28s`) con curve gentili (`cubic-bezier(.2,.8,.2,1)` o `ease`). L'app non "intrattiene": registra.
-8. **Mai chiamare `alert()`/`confirm()` nativi.** Usa `showAlert`/`showConfirm` — coerenza visiva e niente sorprese su iOS.
-9. **`escapeHtml` su qualunque stringa utente** interpolata in template + `innerHTML`. È convenzione anti self-XSS.
-10. **Se aggiungi un'emoji, vive solo dentro `.comp-icon`.** Niente emoji altrove.
-
----
-
-## 11. Quando uno di questi vincoli ti sembra di troppo
-
-Il design system non è un confessionale. Se hai un'idea che lo viola e funziona meglio, **mettila nel CHANGELOG con il `Why:`** e aggiorna questo file di conseguenza. La filosofia *Quiet Ledger* esiste per evitare decisioni casuali, non per impedire decisioni informate.
+1. **Start from the tokens, not from magic values.** If you need a new color, that's a signal: you probably need to rename the role, not add a hex.
+2. **No new fonts.** The three families are enough. A fourth voice would dilute the existing ones.
+3. **No new accents.** If you need something to "stand out", first check that it isn't a hierarchy problem (scale + italic).
+4. **Every new component is born with an existing shadow level.** Don't invent ad hoc `box-shadow`s: use `--shadow-rest / soft / warm`.
+5. **Never set whole text in uppercase, except service labels.** Uppercase is a "label" decision, not emphasis.
+6. **Always `tabular-nums` on any figure.** The alignment of figures is a moral question.
+7. **No animation longer than 300ms.** Transitions are short (`.08s` to `.28s`) with gentle curves (`cubic-bezier(.2,.8,.2,1)` or `ease`). The app doesn't "entertain": it records. The one exception is the looping `pulse` (1.2s) of the sync indicator while it syncs.
+8. **Never call the native `alert()`/`confirm()`.** Use `showAlert`/`showConfirm`: visual consistency and no surprises on iOS.
+9. **`escapeHtml` on any user string** interpolated into a template + `innerHTML`. It's an anti self-XSS convention.
+10. **If you add an emoji, it lives only inside `.comp-icon`.** No emoji anywhere else.
 
 ---
 
-<p align="center"><i>contato a mano</i></p>
+## 11. When one of these constraints feels like too much
+
+The design system is not dogma. If you have an idea that breaks it and works better, **record it in the CHANGELOG with its *why*** and update this file accordingly. The *Quiet Ledger* philosophy exists to prevent random decisions, not to prevent informed ones.
+
+---
+
+<p align="center"><i>counted by hand</i></p>

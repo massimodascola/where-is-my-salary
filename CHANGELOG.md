@@ -1,14 +1,14 @@
 # Changelog
 
-Storico delle modifiche di **Where is my Salary**. Il file è anche una mini-documentazione delle scelte di design: per ogni release scrivo *cosa* è cambiato e *perché*, così a distanza di mesi non devo ricostruire il contesto a memoria.
+Release history of **Where is my Salary**. The file is also a small record of the design choices: for each release I write *what* changed and *why*, so that months later I don't have to rebuild the context from memory.
 
-Le voci sono in ordine cronologico inverso (più recenti in alto). Le versioni seguono [SemVer](https://semver.org/lang/it/) in modo informale: bump del minor per feature, patch per fix.
+Entries are in reverse chronological order (newest first). Versions follow [SemVer](https://semver.org/) informally: minor bump for features, patch for fixes.
 
 ---
 
-## [3.8.0] — 2026-09-23
+## [3.8.0] - 2026-09-23
 
-The app now speaks English as well as Italian, with a switch inside the app. English is the default for the public; the Italian interface stays exactly as it was. From this release the changelog is written in English; the older entries stay in Italian.
+The app now speaks English as well as Italian, with a switch inside the app. English is the default for the public; the Italian interface stays exactly as it was. From this release the changelog is written in English; the older entries have been translated from Italian, and the originals remain in the git history.
 
 ### English and Italian interface
 
@@ -44,807 +44,807 @@ The app now speaks English as well as Italian, with a switch inside the app. Eng
 
 ---
 
-## [3.7.2] — 2026-09-21
+## [3.7.2] - 2026-09-21
 
-Bug trovato durante il lavoro sulla 3.7.1: una settimana divisa fra due mesi perdeva gli straordinari nei totali mensili. Tocca i soldi, perché `paidHoursForMonth` alimenta l'hero "quanto ti devono", le card dei mesi, la vista Anni e la voce Straordinari della pagina Salary.
+Bug found while working on 3.7.1: a week split across two months lost its overtime in the monthly totals. It affects money, because `paidHoursForMonth` feeds the "how much you're owed" hero, the month cards, the Years view and the Overtime item on the Salary page.
 
-### Settimane a cavallo di due mesi
+### Weeks spanning two months
 
-- **Problema**: `paidHoursForMonth` guardava solo gli eventi del mese, li raggruppava per settimana ISO e confrontava ogni gruppo con la soglia intera (contratto + forfait). Una settimana divisa fra due mesi diventava due mezze settimane, ognuna sotto soglia. Esempio misurato: da lunedì 28/09 a venerdì 02/10/2026, 10 h al giorno (50 h, soglia 40). Vista Settimane: 10 h da pagare. Settembre: 0 h. Ottobre: 0 h.
-- **Regola scelta**: la soglia si riempie giorno per giorno, in ordine di data, e gli straordinari sono le ore oltre la soglia: vanno nel mese dei giorni in cui la settimana la supera. Nell'esempio settembre resta a 0 h (30 h, ancora sotto soglia) e ottobre ne prende 10. Scartate: tutta la settimana al mese del giovedì (regola ISO); al mese della domenica, che avrebbe spostato a novembre anche la settimana dal 26 al 30/10, lavorata tutta a ottobre; divisa in proporzione alle ore, che avrebbe cambiato il mese prima dopo la sua fine e prodotto ore con decimali.
-- **Come funziona**: per ogni settimana che tocca il mese la funzione somma anche le ore feriali dei giorni della stessa settimana che cadono nel mese prima (al massimo 6), e tiene solo la parte oltre soglia che spetta al mese: `max(0, prima + mese - soglia) - max(0, prima - soglia)`. Sui due mesi la somma è esattamente quella della vista Settimane, e un mese finito non cambia più quando inserisci le ore del mese dopo. Le ore nei giorni non lavorativi restano pagate per intero nel loro mese; "non contare come straordinario", ferie, festivi e l'override manuale del mese funzionano come prima. I chiamanti non cambiano: passano già tutti l'elenco completo degli eventi, e il commento della funzione ora dice che deve restare così.
-- **A cavallo d'anno** vale la stessa regola: la settimana 53 del 2026 (dal 28/12 al 03/01) si divide fra dicembre 2026 e gennaio 2027. La vista Settimane la elenca intera nel 2026 (anno ISO), quindi in quel caso il totale 2026 della vista Anni è più basso della somma delle settimane del 2026 esattamente di quanto è andato a gennaio. Il totale complessivo coincide.
-- **Verifica**: profilo di prova a 20 €/h con quattro settimane divise: 28/09-02/10; 26-30/10; 28/12/2026-02/01/2027 con un sabato da 4 h; 31/08-04/09 con un giorno di ferie e uno "non contare". Prima: agosto 0, settembre 0, ottobre 10, dicembre 0, gennaio 2027 4 h, totale 14 h contro le 38 h della vista Settimane (480 € persi). Dopo: 0, 4, 20, 0, 14 h, totale 38 h. Nel browser tornano le card dei mesi, l'hero (80 € entro settembre), il calendario di ottobre (400 €, 140 € con override a 7 h), la pagina Salary (20,0 h proposte a ottobre) e la vista Anni (24 h nel 2026 più 14 h nel 2027). In più 3000 casi casuali in quattro fusi orari: somma dei mesi sempre uguale alla somma delle settimane, mese chiuso stabile, mai negativo.
-
-### Internals
-
-- Versione bumped a `3.7.2`.
-- Cache key del service worker bumped a `wims-v3.7.2`.
-
----
-
-## [3.7.1] — 2026-09-21
-
-Due bug già presenti prima della 3.6.0, trovati rileggendo il codice per le ferie: la vista Settimane contava come da pagare anche le ore segnate "non contare come straordinario", e la data di "oggi" era quella UTC, che in Italia tra mezzanotte e l'una (le due con l'ora legale) è ancora ieri.
-
-### Vista Settimane — gli eventi "non straordinario" non vanno in "Da pagare"
-
-- **Problema**: `renderOreWeekView` sommava in `workH`/`weekendH` anche gli eventi con `notOvertime: true`, mentre `paidHoursForMonth` li salta del tutto. La stessa settimana dava quindi due risposte: esempio verificato, settimana 38 con quattro giorni da 9,5 h, venerdì da 9,5 h e sabato da 4 h marcati "non contare": vista Settimane 11,5 h da pagare (195,50 €), calcolo del mese 0 h.
-- **Correzione**: gli eventi `notOvertime` finiscono in un contatore a parte (`notOvertimeH`). Contano nelle ore "Lavorate", ma non entrano in "Da pagare" e non consumano la soglia settimanale, esattamente come in `paidHoursForMonth`. Dopo la correzione: settimana 38 "Lavorate 51,5 h, da pagare 0,0 h"; la settimana 39 di controllo (niente eventi esclusi) resta 7,5 h. La somma delle settimane ora coincide con il totale dell'hero.
-
-### Data di "oggi" in ora locale
-
-- **Problema**: `new Date().toISOString().slice(0, 10)` restituisce la data UTC. Tra mezzanotte e le 2 (ora legale) il nuovo evento proponeva la data di ieri, il cerchio "oggi" del calendario stava sul giorno prima e il KPI "Settimana corrente", di lunedì notte, mostrava ancora la settimana precedente.
-- **Correzione**: il nuovo evento (`openOvertimeForm`), il calendario (`renderCalendar`) e il KPI (`renderPageOre`) usano `localDateStr(new Date())`, che compone anno, mese e giorno in ora locale (helper già introdotto nella 3.6.1; il suo commento ora dice di usarlo sempre per "oggi"). Anche i nomi dei file di backup CSV usano la data locale: un backup fatto a mezzanotte e mezza porta la data di quel giorno. Restano in UTC solo i timestamp della sync (`lastSyncAt`), che sono orari completi e non date.
-- **Verifica**: orologio simulato nel browser a lunedì 28/09/2026 00:30 ora di Roma (in UTC domenica 27, 22:30). Prima: nuovo evento al 27, "oggi" sul 27, settimana corrente 47,5 h (la settimana 39). Dopo: 28, 28, e settimana corrente 0,0 h (la 40, ancora vuota). Con l'orologio vero il nuovo evento propone la data di oggi.
+* **Problem**: `paidHoursForMonth` only looked at the month's entries, grouped them by ISO week and compared each group with the full threshold (contract + allowance). A week split across two months became two half weeks, each under the threshold. Measured example: from Monday 28/09 to Friday 02/10/2026, 10 h a day (50 h, threshold 40). Weeks view: 10 h to be paid. September: 0 h. October: 0 h.
+* **Rule chosen**: the threshold fills up day by day, in date order, and overtime is the hours beyond the threshold: they go to the month of the days on which the week goes over it. In the example September stays at 0 h (30 h, still under the threshold) and October gets 10. Discarded: the whole week to the month of its Thursday (the ISO rule); to the month of its Sunday, which would also have moved to November the week from 26 to 30/10, worked entirely in October; split in proportion to the hours, which would have changed the earlier month after it ended and produced hours with decimals.
+* **How it works**: for each week that touches the month, the function also adds up the working-day hours of the days of the same week that fall in the previous month (at most 6), and keeps only the part above the threshold that belongs to the month: `max(0, prima + mese - soglia) - max(0, prima - soglia)` (prima: the earlier days, mese: the month, soglia: the threshold). Across the two months the sum is exactly the one in the Weeks view, and a finished month no longer changes when you enter the hours of the following month. Hours on non-working days are still paid in full in their own month; "don't count as overtime", holidays, public holidays and the month's manual override work as before. The callers don't change: they all already pass the full list of entries, and the function's comment now says it must stay that way.
+* **Across the year end** the same rule applies: week 53 of 2026 (from 28/12 to 03/01) is split between December 2026 and January 2027. The Weeks view lists it whole in 2026 (ISO year), so in that case the 2026 total in the Years view is lower than the sum of the 2026 weeks by exactly what went to January. The overall total matches.
+* **Verification**: test profile at €20/h with four split weeks: 28/09-02/10; 26-30/10; 28/12/2026-02/01/2027 with a 4 h Saturday; 31/08-04/09 with one holiday day and one "don't count" day. Before: August 0, September 0, October 10, December 0, January 2027 4 h, total 14 h against the 38 h of the Weeks view (€480 lost). After: 0, 4, 20, 0, 14 h, total 38 h. In the browser everything checks out: the month cards, the hero (€80 by September), the October calendar (€400, €140 with the override at 7 h), the Salary page (20.0 h proposed for October) and the Years view (24 h in 2026 plus 14 h in 2027). Plus 3000 random cases in four time zones: sum of the months always equal to the sum of the weeks, closed month stable, never negative.
 
 ### Internals
 
-- Versione bumped a `3.7.1`.
-- Cache key del service worker bumped a `wims-v3.7.1`.
+* Version bumped to `3.7.2`.
+* Service worker cache key bumped to `wims-v3.7.2`.
 
 ---
 
-## [3.7.0] — 2026-09-21
+## [3.7.1] - 2026-09-21
 
-Due richieste dirette. Primo: al primo avvio un wizard che guidi passo dopo passo (nome, stipendio, mensilità, welfare e tutto quello che serve) al posto del modulo unico "Iniziamo da te". Secondo: un orario abituale di inizio e fine, impostabile, che come la pausa sia già precompilato ogni volta che si aggiunge un evento.
+Two bugs already present before 3.6.0, found while rereading the code for holidays: the Weeks view also counted hours marked "don't count as overtime" as to be paid, and the "today" date was the UTC one, which in Italy between midnight and 1 am (2 am with daylight saving time) is still yesterday.
 
-### Wizard di primo avvio
+### Weeks view: "not overtime" entries don't go into "To be paid"
 
-- **Il modulo unico "Iniziamo da te" diventa un wizard a passi**, nello stesso foglio (`#new-profile-sheet`): nome → stipendio (importo, mensilità, giorno e mese di pagamento) → welfare e buoni pasto → fringe benefit → le tue ore → straordinari (forfait e tariffa) → il tuo orario → riepilogo. Barra di avanzamento sotto il titolo, "Passo N di M", bottoni Indietro/Avanti; Invio in un campo equivale ad Avanti. I campi hanno gli stessi id `np-*` di prima: il wizard decide solo quale passo è visibile, e la creazione del profilo (`createProfileFromWizard`) è la stessa logica di prima con le risposte nuove.
-- **Welfare, buoni pasto e fringe sono domande sì/no** (stesso selettore a pillole del "Tipo di giornata"), con "No" preselezionato. Il "Sì" fa comparire il campo dell'importo e ci mette il cursore; con "Sì" l'importo è obbligatorio. "No" salva 0. Prima il modulo proponeva 400 / 1000 / 10 € come se tutti li avessero.
-- **"Vuoi tenere traccia delle ore?"**: con "No" i passi straordinari e orario spariscono (6 passi invece di 8) e il profilo nasce con Overtime spento.
-- **Riepilogo finale**: una riga per risposta; toccandola si torna a quel passo e il bottone diventa "Torna al riepilogo", così non si ripassano tutti i passi dopo una correzione.
-- **Chiudere a metà non perde niente**: riaprendo (dalla card di benvenuto) si riparte dal passo dove si era. Le risposte si azzerano solo dopo la creazione del profilo.
-- **Altezza fissa del foglio** (`min(92dvh, 680px)`, su desktop `min(86vh, 680px)`): i passi hanno altezze diverse (da circa 380 px il nome a 670 px il riepilogo, misurati) e con l'altezza automatica "Avanti" saltava su e giù a ogni passo.
-- **Cursore sul primo campo** di ogni passo solo con mouse e tastiera; su telefono solo sul nome, per non aprire la tastiera a ogni passo. Dopo un errore su un orario il cursore riparte dalle ore, non dai minuti.
-- Il "Bonus standard" non è nel wizard: è un'impostazione avanzata, resta nelle impostazioni a 0.
+* **Problem**: `renderOreWeekView` also added the entries with `notOvertime: true` into `workH`/`weekendH`, while `paidHoursForMonth` skips them entirely. The same week therefore gave two answers: verified example, week 38 with four days of 9.5 h, and a Friday of 9.5 h and a Saturday of 4 h marked "don't count": Weeks view 11.5 h to be paid (€195.50), month calculation 0 h.
+* **Fix**: `notOvertime` entries go into a separate counter (`notOvertimeH`). They count in the "Worked" hours, but they don't go into "To be paid" and don't use up the weekly threshold, exactly as in `paidHoursForMonth`. After the fix: week 38 "Worked 51.5 h, to be paid 0.0 h"; control week 39 (no excluded entries) stays at 7.5 h. The sum of the weeks now matches the hero total.
 
-### Voci che non hai: nascoste
+### "Today" in local time
 
-- **Nuova `componentApplies(comp, settings)`**: welfare, buoni pasto e fringe a 0 €, mensilità extra oltre quelle scelte e straordinari con Overtime spento non compaiono nelle card dei mesi né nel "Riepilogo per voce". Prima comparivano comunque, con 0,00 €. Totali e stato dei mesi non cambiano: l'importo atteso di quelle voci era già 0.
-- Nelle impostazioni una nota lo dice: "Welfare, ticket e fringe a 0 se non li hai: quelle voci non compaiono nei mesi."
-
-### Orario abituale
-
-- **Nuove impostazioni `inizioDefault` e `fineDefault`** ("HH:MM" oppure vuote), nella sezione Overtime accanto alla pausa predefinita. Ogni nuovo evento parte con quell'orario e con la pausa; aprendo un evento ferie/festivo (che non ha orari) il form è precaricato con i valori abituali, così se lo si riporta a "Lavoro" si parte da lì.
-- **Il wizard propone 9:00-18:00**; lasciando vuoti inizio e fine non c'è niente di precompilato. I profili esistenti ricevono orario vuoto (tramite `ensureProfile`), quindi per loro nulla cambia finché non lo si imposta.
-- Se inizio e fine sono entrambi impostati, la fine deve venire dopo l'inizio: nel wizard lo blocca il passo, nelle impostazioni il salvataggio viene rifiutato senza toccare niente.
-- **"Scrivi l'ora + Tab = minuti a 00"** ora vale per tutti i campi orario dell'app (evento, impostazioni, wizard), non solo per il form evento.
-
-### iPhone — niente più zoom sui campi
-
-- Safari iOS ingrandisce la pagina quando un campo con testo sotto i 16 px riceve il cursore, e non torna indietro da solo. I campi dei moduli erano a 15 px: misurato nel simulatore, zoom 1,07 dopo che il wizard ha messo il cursore sull'importo. Ora sui touch screen (`pointer: coarse`) i campi sono a 16 px: zoom 1,00. Su desktop restano a 15 px. Vale anche per il form evento e le impostazioni, dove lo zoom succedeva già toccando un campo.
-
-### Backup CSV
-
-- Colonne `orario_inizio` e `orario_fine` in coda a `SETTINGS_COLS`. I file precedenti restano importabili (orario vuoto); un orario non valido nel file blocca l'import con un messaggio che indica riga e colonna.
-
-### Verifiche
-
-- Browser Chromium con clic e tasti reali: apertura automatica al primo avvio, avviso sul nome mancante, Invio per avanzare, "Sì" che mostra il campo e ci mette il cursore, avviso su importo mancante, "No" alle ore (8 → 6 passi e ritorno), errore "fine prima dell'inizio" con correzione, riga del riepilogo → passo → "Torna al riepilogo", creazione del profilo con tutte le impostazioni giuste.
-- Dopo la creazione: buoni pasto (risposto no) assenti dal mese e dal riepilogo annuale, quindicesima assente con 14 mensilità; nuovo evento con 9:00-18:00, pausa 30 e durata 8,50 h; impostazioni con orario non valido rifiutate, con 8:30-17:30 salvate e usate dal form.
-- Casi di contorno: profilo creato da una versione precedente (orario vuoto, nessuna precompilazione); "Azzera dati" → wizard da capo; chiusura a metà e ripresa; CSV nuovo esportato e reimportato, CSV 3.6 senza le colonne, CSV con orario non valido.
-- Larghezza 375 px e simulatore iPhone 17 Pro (iOS 26.4, Safari): passi welfare, orario e riepilogo, campi orario alti come gli altri (48 px con il testo a 16 px), nessuno zoom.
+* **Problem**: `new Date().toISOString().slice(0, 10)` returns the UTC date. Between midnight and 2 am (daylight saving time) a new entry proposed yesterday's date, the calendar's "today" circle sat on the previous day and the "This week" KPI, on Monday night, still showed the previous week.
+* **Fix**: the new entry (`openOvertimeForm`), the calendar (`renderCalendar`) and the KPI (`renderPageOre`) use `localDateStr(new Date())`, which builds year, month and day in local time (a helper already introduced in 3.6.1; its comment now says to always use it for "today"). The CSV backup file names also use the local date: a backup made at half past midnight carries that day's date. Only the sync timestamps (`lastSyncAt`) stay in UTC, since they are full times, not dates.
+* **Verification**: clock simulated in the browser at Monday 28/09/2026 00:30 Rome time (Sunday 27, 22:30 UTC). Before: new entry on the 27th, "today" on the 27th, "This week" 47.5 h (week 39). After: 28, 28, and "This week" 0.0 h (week 40, still empty). With the real clock a new entry proposes today's date.
 
 ### Internals
 
-- Versione bumped a `3.7.0`.
-- Cache key del service worker bumped a `wims-v3.7.0`.
+* Version bumped to `3.7.1`.
+* Service worker cache key bumped to `wims-v3.7.1`.
 
 ---
 
-## [3.6.4] — 2026-09-21
+## [3.7.0] - 2026-09-21
 
-Su iPhone i campi "Ora inizio" e "Ora fine" vuoti erano più bassi di tutti gli altri riquadri del form, e si allargavano solo dopo aver scelto un orario. Richiesta diretta: stessa altezza fissa degli altri campi.
+Two direct requests. First: on first launch, a wizard that guides you step by step (name, salary, monthly payments, welfare and everything else that's needed) instead of the single "Let's start with you" form. Second: a usual start and end time, configurable, which like the break is already filled in every time you add an entry.
 
-### Form evento — campi data e ora alti come gli altri
+### First-run wizard
 
-- **Causa (iOS Safari)**: con `appearance: none` (serve dalla 3.4.4 per non far sforare i campi su iPhone) un `<input type="time">` vuoto non ha una riga di testo interna, quindi si riduce a padding + bordo. Misurato nel simulatore iOS 26.4: "Ora fine" vuota 24 px, "Ora inizio" compilata 46 px, "Nota" 46,5 px.
-- **Soluzione**: `min-height` sui campi data e ora pari all'altezza degli altri campi, cioè una riga (`line-height: 1.5`, ereditata dal body tramite `font: inherit`) + 11 px di padding sopra e sotto + 1 px di bordo sopra e sotto. Scritto come `calc(1lh + 24px)`, con `calc(1.5em + 24px)` come riserva per i browser che non conoscono l'unità `lh`.
-- **Desktop**: su Chromium i campi data e ora erano già 2 px più alti dei campi di testo (48,5 contro 46,5), per il padding verticale della casella interna (`::-webkit-datetime-edit`). Azzerato quel padding: ora tutti i campi del form hanno la stessa altezza anche su desktop.
+* **The single "Let's start with you" form becomes a step-by-step wizard**, in the same sheet (`#new-profile-sheet`): name → salary (amount, monthly payments, payday and pay month) → welfare and meal vouchers → fringe benefits → your hours → overtime (allowance and rate) → your schedule → summary. Progress bar under the title, "Step N of M", Back/Next buttons; Enter in a field is the same as Next. The fields keep the same `np-*` ids as before: the wizard only decides which step is visible, and creating the profile (`createProfileFromWizard`) is the same logic as before with the new answers.
+* **Welfare, meal vouchers and fringe benefits are yes/no questions** (the same pill selector as "Day type"), with "No" preselected. "Yes" reveals the amount field and puts the cursor in it; with "Yes" the amount is required. "No" saves 0. Before, the form suggested €400 / €1000 / €10 as if everyone had them.
+* **"Do you want to track your hours?"**: with "No" the overtime and schedule steps disappear (6 steps instead of 8) and the profile starts with Overtime turned off.
+* **Final summary**: one row per answer; tapping a row goes back to that step and the button becomes "Back to summary", so you don't go through all the steps again after a correction.
+* **Closing halfway loses nothing**: reopening it (from the welcome card) resumes from the step you were on. The answers are cleared only after the profile is created.
+* **Fixed sheet height** (`min(92dvh, 680px)`, on desktop `min(86vh, 680px)`): the steps have different heights (from about 380 px for the name to 670 px for the summary, measured) and with automatic height "Next" jumped up and down at every step.
+* **Cursor on the first field** of each step only with mouse and keyboard; on a phone only on the name, so the keyboard doesn't open at every step. After an error on a time the cursor starts again from the hours, not the minutes.
+* The "Standard bonus" is not in the wizard: it's an advanced setting, it stays in the settings at 0.
 
-### Verifiche
+### Items you don't have: hidden
 
-- **Simulatore iPhone 17 Pro, iOS 26.4, Safari**, con una pagina di prova che apre il form da sola: prima della correzione 24 px per il campo vuoto (problema riprodotto come negli screenshot), dopo 46,5 px per Data, Ora inizio compilata, Ora fine vuota e Nota; stesso risultato con entrambi gli orari vuoti. Controllato anche a vista sugli screenshot.
-- Browser Chromium desktop: tutti i campi a 46,5 px, orari centrati, "9" + Tab = 09:00 ancora funzionante.
+* **New `componentApplies(comp, settings)`**: welfare, meal vouchers and fringe benefits at €0, extra monthly payments beyond the ones chosen, and overtime with Overtime turned off don't appear in the month cards or in the "Summary by item". Before, they appeared anyway, at €0.00. Totals and month status don't change: the expected amount of those items was already 0.
+* A note in the settings says so: "Set welfare, meal vouchers and fringe to 0 if you don't have them: those items won't appear in the months."
+
+### Usual schedule
+
+* **New settings `inizioDefault` and `fineDefault`** ("HH:MM" or empty), in the Overtime section next to the default break. Every new entry starts with that schedule and with the break; when you open a holiday/public holiday entry (which has no times) the form is preloaded with the usual values, so if you switch it back to "Work" you start from there.
+* **The wizard suggests 9:00-18:00**; if start and end are left empty, nothing is prefilled. Existing profiles get an empty schedule (through `ensureProfile`), so for them nothing changes until they set one.
+* If start and end are both set, the end must come after the start: in the wizard the step blocks it, in the settings the save is refused without changing anything.
+* **"Type the hour + Tab = minutes at 00"** now works for every time field in the app (entry, settings, wizard), not just the entry form.
+
+### iPhone: no more zoom on fields
+
+* iOS Safari zooms the page when a field with text under 16 px gets the cursor, and doesn't zoom back by itself. The form fields were 15 px: measured in the simulator, zoom 1.07 after the wizard put the cursor on the amount. Now on touch screens (`pointer: coarse`) the fields are 16 px: zoom 1.00. On desktop they stay at 15 px. This also applies to the entry form and the settings, where the zoom already happened just by tapping a field.
+
+### CSV backup
+
+* Columns `orario_inizio` and `orario_fine` appended to `SETTINGS_COLS`. Earlier files still import (empty schedule); an invalid time in the file blocks the import with a message that gives the line and column.
+
+### Checks
+
+* Chromium browser with real clicks and keys: automatic opening on first launch, warning on a missing name, Enter to advance, "Yes" showing the field and putting the cursor in it, warning on a missing amount, "No" to hours (8 → 6 steps and back), "end before start" error with correction, summary row → step → "Back to summary", profile creation with all the right settings.
+* After creation: meal vouchers (answered no) absent from the month and from the yearly summary, 15th month pay absent with 14 monthly payments; new entry with 9:00-18:00, break 30 and duration 8.50 h; settings with an invalid time refused, with 8:30-17:30 saved and used by the form.
+* Edge cases: profile created by an earlier version (empty schedule, no prefill); "Reset data" → wizard from the start; closing halfway and resuming; new CSV exported and reimported, 3.6 CSV without the columns, CSV with an invalid time.
+* Width 375 px and iPhone 17 Pro simulator (iOS 26.4, Safari): welfare, schedule and summary steps, time fields as tall as the others (48 px with 16 px text), no zoom.
 
 ### Internals
 
-- Versione bumped a `3.6.4`.
-- Cache key del service worker bumped a `wims-v3.6.4`.
+* Version bumped to `3.7.0`.
+* Service worker cache key bumped to `wims-v3.7.0`.
 
 ---
 
-## [3.6.3] — 2026-09-21
+## [3.6.4] - 2026-09-21
 
-Ritocco al riepilogo del mese sotto il calendario: sopra la riga "Importo" c'erano due linee attaccate, la tratteggiata della riga "Ore da pagare" e la continua del totale. Richiesta diretta: lasciare solo quella continua.
+On iPhone the empty "Start time" and "End time" fields were shorter than all the other boxes in the form, and only grew after a time was picked. Direct request: the same fixed height as the other fields.
 
-### Riepilogo del mese — un solo separatore sopra il totale
+### Entry form: date and time fields as tall as the others
 
-- **Causa**: ogni `.oms-row` disegnava il separatore tratteggiato *sotto* di sé (`border-bottom`), e la riga `.total` aggiungeva la sua linea continua *sopra*. Fra le due c'erano solo i 2 px di `margin-top` del totale, quindi si vedevano due linee.
-- **Soluzione**: il separatore ora sta *sopra* ogni riga tranne la prima (`.oms-row + .oms-row`), lo stesso schema delle voci della pagina Salary (`.comp + .comp`). La riga del totale sostituisce il suo tratteggio con la linea continua, quindi ne resta una sola. Tolta la regola `:last-child`, non serve più.
-- Senza tariffa (niente riga "Importo") non cambia nulla: nessuna linea in fondo al riquadro.
+* **Cause (iOS Safari)**: with `appearance: none` (needed since 3.4.4 to keep fields from overflowing on iPhone) an empty `<input type="time">` has no inner line of text, so it shrinks to padding + border. Measured in the iOS 26.4 simulator: empty "End time" 24 px, filled "Start time" 46 px, "Note" 46.5 px.
+* **Solution**: `min-height` on the date and time fields equal to the height of the other fields, i.e. one line (`line-height: 1.5`, inherited from the body through `font: inherit`) + 11 px of padding top and bottom + 1 px of border top and bottom. Written as `calc(1lh + 24px)`, with `calc(1.5em + 24px)` as a fallback for browsers that don't know the `lh` unit.
+* **Desktop**: in Chromium the date and time fields were already 2 px taller than the text fields (48.5 vs 46.5), because of the vertical padding of the inner box (`::-webkit-datetime-edit`). That padding is now zero: all the form fields have the same height on desktop too.
 
-### Verifiche
+### Checks
 
-- Browser Chromium con tariffa impostata: sopra "Importo" solo la linea continua, tratteggi invariati fra le altre righe (controllati anche gli stili calcolati di ogni riga). Senza tariffa: 4 righe, nessun bordo in fondo.
+* **iPhone 17 Pro simulator, iOS 26.4, Safari**, with a test page that opens the form by itself: before the fix 24 px for the empty field (problem reproduced as in the screenshots), after it 46.5 px for Date, filled Start time, empty End time and Note; same result with both times empty. Also checked by eye on the screenshots.
+* Chromium desktop browser: all fields at 46.5 px, times centred, "9" + Tab = 09:00 still working.
 
 ### Internals
 
-- Versione bumped a `3.6.3`.
-- Cache key del service worker bumped a `wims-v3.6.3`.
+* Version bumped to `3.6.4`.
+* Service worker cache key bumped to `wims-v3.6.4`.
 
 ---
 
-## [3.6.2] — 2026-09-21
+## [3.6.3] - 2026-09-21
 
-Il calendario del mese aveva molto spazio sopra: "‹ Mesi" su una riga, poi il titolo grande "Settembre 2026" con il suo margine, poi il selettore. Richiesta diretta: farlo compatto come il dettaglio giorno appena rifatto in 3.6.1.
+Touch-up to the month summary under the calendar: above the "Amount" row there were two lines stuck together, the dashed one of the "Hours to pay" row and the solid one of the total. Direct request: keep only the solid one.
 
-### Calendario del mese — intestazione su una riga
+### Month summary: a single separator above the total
 
-- **"‹ Mesi" a sinistra e `‹ Settembre 2026 ›` a destra, sulla stessa riga**, come "‹ Giorni" e `‹ Settimana 39 ›` nel dettaglio giorno. Il titolo grande è tolto: mese e anno ora stanno nel selettore (prima mostrava solo "Set", perché il nome intero era nel titolo). Il calendario parte subito sotto.
-- **Una sola classe per le due intestazioni**: `.dd-head` (3.6.1) è diventata `.ore-subhead`, usata sia dal calendario sia dal dettaglio giorno.
-- **Etichetta a larghezza minima fissa (`min-width: 9em`)**: i nomi dei mesi hanno lunghezze diverse ("Aprile 2026" circa 100 px, "Novembre 2026" circa 130 px misurati nel browser), quindi scorrendo con "‹" la freccia si sarebbe spostata sotto il dito a ogni mese. Con la larghezza fissa resta ferma (verificato: stessa posizione per tutti i 12 mesi). Di conseguenza anche il selettore della settimana ha la stessa larghezza, e le due intestazioni sono allineate.
+* **Cause**: each `.oms-row` drew its dashed separator *below* itself (`border-bottom`), and the `.total` row added its solid line *above*. Between the two there were only the total's 2 px of `margin-top`, so two lines were visible.
+* **Solution**: the separator now sits *above* every row except the first (`.oms-row + .oms-row`), the same pattern as the items on the Salary page (`.comp + .comp`). The total row replaces its dashed line with the solid one, so only one remains. Removed the `:last-child` rule, no longer needed.
+* Without a rate (no "Amount" row) nothing changes: no line at the bottom of the box.
 
-### Verifiche
+### Checks
 
-- Browser Chromium con clic reali: mese successivo e precedente, apertura di un giorno dal calendario con l'intestazione del dettaglio invariata.
-- Larghezza 375 px con l'etichetta più lunga ("Novembre 2026"): tutto su una riga, senza scroll orizzontale. Nessun errore in console.
+* Chromium browser with a rate set: above "Amount" only the solid line, dashed lines unchanged between the other rows (the computed styles of every row were checked too). Without a rate: 4 rows, no border at the bottom.
 
 ### Internals
 
-- Versione bumped a `3.6.2`.
-- Cache key del service worker bumped a `wims-v3.6.2`.
+* Version bumped to `3.6.3`.
+* Service worker cache key bumped to `wims-v3.6.3`.
 
 ---
 
-## [3.6.1] — 2026-09-21
+## [3.6.2] - 2026-09-21
 
-Nel dettaglio del giorno mancava un modo per passare alla settimana prima o dopo: la week strip mostrava solo i 7 giorni della settimana corrente, e per cambiare settimana bisognava tornare alla lista o al calendario. Richiesta diretta, "come lo scorrimento dei mesi".
+The month calendar had a lot of space above it: "‹ Months" on one line, then the big "September 2026" title with its margin, then the picker. Direct request: make it as compact as the day detail just redone in 3.6.1.
 
-### Dettaglio giorno — selettore di settimana
+### Month calendar: header on one line
 
-- **Nuovo selettore `‹ Settimana N ›` in alto a destra**, sulla stessa riga di "‹ Giorni". È lo stesso `.year-picker` usato per anni e mesi, quindi stesso aspetto e stesso comportamento.
-- **Le frecce spostano di 7 giorni mantenendo il giorno della settimana** (venerdì 25 → venerdì 2 ottobre), come nei calendari a settimana. Il passaggio d'anno segue le settimane ISO (31/12/2026 è la settimana 53, la successiva è la 1 del 2027).
-- **La riga "SETTIMANA N" sotto la strip è stata tolta**: il numero ora sta nel selettore e ripeterlo due volte a pochi pixel era rumore. Il titolo del giorno ha preso un po' di margine sopra per compensare.
-- **Anno e mese del calendario seguono il giorno mostrato** (`selectOreDate`), sia con le frecce sia toccando un giorno della strip. Senza questo, entrando dal calendario di settembre e andando avanti fino al 2 ottobre, "‹ Giorni" riportava a settembre invece che a ottobre.
+* **"‹ Months" on the left and `‹ Settembre 2026 ›` ("‹ September 2026 ›") on the right, on the same line**, like "‹ Days" and `‹ Settimana 39 ›` ("‹ Week 39 ›") in the day detail. The big title is gone: month and year now sit in the picker (before, it showed only "Set", the short Italian month name, because the full name was in the title). The calendar starts right below.
+* **One class for both headers**: `.dd-head` (3.6.1) became `.ore-subhead`, used by both the calendar and the day detail.
+* **Label with a fixed minimum width (`min-width: 9em`)**: month names have different lengths (in Italian, "Aprile 2026" about 100 px and "Novembre 2026" about 130 px, measured in the browser), so when scrolling with "‹" the arrow would have moved under the finger at every month. With the fixed width it stays put (checked: same position for all 12 months). As a result the week picker has the same width too, and the two headers line up.
 
-### Verifiche
+### Checks
 
-- Browser Chromium con clic reali: avanti di una settimana (settimana 40, 28 settembre-4 ottobre), indietro di due (settimana 38, con il festivo del 14 visibile), ritorno al calendario su "Ottobre 2026" dopo aver cambiato mese.
-- Passaggio d'anno: 31/12/2026 (settimana 53) → 7/1/2027 (settimana 1); 1/1/2027 (settimana 53) → 25/12/2026 (settimana 52).
-- Larghezza 375 px: "‹ Giorni" e il selettore stanno sulla stessa riga, senza scroll orizzontale. Nessun errore in console.
+* Chromium browser with real clicks: next and previous month, opening a day from the calendar with the detail header unchanged.
+* Width 375 px with the longest Italian label ("Novembre 2026"): everything on one line, no horizontal scroll. No errors in the console.
 
 ### Internals
 
-- Versione bumped a `3.6.1`.
-- Cache key del service worker bumped a `wims-v3.6.1`.
-- Helper `localDateStr(dt)` per la data locale "YYYY-MM-DD", usato anche nella costruzione della strip.
+* Version bumped to `3.6.2`.
+* Service worker cache key bumped to `wims-v3.6.2`.
 
 ---
 
-## [3.6.0] — 2026-09-21
+## [3.6.1] - 2026-09-21
 
-Tre richieste dirette, tutte sul form evento Overtime: poter segnare i giorni di ferie e vederli a colpo d'occhio, non dover reinserire ogni volta la solita pausa di 30 minuti, e non dover completare a mano i minuti quando si scrive solo l'ora.
+The day detail had no way to go to the previous or next week: the week strip showed only the 7 days of the current week, and to change week you had to go back to the list or the calendar. Direct request, "like scrolling through the months".
 
-### Ferie (PTO) come tipo di giornata
+### Day detail: week picker
 
-- **Il toggle "Giorno festivo" diventa un selettore "Tipo di giornata": Lavoro · Ferie · Festivo.** Ferie e festivo si escludono a vicenda (un giorno è l'uno o l'altro): due toggle indipendenti avrebbero permesso combinazioni senza senso. Il selettore usa veri `radio` (frecce da tastiera e screen reader funzionano da soli) ed è colorato come il calendario: Ferie in blu, Festivo in oro.
-- **Nuovo flag `pto: bool` sull'evento.** Stesso modello del festivo: niente orari (inizio/fine/pausa salvati vuoti), vale una giornata standard di 8 ore. `FESTIVO_HOURS` è stata rinominata `STANDARD_DAY_HOURS`, perché ora vale per entrambi.
-- **Semantica di calcolo: le 8 ore di ferie contano verso la soglia settimanale**, come un giorno lavorato. Motivo: lo stipendio paga il giorno di ferie, quindi quella giornata occupa 8 ore della soglia già coperta dallo stipendio. Esempio verificato: lunedì in ferie + martedì-venerdì da 9,5 h = 38 h lavorate + 8 h di ferie = 46 h contro soglia 40, quindi 6 h di straordinario. Prima, non segnando nulla il lunedì, la stessa settimana dava 0 h: il giorno di ferie "assorbiva" gli straordinari fatti negli altri giorni.
-- **Ferie solo nei giorni lavorativi.** Su un giorno non lavorativo (es. sabato con impostazione lun-ven) le ferie non hanno senso e aggiungerebbero 8 h alla settimana, inventando straordinari: il salvataggio è bloccato con un messaggio che dice dove cambiare i giorni lavorativi, e l'anteprima lo segnala già quando si sceglie "Ferie". Il festivo resta com'era (conta anche nel weekend, decisione della 3.5.0).
-- **Visibilità**:
-  - calendario mensile: cerchio pieno blu (`--ocean`);
-  - week strip del dettaglio giorno: sfondo `--ocean-tint`;
-  - card evento: "Giornata di ferie", badge "ferie" e barra blu a sinistra;
-  - lista Giorni: "Ferie" in blu al posto degli orari (e, per coerenza, "Festivo" in oro);
-  - conteggio dei giorni di ferie nelle card Mesi, nelle righe Settimane e Anni e nel riepilogo del mese sotto il calendario (solo quando è maggiore di zero).
-- **"Ore lavorate" include le giornate standard** (ferie e festivi a 8 h), come già succedeva per il festivo. Nel riepilogo del mese, quando ce ne sono, l'etichetta lo dice: "Ore lavorate (ferie e festivi a 8 h)".
-- **Colore**: `--ocean` era "riservato, lasciato per estensioni" nel design system; ora ha un significato, le ferie. Aggiunto `--ocean-tint: #E6EDF5` per gli sfondi.
+* **New `‹ Settimana N ›` ("‹ Week N ›") picker at the top right**, on the same line as "‹ Days". It's the same `.year-picker` used for years and months, so the same look and the same behaviour.
+* **The arrows move by 7 days keeping the weekday** (Friday 25 → Friday 2 October), as in week calendars. The change of year follows ISO weeks (31/12/2026 is week 53, the next one is week 1 of 2027).
+* **The "WEEK N" line under the strip was removed**: the number is now in the picker, and repeating it twice a few pixels apart was noise. The day title got a bit of top margin to compensate.
+* **The calendar's year and month follow the day shown** (`selectOreDate`), both with the arrows and when tapping a day in the strip. Without this, entering from the September calendar and going forward to 2 October, "‹ Days" took you back to September instead of October.
 
-### Pausa predefinita
+### Checks
 
-- **Nuova impostazione "Pausa predefinita (minuti)"** nella sezione Overtime, default 30. Ogni nuovo evento parte con quella pausa già nel duration picker; il giorno che è diversa si cambia lì, come prima. Con 0 si parte senza pausa.
-- Salvata come `settings.pausaDefaultMin` (minuti, 0-720). I profili esistenti la ricevono a 30 tramite `ensureProfile`, come le altre impostazioni aggiunte nel tempo.
-- Modificando un evento di lavoro esistente resta la sua pausa. Un evento ferie/festivo non ha pausa: aprendolo, il picker è precaricato con la predefinita, così se lo si riporta a "Lavoro" si parte dal valore solito.
-
-### Orari: minuti a "00" quando si scrive solo l'ora
-
-- **Problema**: negli `<input type="time">` su desktop, scrivendo solo l'ora (es. "9", che passa da solo ai minuti) e premendo Tab, i minuti restavano "--". Per il browser un campo orario compilato a metà non ha valore (`value === ""`): l'anteprima non calcolava la durata e il salvataggio rispondeva "Inserisci ora di inizio e fine".
-- **Perché non si può completare dopo**: il browser non espone l'ora digitata finché il campo non è completo, quindi al `blur` non c'è modo di leggere "09" e aggiungere ":00".
-- **Soluzione**: al primo tasto (cifra o freccia su/giù) in un campo *vuoto*, il campo viene inizializzato a "00:00" prima che il browser elabori il tasto. L'ora digitata sostituisce le ore, i minuti restano "00" finché non si scrivono. Risultato: "9" + Tab = 09:00, "9" "30" = 09:30, "18" + Tab = 18:00.
-- **Guardie**: niente inizializzazione se il campo ha già un valore o è compilato a metà (`validity.badInput`), così un'ora già scritta non viene mai sovrascritta (verificato: cancellando solo i minuti di 09:00 e scrivendo "45" si ottiene 09:45). Passare col Tab su un campo vuoto senza scrivere lo lascia vuoto. Le rotelle native di iOS/Android non generano `keydown`, quindi sul telefono il comportamento non cambia.
-- L'anteprima della durata ora si aggiorna anche al `blur` dei campi orario.
-
-### Backup CSV
-
-- Colonna `ferie` (0/1) in coda sia a `STRAORD_COLS` (backup completo) sia a `ORE_COLS` (export solo ore). Colonna `pausa_predefinita` (minuti) in coda a `SETTINGS_COLS`. Tutte in coda, quindi i file delle versioni precedenti restano importabili come prefisso: ferie = no, pausa = 30.
-- Le righe ferie non hanno orari: la validazione degli orari è saltata come per il festivo. Se un file ha sia `festivo` sia `ferie` a 1, vince festivo.
-- README: gli esempi del formato CSV erano rimasti indietro di qualche versione (mancavano colonne e la sezione `# STRAORDINARI`); riallineati alle intestazioni reali e verificati facendoli leggere a `parseCsv`.
-
-### Verifiche
-
-- Browser Chromium con tasti reali sui campi orario: "9" + Tab = 09:00 con focus su Ora fine; "18" + Tab = 18:00; "9" "3" "0" = 09:30; "1" + Tab + Tab = 01:00; Tab su campo vuoto = resta vuoto; minuti cancellati e riscritti = ora conservata. **Non verificato su Safari e Firefox desktop.**
-- Form: blocco delle ferie di sabato, modifica di eventi ferie e lavoro, passaggio lavoro → ferie (orari svuotati) e ritorno, pausa predefinita portata a 45 = nuovo evento a 0h 45m.
-- Viste Mesi, Settimane, Anni, calendario, dettaglio giorno e lista Giorni con eventi ferie e festivo; form a 375 px senza scroll orizzontale.
-- CSV: round-trip completo e solo ore, import di file 3.5.0 senza le nuove colonne, riga con entrambi i flag.
+* Chromium browser with real clicks: forward one week (week 40, 28 September-4 October), back two (week 38, with the public holiday on the 14th visible), back to the calendar on "October 2026" after the month changed.
+* Change of year: 31/12/2026 (week 53) → 7/1/2027 (week 1); 1/1/2027 (week 53) → 25/12/2026 (week 52).
+* Width 375 px: "‹ Days" and the picker fit on the same line, no horizontal scroll. No errors in the console.
 
 ### Internals
 
-- Versione bumped a `3.6.0`.
-- Cache key del service worker bumped a `wims-v3.6.0` per invalidare la 3.5.0 al primo activate.
+* Version bumped to `3.6.1`.
+* Service worker cache key bumped to `wims-v3.6.1`.
+* Helper `localDateStr(dt)` for the local date "YYYY-MM-DD", also used to build the strip.
 
 ---
 
-## [3.5.0] — 2026-06-05
+## [3.6.0] - 2026-09-21
 
-Nuova opzione **"Giorno festivo"** nel form evento Overtime. Nasce da una richiesta diretta: poter segnare che un giorno è festivo senza dover digitare gli orari, perché quel giorno è comunque pagato come una normale giornata lavorata — e deve restare riconoscibile a colpo d'occhio nel calendario.
+Three direct requests, all about the Overtime entry form: being able to mark holiday days and see them at a glance, not having to re-enter the usual 30-minute break every time, and not having to complete the minutes by hand when typing only the hour.
 
-### Flag `holiday` sull'evento
+### Holiday (PTO) as a day type
 
-- **Aggiunto un toggle "Giorno festivo"** nel sheet di add/edit evento, posizionato subito sotto la Data (prima degli orari, così il flusso è: scegli il giorno → è festivo? → se no, inserisci gli orari). Persiste sull'evento come `holiday: bool`.
-- **Niente orari da inserire — conta come 8 ore fisse.** Quando il toggle è attivo i campi Ora inizio / Ora fine / Pausa (e il toggle "non straordinario", in conflitto) vengono nascosti: l'evento non porta orari e vale una giornata standard di `FESTIVO_HOURS = 8` ore. `eventHours()` ritorna 8 per gli eventi `holiday` ignorando i clock-time, che vengono salvati vuoti.
-- **Semantica di calcolo — "come una normale giornata lavorativa".** In `paidHoursForMonth` (e nella vista Settimane) un evento `holiday` è trattato come giorno feriale: le sue 8 ore confluiscono nella soglia settimanale (`contratto + forfait`) invece di ricevere il trattamento automatico 100%-pagato dei giorni non lavorativi. Per un festivo infrasettimanale conta come un normale giorno lavorato; per un festivo nel weekend l'effetto è contarlo verso la soglia anziché come straordinario pieno — lettura letterale di "le segnerei come se avessi fatto una giornata lavorativa".
-- **Indicatori visivi.** Il festivo è oro in entrambi i calendari: nella griglia mensile (`renderCalendar`) il cerchio del giorno è pieno oro invece del sienna/terracotta dei giorni con eventi; nella week-strip ha sfondo `--gold-tint` (lo stato `selected` continua a vincere). Nella card evento la riga orari diventa "Giornata festiva" con un badge "festivo" pieno color oro e una barra oro a sinistra.
+* **The "Public holiday" toggle becomes a "Day type" selector: Work · Holiday · Public holiday.** Holiday and public holiday exclude each other (a day is one or the other): two independent toggles would have allowed meaningless combinations. The selector uses real `radio` inputs (keyboard arrows and screen readers work on their own) and is coloured like the calendar: Holiday in blue, Public holiday in gold.
+* **New `pto: bool` flag on the entry.** Same model as the public holiday: no times (start/end/break saved empty), it counts as a standard 8-hour day. `FESTIVO_HOURS` was renamed `STANDARD_DAY_HOURS`, because it now applies to both.
+* **Calculation semantics: the 8 holiday hours count towards the weekly threshold**, like a worked day. Reason: the salary pays for the holiday, so that day takes up 8 hours of the threshold already covered by the salary. Verified example: Monday on holiday + Tuesday-Friday at 9.5 h = 38 h worked + 8 h of holiday = 46 h against a threshold of 40, so 6 h of overtime. Before, with nothing marked on the Monday, the same week gave 0 h: the holiday "absorbed" the overtime done on the other days.
+* **Holidays only on working days.** On a non-working day (e.g. Saturday with a Mon-Fri setting) a holiday makes no sense and would add 8 h to the week, inventing overtime: saving is blocked with a message that says where to change the working days, and the preview already flags it when "Holiday" is chosen. Public holidays stay as they were (they count at weekends too, a decision from 3.5.0).
+* **Visibility**:
+  * monthly calendar: solid blue circle (`--ocean`);
+  * day detail week strip: `--ocean-tint` background;
+  * entry card: "Holiday", a "holiday" badge and a blue bar on the left;
+  * Days list: "Holiday" in blue instead of the times (and, for consistency, "Public holiday" in gold);
+  * count of holiday days in the Months cards, in the Weeks and Years rows and in the month summary under the calendar (only when it's greater than zero).
+* **"Hours worked" includes the standard days** (holidays and public holidays at 8 h), as already happened for public holidays. In the month summary, when there are any, the label says so: "Hours worked (days off at 8 h)".
+* **Colour**: `--ocean` was "reserved, kept for extensions" in the design system; now it has a meaning, holidays. Added `--ocean-tint: #E6EDF5` for backgrounds.
 
-### Persistenza CSV
+### Default break
 
-- **Aggiunta colonna `festivo`** in coda sia a `STRAORD_COLS` (backup completo) sia a `ORE_COLS` (export solo-ore). È appesa in fondo, quindi i file esportati da versioni precedenti restano importabili: l'header più corto matcha come prefisso e l'assenza della colonna viene letta come `holiday=false`. Per le righe festivo la validazione degli orari è saltata (inizio/fine vuoti), così il round-trip export→import resta valido.
+* **New "Default break (minutes)" setting** in the Overtime section, default 30. Every new entry starts with that break already in the duration picker; on a day when it's different you change it there, as before. With 0 you start with no break.
+* Saved as `settings.pausaDefaultMin` (minutes, 0-720). Existing profiles get it at 30 through `ensureProfile`, like the other settings added over time.
+* When editing an existing work entry, its break stays. A holiday/public holiday entry has no break: when you open it, the picker is preloaded with the default, so if you switch it back to "Work" you start from the usual value.
 
----
+### Times: minutes at "00" when typing only the hour
 
-## [3.4.4] — 2026-05-27
+* **Problem**: in `<input type="time">` fields on desktop, typing only the hour (e.g. "9", which moves on to the minutes by itself) and pressing Tab left the minutes at "--". For the browser a half-filled time field has no value (`value === ""`): the preview didn't compute the duration and saving answered "Enter start and end times".
+* **Why it can't be completed afterwards**: the browser doesn't expose the typed hour until the field is complete, so on `blur` there's no way to read "09" and add ":00".
+* **Solution**: on the first key (digit or up/down arrow) in an *empty* field, the field is initialised to "00:00" before the browser processes the key. The typed hour replaces the hours, and the minutes stay "00" until they're typed. Result: "9" + Tab = 09:00, "9" "30" = 09:30, "18" + Tab = 18:00.
+* **Guards**: no initialisation if the field already has a value or is half filled (`validity.badInput`), so an hour already typed is never overwritten (checked: deleting only the minutes of 09:00 and typing "45" gives 09:45). Tabbing through an empty field without typing leaves it empty. The native iOS/Android wheels don't generate `keydown`, so on the phone the behaviour doesn't change.
+* The duration preview now also updates on `blur` of the time fields.
 
-Round di UX polish sul form evento Overtime e sul FAB di aggiunta. Tre temi indipendenti, tutti motivati da feedback diretto: "il FAB full-width copre il contenuto sotto", "il campo pausa sembra un orologio, non una durata", "ora inizio e ora fine sforano dal viewport su mobile e si sovrappongono".
+### CSV backup
 
-### FAB — da pulsante full-width a cerchio "+" bottom-right
+* Column `ferie` (0/1) appended to both `STRAORD_COLS` (full backup) and `ORE_COLS` (hours-only export). Column `pausa_predefinita` (minutes) appended to `SETTINGS_COLS`. All at the end, so files from earlier versions still import as a prefix: holiday = no, break = 30.
+* Holiday rows have no times: time validation is skipped, as for public holidays. If a file has both `festivo` and `ferie` at 1, public holiday wins.
+* README: the CSV format examples had fallen a few versions behind (columns and the `# STRAORDINARI` section were missing); realigned with the real headers and checked by having `parseCsv` read them.
 
-- **Sostituito il pulsante full-width `+ Aggiungi evento` con un FAB circolare 56×56** posizionato in basso a destra, allineato al bordo destro di `.app` (max-width 760 centrato, padding 18). Il pulsante full-width creava troppa massa visiva al fondo e copriva il contenuto sottostante in modo invasivo — su viewport stretti diventava una "barra" che si frapponeva tra l'ultima card e la tabbar. Il cerchio piccolo è il pattern standard FAB (Material/iOS): contenuto scrolla intorno, niente bisogno di mascheramento full-width.
-- **Da `position: sticky` a `position: fixed`.** Lo sticky aveva un comportamento subdolo: nelle viste corte (es. "Mesi" desktop con 12 card che entrano nel viewport senza scroll) il wrap non era mai pinned e ricadeva alla posizione naturale a fine documento, lasciando le card successive visibili "sotto" il FAB. Con fixed la posizione è invariante rispetto a scroll e altezza pagina.
-- **Centratura su `.app` invece che sul viewport**: il wrap usa `left: 50%; transform: translateX(-50%); max-width: 760px; padding: 0 18px; justify-content: flex-end`. Su desktop largo il FAB resta accanto al contenuto invece di essere incollato al bordo destro del viewport.
-- **Posizione verticale**: `bottom: calc(74px + max(16px, env(safe-area-inset-bottom)))` → ~24px di gap visivo sopra la tabbar pill, con safe-area inset rispettata su iPhone.
-- **Visibilità per-pagina**: il wrap è figlio di `#page-ore`, quindi quando l'utente è sulla Salary tab `.page{display:none}` lo nasconde insieme al resto. Niente leak cross-page del FAB.
-- **`#main-ore { padding-bottom: 140px }`** per riservare spazio sotto al contenuto e non far schiacciare l'ultima riga dal cerchio.
-- HTML semplificato: rimossi `.btn.full .btn.large`, label testuale "+ Aggiungi evento" → "+" con `aria-label="Aggiungi evento"` e `title` per accessibilità e tooltip desktop.
+### Checks
 
-### Campo Pausa — duration picker invece di clock-time input
-
-- **Sostituito `<input type="time" id="ot-pausa">` con un duration picker custom**: due gruppi `−  Nh  +` e `−  Nm  +` con incrementi di 1h e 5min. L'input nativo `type="time"` era un "orologio" (HH:MM clock-style) e creava ambiguità semantica — l'utente lo leggeva come orario assoluto invece che durata. Il nuovo widget parte da `0h 0m` e si incrementa con i bottoni `+`/`−`, comunicando esplicitamente "stai selezionando una durata".
-- **Wrap minuti↔ore implementato**: premere `+` sui minuti a 55 → diventa 0 e incrementa ore di 1 (clamp 0-23). Stessa logica al contrario per il `−` a 0 minuti.
-- **Storage format invariato**: il duration picker continua a serializzare la pausa come stringa `"HH:MM"` (es. "01:30"), o stringa vuota se 0h 0m. Quindi `parseHHMM(e.pausa)`, CSV import/export (`STRAORD_COLS` e `ORE_COLS`) e la visualizzazione "pausa 01:30" nel day-drilldown restano compatibili senza migrazione dati.
-- Helper aggiunti: `pausaPickerValue()` per leggere i due span come HH:MM, `setPausaPicker(hhmm)` per popolare i due span da un evento esistente, `adjustPausa(target, delta)` per i click sui bottoni.
-
-### `<input type="date"|"time">` — fix definitivo overflow su iOS Safari
-
-- **Diagnosi**: due fix successivi necessari. Il primo tentativo (`.field-row` da `display: grid 1fr 1fr` a `display: flex; gap: 12px` con `min-width: 0` sui figli `.field`) era una premessa necessaria ma insufficiente: iOS Safari ignora `width: 100%` e `min-width: 0` sui native form controls (`type="date"|"time"`) e li renderizza alla loro min-content intrinseca, quella richiesta dal picker nativo interno. Su viewport stretti (~390px) questo min-content > metà sheet → "Ora fine" sfora il bordo destro e si sovrappone visivamente al box di "Ora inizio".
-- **Soluzione**: `-webkit-appearance: none` + `appearance: none` sui campi DATA/ORA INIZIO/ORA FINE. Il browser smette di trattarli come native widgets e rispetta `width: 100%` + `max-width: 100%` + `min-width: 0`. Il picker nativo continua ad aprirsi al tap (l'interazione non è alterata, solo il chrome del widget viene disabilitato).
-- **`::-webkit-calendar-picker-indicator` esplicitamente nascosto** con `display: none`. La regola precedente lo styling con opacity/filter sopravviveva ed era visibile *insieme* all'SVG che ho aggiunto come `background-image` → due icone affiancate nel riquadro.
-- **Icone sostitutive SVG inline** come `background-image` (calendario per date, orologio per time), posizionate a destra con `padding-right: 36px`. Stroke `#A88B6E` (= warm-paper sienna desaturato) per coerenza col design system. URL-encoded direttamente nel CSS, niente file separati.
-- **`text-align: center`** sui campi date/time così il valore (es. "26 May 2026", "14:30") sta centrato nel box invece di essere left-aligned col padding-right che lo spostava ottica­mente fuori centro.
+* Chromium browser with real keys on the time fields: "9" + Tab = 09:00 with focus on End time; "18" + Tab = 18:00; "9" "3" "0" = 09:30; "1" + Tab + Tab = 01:00; Tab on an empty field = stays empty; minutes deleted and retyped = hour kept. **Not checked on desktop Safari and Firefox.**
+* Form: holiday on a Saturday blocked, editing holiday and work entries, switching work → holiday (times cleared) and back, default break set to 45 = new entry at 0h 45m.
+* Months, Weeks and Years views, calendar, day detail and Days list with holiday and public holiday entries; form at 375 px with no horizontal scroll.
+* CSV: full and hours-only round trip, import of 3.5.0 files without the new columns, a row with both flags.
 
 ### Internals
 
-- Versione bumped a `3.4.4`.
-- Cache key del service worker bumped a `wims-v3.4.4` per invalidare la 3.4.3 al primo activate.
+* Version bumped to `3.6.0`.
+* Service worker cache key bumped to `wims-v3.6.0` to invalidate 3.5.0 on the first activate.
 
 ---
 
-## [3.4.3] — 2026-05-14
+## [3.5.0] - 2026-06-05
 
-Due interventi UX legati all'onboarding e al controllo fine-grained sugli straordinari.
+New **"Public holiday"** option in the Overtime entry form. It comes from a direct request: being able to mark a day as a public holiday without typing the times, because that day is paid anyway like a normal working day, and it must stay recognisable at a glance in the calendar.
 
-### Generale — tabbar nascosta nel welcome
+### `holiday` flag on the entry
 
-- **`renderOvertimeVisibility` ora nasconde la tabbar anche quando non c'è un profilo attivo**, non solo quando l'utente ha disattivato Overtime. Prima la condizione era `!p || p.settings.overtimeEnabled !== false`: senza profilo il booleano cadeva sul ramo "abilitato" e la tabbar `Salary · Overtime` restava visibile sopra alla card di benvenuto e al modulo "Iniziamo da te", offrendo uno switch tra due pagine che non hanno senso prima della creazione del profilo. Adesso `!!p && settings.overtimeEnabled !== false` → tabbar mostrata solo se *entrambe* le condizioni sono vere.
-- Effetto secondario voluto: la prima impressione dell'app è più pulita — solo titolo, modulo, settings.
+* **Added a "Public holiday" toggle** in the add/edit entry sheet, placed right below the Date (before the times, so the flow is: pick the day → is it a public holiday? → if not, enter the times). It's stored on the entry as `holiday: bool`.
+* **No times to enter: it counts as a fixed 8 hours.** When the toggle is on, the Start time / End time / Break fields (and the "not overtime" toggle, which conflicts with it) are hidden: the entry has no times and counts as a standard day of `FESTIVO_HOURS = 8` hours. `eventHours()` returns 8 for `holiday` entries, ignoring the clock times, which are saved empty.
+* **Calculation semantics: "like a normal working day".** In `paidHoursForMonth` (and in the Weeks view) a `holiday` entry is treated as a weekday: its 8 hours go into the weekly threshold (`contratto + forfait`) instead of getting the automatic 100%-paid treatment of non-working days. A midweek public holiday counts as a normal worked day; for a public holiday at the weekend the effect is to count it towards the threshold instead of as full overtime: a literal reading of "I'd mark them as if I'd done a working day".
+* **Visual indicators.** Public holidays are gold in both calendars: in the monthly grid (`renderCalendar`) the day circle is solid gold instead of the sienna/terracotta of days with entries; in the week strip it has a `--gold-tint` background (the `selected` state still wins). In the entry card the times line becomes "Public holiday", with a solid gold "public holiday" badge and a gold bar on the left.
 
-### Overtime — flag per-evento "non straordinario"
+### CSV persistence
 
-- **Nuovo campo `notOvertime: boolean` sugli eventi.** Quando true, l'evento è completamente escluso dal calcolo straordinari (`paidHoursForMonth` salta l'iterazione con un `continue` prima di accumulare nel bucket settimanale o weekend), ma resta presente nel calendario e contribuisce ai totali "ore lorde" del mese/anno. È la risposta a "ho lavorato quel giorno, ma non voglio segnarlo come straordinario" — sia per sforamenti feriali oltre soglia che per ore weekend volontariamente regalate.
-- **Toggle iOS-style nel form di edit evento** (`#ot-event-sheet`), sotto il campo Nota. Stile coerente con il toggle di disattivazione Overtime nelle settings, riusando `.settings-toggle` con un modificatore `.field-toggle` per renderlo full-width come una riga di campo. Hint sotto: "Le ore restano registrate come lavorate, ma non confluiscono nel totale straordinari del mese".
-- **Feedback visivo nel day detail**: la card dell'evento marcato come `notOvertime` ha opacità ridotta (0.62), background `--card-elev` e un piccolo badge testuale `non strord.` (serif italic, bordo tratteggiato) accanto al totale ore. La dimensione e la posizione delle ore restano invariate, così la lettura della durata non cambia.
-- **Comportamento del calcolo** preservato per gli altri eventi: la soglia settimanale `oreContratto + forfait` continua a operare normalmente sulle ore feriali NON marcate; gli eventi `notOvertime` non incrementano il bucket settimanale, quindi non "consumano" parte della soglia per altri giorni della stessa settimana. Esempio: 4 giorni feriali da 10h + 1 giorno da 10h marcato `notOvertime` → calcolo limitato a 4 giorni × 10h = 40h ≤ soglia 45h → 0h pagate (corretto: l'utente ha esplicitamente sottratto le 10h dal computo).
+* **Added a `festivo` column** at the end of both `STRAORD_COLS` (full backup) and `ORE_COLS` (hours-only export). It's appended at the end, so files exported by earlier versions still import: the shorter header matches as a prefix and the missing column is read as `holiday=false`. For public holiday rows time validation is skipped (start/end empty), so the export→import round trip stays valid.
 
-### Form evento — input date/time integrati nel design system
+---
 
-- **Selettori CSS `.field input[type="text"|"number"]` estesi a `type="date"` e `type="time"`.** Le tre righe del form evento (Data, Ora inizio/fine, Pausa) cadevano sui default del browser — bordo grigio sottile, font system, padding inconsistente, icona del picker nera — perché la regola di styling non li intercettava. Adesso ricevono lo stesso trattamento Quiet Ledger degli altri campi: paper bg, bordo `--line`, padding 11/13, focus state sienna con box-shadow soft.
-- **`font-variant-numeric: tabular-nums`** aggiunto su `number`/`date`/`time` per allineamento verticale pulito quando due campi tempo stanno fianco a fianco (Ora inizio / Ora fine nel `.field-row`).
-- **`::-webkit-calendar-picker-indicator` ammorbidito** con `opacity .45` + `filter sepia(.5) hue-rotate(-12deg) saturate(.85)`, così l'icona calendario/orologio non legge come widget di sistema nero ma come piccolo accento warm-paper. Hover/focus la portano a opacity .85.
-- **`:invalid` su date/time** abbassato a colore `--ink-muted`: i placeholder nativi (`gg/mm/aaaa`, `--:--`) prima erano più scuri del resto degli hint, sembrava un bug. Adesso l'empty state sembra intenzionale.
-- Firefox non ha pseudo-elementi equivalenti per l'icona del picker ma il rendering nativo della dropdown è già discreto, quindi non serve override.
+## [3.4.4] - 2026-05-27
 
-### Decisione di design — `hoursOverride` resta
+A round of UX polish on the Overtime entry form and on the add FAB. Three independent themes, all prompted by direct feedback: "the full-width FAB covers the content below", "the break field looks like a clock, not a duration", "start time and end time overflow the viewport on mobile and overlap".
 
-- L'override mensile `overtime.hoursOverride` è ortogonale a `notOvertime`: il primo dice "ignora il calcolo automatico e usa questo totale per il mese", il secondo dice "non contare questo specifico giorno". I due meccanismi coesistono per ora. Rimozione di `hoursOverride` non in agenda finché la nuova feature non è stata usata abbastanza per giudicare se l'override mensile è ancora utile o ridondante.
+### FAB: from a full-width button to a bottom-right "+" circle
 
-### Backup CSV — copertura nuovo campo
+* **Replaced the full-width `+ Aggiungi evento` ("+ Add entry") button with a 56×56 circular FAB** positioned at the bottom right, aligned with the right edge of `.app` (max-width 760 centred, padding 18). The full-width button created too much visual mass at the bottom and covered the content beneath it intrusively: on narrow viewports it became a "bar" wedged between the last card and the tabbar. The small circle is the standard FAB pattern (Material/iOS): content scrolls around it, no need for full-width masking.
+* **From `position: sticky` to `position: fixed`.** Sticky had a sneaky behaviour: in short views (e.g. "Months" on desktop, with 12 cards that fit in the viewport without scrolling) the wrap was never pinned and fell back to its natural position at the end of the document, leaving the following cards visible "under" the FAB. With fixed, the position doesn't depend on scroll or page height.
+* **Centred on `.app` instead of the viewport**: the wrap uses `left: 50%; transform: translateX(-50%); max-width: 760px; padding: 0 18px; justify-content: flex-end`. On a wide desktop the FAB stays next to the content instead of being stuck to the right edge of the viewport.
+* **Vertical position**: `bottom: calc(74px + max(16px, env(safe-area-inset-bottom)))` → about 24px of visual gap above the tabbar pill, with the safe-area inset respected on iPhone.
+* **Per-page visibility**: the wrap is a child of `#page-ore`, so when the user is on the Salary tab `.page{display:none}` hides it along with the rest. No cross-page leak of the FAB.
+* **`#main-ore { padding-bottom: 140px }`** to reserve space below the content so the circle doesn't squash the last row.
+* Simplified HTML: removed `.btn.full .btn.large`, text label "+ Add entry" → "+" with `aria-label="Aggiungi evento"` ("Add entry") and `title` for accessibility and a desktop tooltip.
 
-- **Colonna `non_straordinario` (0/1) aggiunta in coda alle sezioni `STRAORDINARI` (CSV completo) e nel CSV-only-ore (`buildCsvOre`).** Posizionata come ultima colonna così CSV v3.4.2 sono ancora parsabili come *prefisso* dell'header atteso.
-- **`parseCsvOre` rilassato**: richiede solo le prime 6 colonne (`profilo..nota`) come prefisso obbligatorio, accetta header più corti o più lunghi (forward-compat). La validazione del numero di campi per riga adesso usa `header.length` invece di `ORE_COLS.length`, così ogni file viene parsato in base al suo proprio header.
-- Parser tollerante anche sui valori: accetta `0/1`, `sì/no`, `true/false`. Default: `false` se la colonna manca o è vuota.
+### Break field: duration picker instead of a clock-time input
 
-### Audit pre-release
+* **Replaced `<input type="time" id="ot-pausa">` with a custom duration picker**: two groups `−  Nh  +` and `−  Nm  +` with steps of 1h and 5min. The native `type="time"` input was a "clock" (HH:MM clock style) and created semantic ambiguity: the user read it as an absolute time instead of a duration. The new widget starts at `0h 0m` and goes up and down with the `+`/`−` buttons, saying explicitly "you're picking a duration".
+* **Minutes↔hours wrap implemented**: pressing `+` on the minutes at 55 → they become 0 and the hours go up by 1 (clamp 0-23). Same logic in reverse for `−` at 0 minutes.
+* **Storage format unchanged**: the duration picker still serialises the break as an `"HH:MM"` string (e.g. "01:30"), or an empty string if 0h 0m. So `parseHHMM(e.pausa)`, CSV import/export (`STRAORD_COLS` and `ORE_COLS`) and the "break 01:30" display in the day drilldown stay compatible with no data migration.
+* Helpers added: `pausaPickerValue()` to read the two spans as HH:MM, `setPausaPicker(hhmm)` to fill the two spans from an existing entry, `adjustPausa(target, delta)` for the button clicks.
 
-- jsdom run di v3.4.3 a confronto con v3.4.2: welcome card renderizzata correttamente, version tag "v3.4.3", zero errori.
-- `paidHoursForMonth` verificato manualmente con eventi misti (feriali oltre soglia + weekend + uno marcato `notOvertime`): il giorno marcato salta entrambi i bucket, le altre ore feriali della stessa settimana mantengono il loro contributo normale alla soglia.
-- Verifica edge case CSV: import di un file v3.4.2 (senza colonna `non_straordinario`) → tutti gli eventi entrano con `notOvertime: false`. Re-export → la colonna ora c'è, popolata a `0`.
+### `<input type="date"|"time">`: final fix for the overflow on iOS Safari
+
+* **Diagnosis**: two successive fixes were needed. The first attempt (`.field-row` from `display: grid 1fr 1fr` to `display: flex; gap: 12px` with `min-width: 0` on the `.field` children) was a necessary but insufficient step: iOS Safari ignores `width: 100%` and `min-width: 0` on native form controls (`type="date"|"time"`) and renders them at their intrinsic min-content, the one required by the internal native picker. On narrow viewports (~390px) this min-content is more than half the sheet → "End time" overflows the right edge and visually overlaps the "Start time" box.
+* **Solution**: `-webkit-appearance: none` + `appearance: none` on the DATE/START TIME/END TIME fields. The browser stops treating them as native widgets and respects `width: 100%` + `max-width: 100%` + `min-width: 0`. The native picker still opens on tap (the interaction isn't altered, only the widget chrome is disabled).
+* **`::-webkit-calendar-picker-indicator` explicitly hidden** with `display: none`. The previous rule styling it with opacity/filter survived and was visible *together with* the SVG I added as `background-image` → two icons side by side in the box.
+* **Inline SVG replacement icons** as `background-image` (a calendar for date, a clock for time), positioned on the right with `padding-right: 36px`. Stroke `#A88B6E` (= desaturated warm-paper sienna) for consistency with the design system. URL-encoded directly in the CSS, no separate files.
+* **`text-align: center`** on the date/time fields, so the value (e.g. "26 May 2026", "14:30") is centred in the box instead of being left-aligned, with the padding-right pushing it optically off centre.
 
 ### Internals
 
-- Versione bumped a `3.4.3`.
-- Cache key del service worker bumped a `wims-v3.4.3` per invalidare la 3.4.2 al primo activate.
+* Version bumped to `3.4.4`.
+* Service worker cache key bumped to `wims-v3.4.4` to invalidate 3.4.3 on the first activate.
 
 ---
 
-## [3.4.2] — 2026-05-14
+## [3.4.3] - 2026-05-14
 
-Fix critico di un bug ereditato dalla v3.1 e rimasto nascosto fino a oggi. La pagina si caricava completamente vuota (solo topbar + tabbar, niente hero, niente welcome card, niente version tag) su qualunque dispositivo — desktop, Safari mobile, Chrome mobile, finestre private — perché un'eccezione module-level interrompeva l'esecuzione dello script *prima* che `bootstrap()` venisse chiamato.
+Two UX changes tied to onboarding and to fine-grained control over overtime.
 
-### Diagnosi
+### General: tabbar hidden on the welcome screen
 
-- `runMigrations()` (introdotta in 3.1) viene eseguita al module-load, subito dopo `let store = loadStore();`.
-- Anche su device fresh senza profili, la migration setta `store._migrations.v3_1_overtime_default = true` e chiama `saveStore()` per persistere il flag.
-- `saveStore()` contiene una chiamata difensiva `if(typeof schedulePush === "function") schedulePush();` per innescare la sync cloud debounced quando configurata.
-- `schedulePush()` è una **function declaration**, quindi hoisted → il `typeof` check passa anche se la dichiarazione testuale è 2.000 righe più sotto → la funzione viene effettivamente chiamata.
-- All'interno, `schedulePush` referenzia `syncState`, dichiarato con `let` molto più giù (vicino a tutto il blocco sync cloud).
-- `let` ha **Temporal Dead Zone**: leggere il binding prima della dichiarazione lessicale lancia `ReferenceError: Cannot access 'syncState' before initialization`.
-- L'eccezione esce dalla call chain, interrompe l'esecuzione module-level, e `bootstrap()` (alla fine del file) non viene mai raggiunto. Risultato: solo i markup statici (topbar, tabbar) sono visibili. Il version-tag, la welcome card e tutto il render dipendono da `bootstrap()` → rimangono vuoti.
+* **`renderOvertimeVisibility` now also hides the tabbar when there's no active profile**, not only when the user has turned Overtime off. Before, the condition was `!p || p.settings.overtimeEnabled !== false`: with no profile the boolean fell into the "enabled" branch and the `Salary · Overtime` tabbar stayed visible above the welcome card and the "Let's start with you" form, offering a switch between two pages that make no sense before the profile is created. Now `!!p && settings.overtimeEnabled !== false` → tabbar shown only if *both* conditions are true.
+* Intended side effect: the app's first impression is cleaner, just title, form, settings.
 
-Il bug era deterministico, manifestava su qualunque ambiente, ma è rimasto invisibile per giorni perché la maggior parte degli utenti aveva localStorage popolato da versioni precedenti (le copie cacheate v2.0/v3.0.1 dell'HTML pre-fix non avevano il problema, quindi continuavano a girare) — solo le installazioni "fresh" dopo la 3.1 lo manifestavano, e ironicamente è emerso quando un service worker (3.4.1) ha iniziato a servire l'HTML aggiornato a chi prima vedeva una copia stantia.
+### Overtime: per-entry "not overtime" flag
+
+* **New `notOvertime: boolean` field on entries.** When true, the entry is completely excluded from the overtime calculation (`paidHoursForMonth` skips the iteration with a `continue` before adding to the weekly or weekend bucket), but it stays in the calendar and contributes to the month/year "gross hours" totals. It's the answer to "I worked that day, but I don't want to log it as overtime", both for weekday hours over the threshold and for weekend hours given away on purpose.
+* **iOS-style toggle in the edit entry form** (`#ot-event-sheet`), below the Note field. Styled consistently with the toggle that turns Overtime off in the settings, reusing `.settings-toggle` with a `.field-toggle` modifier to make it full width like a field row. Hint below: "The hours stay logged as worked, but don't count towards the month's overtime".
+* **Visual feedback in the day detail**: the card of an entry marked `notOvertime` has reduced opacity (0.62), a `--card-elev` background and a small text badge `non strord.` ("not overtime"; serif italic, dashed border) next to the hours total. The size and position of the hours stay the same, so reading the duration doesn't change.
+* **Calculation behaviour** preserved for the other entries: the weekly threshold `oreContratto + forfait` keeps working normally on unmarked weekday hours; `notOvertime` entries don't add to the weekly bucket, so they don't "use up" part of the threshold for other days of the same week. Example: 4 weekdays of 10h + 1 day of 10h marked `notOvertime` → calculation limited to 4 days × 10h = 40h ≤ threshold 45h → 0h paid (correct: the user explicitly took those 10h out of the count).
+
+### Entry form: date/time inputs brought into the design system
+
+* **CSS selectors `.field input[type="text"|"number"]` extended to `type="date"` and `type="time"`.** The three rows of the entry form (Date, Start/End time, Break) fell back to the browser defaults (thin grey border, system font, inconsistent padding, black picker icon) because the styling rule didn't catch them. Now they get the same Quiet Ledger treatment as the other fields: paper bg, `--line` border, padding 11/13, sienna focus state with a soft box-shadow.
+* **`font-variant-numeric: tabular-nums`** added on `number`/`date`/`time` for clean vertical alignment when two time fields sit side by side (Start time / End time in the `.field-row`).
+* **`::-webkit-calendar-picker-indicator` softened** with `opacity .45` + `filter sepia(.5) hue-rotate(-12deg) saturate(.85)`, so the calendar/clock icon doesn't read as a black system widget but as a small warm-paper accent. Hover/focus bring it to opacity .85.
+* **`:invalid` on date/time** lowered to the `--ink-muted` colour: the native placeholders (`gg/mm/aaaa`, the Italian dd/mm/yyyy, and `--:--`) were darker than the rest of the hints, and it looked like a bug. Now the empty state looks intentional.
+* Firefox has no equivalent pseudo-elements for the picker icon, but its native dropdown rendering is already discreet, so no override is needed.
+
+### Design decision: `hoursOverride` stays
+
+* The monthly override `overtime.hoursOverride` is orthogonal to `notOvertime`: the first says "ignore the automatic calculation and use this total for the month", the second says "don't count this specific day". The two mechanisms coexist for now. Removing `hoursOverride` is not planned until the new feature has been used enough to judge whether the monthly override is still useful or redundant.
+
+### CSV backup: coverage of the new field
+
+* **`non_straordinario` column (0/1) appended to the `STRAORDINARI` sections (full CSV) and to the hours-only CSV (`buildCsvOre`).** Placed as the last column so v3.4.2 CSVs can still be parsed as a *prefix* of the expected header.
+* **`parseCsvOre` relaxed**: it only requires the first 6 columns (`profilo..nota`) as a mandatory prefix, and accepts shorter or longer headers (forward compatibility). The per-row field count check now uses `header.length` instead of `ORE_COLS.length`, so every file is parsed according to its own header.
+* The parser is tolerant on values too: it accepts `0/1`, `sì/no`, `true/false`. Default: `false` if the column is missing or empty.
+
+### Pre-release audit
+
+* jsdom run of v3.4.3 compared with v3.4.2: welcome card rendered correctly, version tag "v3.4.3", zero errors.
+* `paidHoursForMonth` checked by hand with mixed entries (weekdays over the threshold + weekend + one marked `notOvertime`): the marked day skips both buckets, the other weekday hours of the same week keep their normal contribution to the threshold.
+* CSV edge case check: import of a v3.4.2 file (without the `non_straordinario` column) → all entries come in with `notOvertime: false`. Re-export → the column is now there, filled with `0`.
+
+### Internals
+
+* Version bumped to `3.4.3`.
+* Service worker cache key bumped to `wims-v3.4.3` to invalidate 3.4.2 on the first activate.
+
+---
+
+## [3.4.2] - 2026-05-14
+
+Critical fix for a bug inherited from v3.1 and hidden until today. The page loaded completely empty (only topbar + tabbar, no hero, no welcome card, no version tag) on any device (desktop, mobile Safari, mobile Chrome, private windows) because a module-level exception stopped the script *before* `bootstrap()` was called.
+
+### Diagnosis
+
+* `runMigrations()` (introduced in 3.1) runs at module load, right after `let store = loadStore();`.
+* Even on a fresh device with no profiles, the migration sets `store._migrations.v3_1_overtime_default = true` and calls `saveStore()` to persist the flag.
+* `saveStore()` contains a defensive call `if(typeof schedulePush === "function") schedulePush();` to trigger the debounced cloud sync when it's configured.
+* `schedulePush()` is a **function declaration**, so it's hoisted → the `typeof` check passes even though the textual declaration is 2,000 lines further down → the function actually gets called.
+* Inside it, `schedulePush` references `syncState`, declared with `let` much further down (next to the whole cloud sync block).
+* `let` has a **Temporal Dead Zone**: reading the binding before its lexical declaration throws `ReferenceError: Cannot access 'syncState' before initialization`.
+* The exception propagates out of the call chain, stops module-level execution, and `bootstrap()` (at the end of the file) is never reached. Result: only the static markup (topbar, tabbar) is visible. The version tag, the welcome card and all the rendering depend on `bootstrap()` → they stay empty.
+
+The bug was deterministic and showed up in every environment, but it stayed invisible for days because most users had a localStorage populated by earlier versions (the cached v2.0/v3.0.1 copies of the pre-fix HTML didn't have the problem, so they kept running). Only "fresh" installs after 3.1 showed it, and ironically it surfaced when a service worker (3.4.1) started serving the updated HTML to people who had been seeing a stale copy.
 
 ### Fix
 
-- **Forward-declaration di `syncState` al module-level**, subito dopo `let store = loadStore();`, con valore iniziale `null`. La dichiarazione vera (l'IIFE che legge da localStorage) resta dove era nel blocco sync cloud, ma adesso è una **riassegnazione** invece di una nuova dichiarazione `let`.
-- Niente più TDZ: quando `schedulePush()` legge `syncState` durante l'esecuzione di `runMigrations() → saveStore()`, il binding esiste già con valore `null`, il guard `if(!syncState || ...)` ritorna early, nessuna eccezione.
+* **Forward declaration of `syncState` at module level**, right after `let store = loadStore();`, with initial value `null`. The real declaration (the IIFE that reads from localStorage) stays where it was in the cloud sync block, but it's now a **reassignment** instead of a new `let` declaration.
+* No more TDZ: when `schedulePush()` reads `syncState` while `runMigrations() → saveStore()` runs, the binding already exists with value `null`, the `if(!syncState || ...)` guard returns early, no exception.
 
-### Audit pre-release
+### Pre-release audit
 
-- jsdom run di v3.0.1, v3.3, v3.4.2 a confronto: solo le versioni con il fix (v3.0.1 e v3.4.2) renderizzano la welcome card. v3.3 cruda lancia `ReferenceError`. Conferma diretta della diagnosi.
-- `bootstrap()` ora viene eseguito normalmente su device fresh → version tag impostato, `setSyncStatus("off")` chiamato, welcome card aperta dopo 250ms come previsto.
-
-### Internals
-
-- Versione bumped a `3.4.2`.
-- Cache key del service worker bumped a `wims-v3.4.2` per invalidare la cache 3.4.1 al primo activate.
-
-### Lezione
-
-Hoisting + TDZ creano una trappola insidiosa: una function declaration può chiamare codice che dipende da `let`/`const` non ancora inizializzati. Il pattern `if(typeof X === "function") X()` ha funzionato come check di esistenza per la function declaration ma **non** ha protetto da TDZ all'interno. Regola da ricordare: una funzione che usa `let`/`const` di un'altra sezione del file dovrebbe essere chiamata solo *dopo* che entrambe sono inizializzate, oppure tutte le `let` referenziate vanno forward-declared al top del modulo.
-
----
-
-## [3.4.1] — 2026-05-14
-
-Bugfix release: la versione installata via "Aggiungi a Home" su iOS restava ferma a una build vecchia (v2.0) anche quando Safari su browser mostrava già la 3.4. Il problema era strutturale — l'app non aveva mai avuto un service worker né un `manifest.webmanifest` — quindi la WebView standalone di iOS cacheava aggressivamente l'HTML e non rinfrescava mai.
-
-### Fix — Service worker
-
-- **Nuovo file `sw.js` con strategia network-first sulle navigazioni HTML.** Quando il dispositivo è online, ogni apertura dell'app prende sempre l'ultima `index.html` dal network (`cache: 'no-store'`) e ne aggiorna la copia locale; quando è offline, ricade sulla cache. Per gli asset statici (font Google, icone inline) la strategia è cache-first per non sprecare banda.
-- L'`activate` event cancella tutte le cache con chiave diversa dalla corrente (`wims-v3.4.1`), così ogni bump versione invalida la vecchia cache.
-- `skipWaiting()` + `clients.claim()` per attivare il nuovo SW immediatamente al primo reload utile, senza aspettare la chiusura di tutte le tab.
-
-### Fix — Manifest PWA
-
-- **Nuovo `manifest.webmanifest`** con `name`, `short_name`, `start_url`, `scope`, `display: standalone`, `theme_color` e `background_color` allineati al palette Quiet Ledger (`#FAF7F2` paper). Icone inline come data-URI SVG (sia `any` che `maskable`), così il file resta autocontenuto come il resto del progetto (no asset binari nel repo).
-- Link `<link rel="manifest">` aggiunto in head dopo i meta `apple-mobile-web-app-*`. iOS continuerà a usare `apple-touch-icon` per l'icona home screen (il manifest è ignorato a quello scopo); il manifest serve principalmente a Chrome/Android per l'installazione corretta.
-
-### Fix — Version tag hardcoded
-
-- **Rimosso il fallback `v2.0`** nel tag `#version-tag` (riga 1781): se per qualunque motivo il bootstrap JS non gira prima del primo paint, il numero che vedeva l'utente era 2.0 — fuorviante durante il debug del bug stesso. Adesso il tag è vuoto fino a quando `bootstrap()` non lo riempie con la `VERSION` corrente.
-
-### Note utenti già stuck su versioni vecchie
-
-- Gli utenti che hanno l'app già aggiunta alla home screen con una build pre-SW devono fare **un'unica volta** la rimozione e re-installazione: l'HTML cacheato dalla WebView non contiene la registrazione SW, quindi il nuovo service worker non può essere installato dall'interno della copia stuck. Operazioni: rimuovere l'icona dalla home → aprire Safari sul sito → Impostazioni Safari → Cancella dati per il dominio → ricaricare → Aggiungi a Home.
-- Da questo punto in poi tutti gli update arrivano automaticamente al prossimo lancio (con rete disponibile). Niente più "vedo la 3.4 sul browser ma la 2.0 in app".
-
-### Audit pre-release
-
-- `sw.js` validato con `node --check`: PASS.
-- `manifest.webmanifest` validato come JSON con `node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest'))"`: PASS.
-- Scope SW = `./` (default) → corretto sotto `https://massimodascola.github.io/WhereIsMySalary-/`: il SW intercetta solo le richieste interne al subpath del progetto, non altri repo sotto il dominio `github.io`.
+* jsdom run of v3.0.1, v3.3 and v3.4.2 compared: only the versions with the fix (v3.0.1 and v3.4.2) render the welcome card. Raw v3.3 throws `ReferenceError`. Direct confirmation of the diagnosis.
+* `bootstrap()` now runs normally on a fresh device → version tag set, `setSyncStatus("off")` called, welcome card opened after 250ms as expected.
 
 ### Internals
 
-- Versione bumped a `3.4.1`.
-- Cache key bumped a `wims-v3.4.1` per invalidare automaticamente eventuali asset cacheati al primo install del SW.
+* Version bumped to `3.4.2`.
+* Service worker cache key bumped to `wims-v3.4.2` to invalidate the 3.4.1 cache on the first activate.
+
+### Lesson
+
+Hoisting + TDZ make a sneaky trap: a function declaration can call code that depends on `let`/`const` bindings not yet initialised. The `if(typeof X === "function") X()` pattern worked as an existence check for the function declaration but did **not** protect against the TDZ inside it. Rule to remember: a function that uses `let`/`const` from another section of the file should be called only *after* both are initialised, or all the referenced `let` bindings should be forward-declared at the top of the module.
 
 ---
 
-## [3.4] — 2026-05-14
+## [3.4.1] - 2026-05-14
 
-Cinque modifiche che ribilanciano la pagina Salary attorno al **ciclo di pagamento reale** dell'utente (non più assunto come "fine mese"), introducono il toggle per disattivare Overtime, abbassano il tono di voce del logo e raddoppiano le tagline ironiche.
+Bugfix release: the version installed via "Add to Home Screen" on iOS stayed stuck on an old build (v2.0) even when Safari in the browser already showed 3.4. The problem was structural (the app had never had a service worker or a `manifest.webmanifest`), so the standalone iOS WebView cached the HTML aggressively and never refreshed it.
 
-### Salary — giorno di pagamento configurabile
+### Fix: service worker
 
-- **Due nuovi setting**: `payDay` (1–28, default 27) e `payDayNextMonth` (boolean, default false). Insieme definiscono quando "atterra" lo stipendio del mese N: il `payDay` del mese stesso, oppure il `payDay` del mese successivo (per le presenze sfalsate — es. maggio pagato il 15 giugno).
-- **Nuove funzioni `paymentDateFor(year, m0, settings)` e `isPaymentDue(year, m0, settings, now)`** sostituiscono la vecchia logica "passato vs corrente vs futuro" basata su fine mese. Tutta la pagina Salary ora rispetta il ciclo configurato: `computeYearTotals` somma in "mancante" solo i mesi il cui pay date è passato; `monthStatus` etichetta come "in arrivo" tutto ciò che non è ancora dovuto, anche se siamo nel mese corrente ma prima del pay date.
-- `payDay` clampato a 28 per evitare di "saltare" febbraio (data sempre valida in ogni mese).
-- Migration retro-compatibile via `ensureProfile`: profili pre-3.4 ricevono `payDay: 27, payDayNextMonth: false` (= comportamento storico).
-- UI nelle settings e nel new-profile sheet: due campi nel `.field-row` "Giorno di pagamento" + select "Stesso mese / Mese successivo".
+* **New `sw.js` file with a network-first strategy for HTML navigations.** When the device is online, every launch of the app always takes the latest `index.html` from the network (`cache: 'no-store'`) and updates its local copy; when offline, it falls back to the cache. For static assets (Google fonts, inline icons) the strategy is cache-first, so as not to waste bandwidth.
+* The `activate` event deletes all caches with a key different from the current one (`wims-v3.4.1`), so every version bump invalidates the old cache.
+* `skipWaiting()` + `clients.claim()` to activate the new SW immediately on the first useful reload, without waiting for all tabs to close.
 
-### Salary — toggle Overtime
+### Fix: PWA manifest
 
-- **Nuovo setting `overtimeEnabled` (default true).** Quando false:
-  - La tabbar flottante in fondo schermo viene nascosta (niente più switch fra le due pagine).
-  - La voce "Straordinari" nei mesi della pagina Salary scompare dalla lista componenti.
-  - `expectedAmountFor("overtime")` ritorna 0 indipendentemente dallo stato, quindi gli straordinari non contribuiscono né ai totali annuali né al month-status.
-  - Se l'utente era sulla pagina Overtime quando ha disabilitato, viene reindirizzato a Salary.
-- Toggle iOS-style (`.settings-toggle` + `.toggle-track`) accanto al titolo della sezione "Overtime" nelle impostazioni. Visivamente discreto, conferma immediata dello stato.
-- `renderOvertimeVisibility()` introdotta come step del render principale; `switchTab()` rifiuta i passaggi a Overtime quando è disabilitato (difesa in profondità).
+* **New `manifest.webmanifest`** with `name`, `short_name`, `start_url`, `scope`, `display: standalone`, `theme_color` and `background_color` matching the Quiet Ledger palette (`#FAF7F2` paper). Inline icons as SVG data URIs (both `any` and `maskable`), so the file stays self-contained like the rest of the project (no binary assets in the repo).
+* `<link rel="manifest">` link added in the head after the `apple-mobile-web-app-*` meta tags. iOS will keep using `apple-touch-icon` for the home screen icon (the manifest is ignored for that purpose); the manifest mainly serves Chrome/Android for a proper install.
 
-### Overtime — hero da sinistra
+### Fix: hard-coded version tag
 
-- **Layout cambia da grid asimmetrico a flex con `justify-content: flex-start`** (gap `6px 28px`). L'importo in euro a sinistra, le ore subito a destra, entrambe ancorate al bordo sinistro del hero. Il pattern "centro asimmetrico" della 3.2.4 non comunicava la priorità di lettura — adesso si legge in modo lineare da sx a dx.
-- Rimosse le classi `.primary` / `.secondary` (il layout non ne ha più bisogno).
+* **Removed the `v2.0` fallback** in the `#version-tag` tag (line 1781): if for any reason the bootstrap JS didn't run before the first paint, the number the user saw was 2.0, which was misleading while debugging this very bug. Now the tag is empty until `bootstrap()` fills it with the current `VERSION`.
 
-### Logo — tutto minuscolo
+### Note for users already stuck on old versions
 
-- **"Where is my *Salary*" → "where is my *salary*"** (iniziali minuscole). Riduce ulteriormente il tono "prodotto" e si avvicina al gesto manoscritto della filosofia *Quiet Ledger*.
+* Users who already added the app to the home screen with a pre-SW build need to remove it and reinstall it **once**: the HTML cached by the WebView doesn't contain the SW registration, so the new service worker can't be installed from inside the stuck copy. Steps: remove the icon from the home screen → open Safari on the site → Safari settings → clear the website data for the domain → reload → Add to Home Screen.
+* From then on, all updates arrive automatically at the next launch (with a network connection). No more "I see 3.4 in the browser but 2.0 in the app".
 
-### Tagline — `{payDay}` + raddoppio
+### Pre-release audit
 
-- **Placeholder `{payDay}` aggiunto** in `interpolateTagline`. Le frasi storiche `"Il 27 non è una data. È una promessa."` e `"I conti si fanno alla fine. Anche se l'app li fa al 27."` ora usano `{payDay}` e si adattano al giorno scelto dall'utente.
-- **Entrambe le liste raddoppiate**: `TAGLINES_ORE` 15 → 30, `TAGLINES_STIPENDIO` 15 → 30. Le nuove frasi continuano il tono ironico-emotivo dell'app (`"Stai costruendo il futuro. Ti pagheranno nel passato."`, `"Il salario è la prima bugia che ti raccontano, l'ultima che credi."`).
-
-### Backup CSV — copertura nuovi setting
-
-- **Tre colonne aggiuntive in `SETTINGS`**: `pay_giorno`, `pay_mese_dopo` (0/1), `overtime_abilitato` (0/1). Il fix è stato trovato in audit pre-release: senza queste colonne, un round-trip export → re-import ripristinava i default v3.3 (27, stesso mese, abilitato), perdendo silenziosamente le scelte dell'utente.
-- Parser tollerante (header *prefisso*) → file v3.3 senza queste colonne si caricano con i default come prima. I valori booleani accettano sia `0/1` che `sì/no` / `true/false` per robustezza.
-
-### Audit pre-release
-
-- `node --check` su JS estratto: **PASS**.
-- Grep di riferimenti morti (`empty-mark`, `salaryMultiplierFor`, `profile-pill`, `cal-grid`, `hero-amount-aux`, `.hero-amount.primary/.secondary`): **0 hit** in codice attivo (solo 1 commento esplicativo).
-- Verificato `paymentDateFor` su edge case mese 12 + offset 1: JS `new Date(year, 12, payDay)` rolla correttamente a gennaio dell'anno successivo. Il calcolo `due` resta coerente attraverso il confine d'anno.
-- Verificato CSV round-trip su un profilo con `payDay=15, payDayNextMonth=true, overtimeEnabled=false`: import preserva i tre valori.
+* `sw.js` validated with `node --check`: PASS.
+* `manifest.webmanifest` validated as JSON with `node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest'))"`: PASS.
+* SW scope = `./` (default) → correct under `https://massimodascola.github.io/WhereIsMySalary-/`: the SW only intercepts requests within the project's subpath, not other repos under the `github.io` domain.
 
 ### Internals
 
-- Versione bumped a `3.4`.
+* Version bumped to `3.4.1`.
+* Cache key bumped to `wims-v3.4.1` to automatically invalidate any assets cached at the first SW install.
 
 ---
 
-## [3.3] — 2026-05-14
+## [3.4] - 2026-05-14
 
-Release stabile che consolida il ciclo di lavoro su **Overtime** iniziato in 3.1. Niente nuove feature rispetto alla 3.2.4: solo un bump di versione che chiude la sequenza di 5 iterazioni (`3.2 → 3.2.4`) e segnala la fine del rework.
+Five changes that rebalance the Salary page around the user's **actual pay cycle** (no longer assumed to be "end of month"), add the toggle to turn Overtime off, tone down the logo and double the ironic taglines.
 
-### Riepilogo del ciclo 3.1 → 3.3
+### Salary: configurable payday
 
-| Versione  | Intervento principale                                                |
+* **Two new settings**: `payDay` (1-28, default 27) and `payDayNextMonth` (boolean, default false). Together they define when the salary for month N "lands": on the `payDay` of the same month, or on the `payDay` of the following month (for pay in arrears, e.g. May paid on 15 June).
+* **New functions `paymentDateFor(year, m0, settings)` and `isPaymentDue(year, m0, settings, now)`** replace the old "past vs current vs future" logic based on the end of the month. The whole Salary page now follows the configured cycle: `computeYearTotals` adds to "missing" only the months whose pay date has passed; `monthStatus` labels as "upcoming" everything that isn't due yet, even in the current month before the pay date.
+* `payDay` clamped to 28 to avoid "skipping" February (a date that's always valid in every month).
+* Backward-compatible migration via `ensureProfile`: pre-3.4 profiles get `payDay: 27, payDayNextMonth: false` (= the historical behaviour).
+* UI in the settings and in the new-profile sheet: two fields in the `.field-row`, "Payday" + a "Same month / Following month" select.
+
+### Salary: Overtime toggle
+
+* **New `overtimeEnabled` setting (default true).** When false:
+  * The floating tabbar at the bottom of the screen is hidden (no more switching between the two pages).
+  * The "Overtime" item disappears from the component list in the months on the Salary page.
+  * `expectedAmountFor("overtime")` returns 0 whatever the state, so overtime contributes neither to the yearly totals nor to the month status.
+  * If the user was on the Overtime page when turning it off, they are redirected to Salary.
+* iOS-style toggle (`.settings-toggle` + `.toggle-track`) next to the "Overtime" section title in the settings. Visually discreet, immediate confirmation of the state.
+* `renderOvertimeVisibility()` introduced as a step of the main render; `switchTab()` refuses switches to Overtime when it's disabled (defence in depth).
+
+### Overtime: hero from the left
+
+* **The layout changes from an asymmetric grid to flex with `justify-content: flex-start`** (gap `6px 28px`). The euro amount on the left, the hours right after it, both anchored to the left edge of the hero. The "asymmetric centre" pattern of 3.2.4 didn't convey the reading priority; now it reads linearly from left to right.
+* Removed the `.primary` / `.secondary` classes (the layout no longer needs them).
+
+### Logo: all lowercase
+
+* **"Where is my *Salary*" → "where is my *salary*"** (lowercase initials). It tones down the "product" feel even further and moves closer to the handwritten gesture of the *Quiet Ledger* philosophy.
+
+### Taglines: `{payDay}` + doubled
+
+* **`{payDay}` placeholder added** in `interpolateTagline`. The historical lines `"Il 27 non è una data. È una promessa."` ("The 27th isn't a date. It's a promise.") and `"I conti si fanno alla fine. Anche se l'app li fa al 27."` ("The sums get done at the end. Even if the app does them on the 27th.") now use `{payDay}` and adapt to the day chosen by the user.
+* **Both lists doubled**: `TAGLINES_ORE` 15 → 30, `TAGLINES_STIPENDIO` 15 → 30. The new lines carry on the app's ironic, emotional tone (`"Stai costruendo il futuro. Ti pagheranno nel passato."`, "You're building the future. They'll pay you in the past."; `"Il salario è la prima bugia che ti raccontano, l'ultima che credi."`, "Your salary is the first lie they tell you and the last one you believe.").
+
+### CSV backup: coverage of the new settings
+
+* **Three extra columns in `SETTINGS`**: `pay_giorno`, `pay_mese_dopo` (0/1), `overtime_abilitato` (0/1). The gap was found in the pre-release audit: without these columns, an export → re-import round trip restored the v3.3 defaults (27, same month, enabled), silently losing the user's choices.
+* Tolerant parser (*prefix* header) → v3.3 files without these columns load with the defaults, as before. Boolean values accept `0/1` as well as `sì/no` / `true/false`, for robustness.
+
+### Pre-release audit
+
+* `node --check` on the extracted JS: **PASS**.
+* Grep for dead references (`empty-mark`, `salaryMultiplierFor`, `profile-pill`, `cal-grid`, `hero-amount-aux`, `.hero-amount.primary/.secondary`): **0 hits** in active code (just 1 explanatory comment).
+* Checked `paymentDateFor` on the month 12 + offset 1 edge case: JS `new Date(year, 12, payDay)` correctly rolls over to January of the following year. The `due` calculation stays consistent across the year boundary.
+* Checked the CSV round trip on a profile with `payDay=15, payDayNextMonth=true, overtimeEnabled=false`: the import preserves all three values.
+
+### Internals
+
+* Version bumped to `3.4`.
+
+---
+
+## [3.3] - 2026-05-14
+
+Stable release that consolidates the work cycle on **Overtime** started in 3.1. No new features compared with 3.2.4: just a version bump that closes the sequence of 5 iterations (`3.2 → 3.2.4`) and marks the end of the rework.
+
+### Summary of the 3.1 → 3.3 cycle
+
+| Version   | Main change                                                          |
 |-----------|----------------------------------------------------------------------|
-| 3.1       | Hero overtime con metrica doppia (euro + ore), default `missing` per overtime, KPI annuo "Straord. {anno}" |
-| 3.2       | Ore promosse a `.hero-amount` (stessa scala dell'euro), migration retro-attiva `v3_1_overtime_default` |
-| 3.2.1     | `.hero-amounts` flex inline                                          |
-| 3.2.2     | `justify-content: space-between` (poi rifiutato)                     |
-| 3.2.3     | `justify-content: center` (poi rifiutato)                            |
-| 3.2.4     | Grid asimmetrico `1fr auto 1fr` con ore a sinistra e euro al centro  |
-| **3.3**   | **Consolidamento. Stessa codebase di 3.2.4, bump di versione.**      |
+| 3.1       | Overtime hero with a double metric (euros + hours), `missing` default for overtime, yearly "Overtime {year}" KPI |
+| 3.2       | Hours promoted to `.hero-amount` (same scale as the euros), retroactive `v3_1_overtime_default` migration |
+| 3.2.1     | `.hero-amounts` inline flex                                          |
+| 3.2.2     | `justify-content: space-between` (later rejected)                    |
+| 3.2.3     | `justify-content: center` (later rejected)                           |
+| 3.2.4     | Asymmetric `1fr auto 1fr` grid with the hours on the left and the euros in the centre |
+| **3.3**   | **Consolidation. Same codebase as 3.2.4, version bump.**             |
 
-### Audit pre-release
+### Pre-release audit
 
-- `node --check` su JS estratto: **PASS**.
-- Grep di riferimenti morti (`empty-mark`, `salaryMultiplierFor`, `profile-pill`, `cal-grid`, etc.): **0 hit** in codice attivo (solo 1 commento esplicativo).
-- Migration `v3_1_overtime_default` invariata dalla 3.2 — già provata sul profilo dell'utente con esito ok.
-
-### Internals
-
-- Versione bumped a `3.3`.
-
----
-
-## [3.2.4] — 2026-05-14
-
-### Overtime — layout asimmetrico ore/euro
-
-- **`.hero-amounts` passa da flex a grid 3-colonne (`1fr auto 1fr`).** Le due metriche non sono più *sibling* in un layout simmetrico — ora vivono in posizioni semanticamente distinte: le ore (`.secondary`) stanno in col 1 left-aligned, l'importo in euro (`.primary`) sta in col 2 centrato. Il `1fr` di col 3 funziona da mirror invisibile che mantiene la primary visivamente al centro dell'hero anche quando la secondary è presente.
-- Quando non c'è tariffa (no euro da mostrare), la primary contiene direttamente le ore — il layout grid resta valido perché la primary in col 2 con due 1fr ai lati è già centrata.
-- Stesso pattern Quiet Ledger: la cifra "che conta" (al centro) ha la posizione di rilievo, l'altra le sta accanto come margine annotato.
+* `node --check` on the extracted JS: **PASS**.
+* Grep for dead references (`empty-mark`, `salaryMultiplierFor`, `profile-pill`, `cal-grid`, etc.): **0 hits** in active code (just 1 explanatory comment).
+* `v3_1_overtime_default` migration unchanged since 3.2, already tested on the user's profile with a good result.
 
 ### Internals
 
-- Versione bumped a `3.2.4`.
+* Version bumped to `3.3`.
 
 ---
 
-## [3.2.3] — 2026-05-14
+## [3.2.4] - 2026-05-14
 
-### Overtime — coppia centrata con aria
+### Overtime: asymmetric hours/euros layout
 
-- **`.hero-amounts` passa da `justify-content: space-between` a `center` con `gap: 8px 48px`.** Le due cifre stanno al centro del box, separate da un gap generoso ma fisso. Non più ancorate ai bordi del hero — l'effetto "estremi" risultava troppo squilibrato visivamente. Centrate con respiro in mezzo si leggono come una coppia bilanciata.
+* **`.hero-amounts` goes from flex to a 3-column grid (`1fr auto 1fr`).** The two metrics are no longer *siblings* in a symmetric layout; they now live in semantically distinct positions: the hours (`.secondary`) sit in col 1, left-aligned, and the euro amount (`.primary`) sits in col 2, centred. The `1fr` of col 3 works as an invisible mirror that keeps the primary visually in the centre of the hero even when the secondary is present.
+* When there's no rate (no euros to show), the primary holds the hours directly: the grid layout stays valid because the primary in col 2 with a 1fr on each side is already centred.
+* Same Quiet Ledger pattern: the figure "that matters" (in the centre) has the prominent position, the other sits next to it like a note in the margin.
 
 ### Internals
 
-- Versione bumped a `3.2.3`.
+* Version bumped to `3.2.4`.
 
 ---
 
-## [3.2.2] — 2026-05-14
+## [3.2.3] - 2026-05-14
 
-### Overtime — euro a sinistra, ore a destra
+### Overtime: centred pair with breathing room
 
-- **`.hero-amounts` ottiene `justify-content: space-between`.** Le due cifre ora vivono agli estremi del box hero (importo in euro a sinistra, ore a destra), l'aria in mezzo dà respiro al ritmo della pagina e riprende il pattern *Quiet Ledger* "margini come silenzi scelti". Gap orizzontale ridotto da 22px a 16px perché tanto è `space-between` a determinare lo spazio reale.
+* **`.hero-amounts` goes from `justify-content: space-between` to `center` with `gap: 8px 48px`.** The two figures sit in the centre of the box, separated by a generous but fixed gap. No longer anchored to the edges of the hero: the "far ends" effect looked too unbalanced. Centred, with room in between, they read as a balanced pair.
 
 ### Internals
 
-- Versione bumped a `3.2.2`.
+* Version bumped to `3.2.3`.
 
 ---
 
-## [3.2.1] — 2026-05-14
+## [3.2.2] - 2026-05-14
 
-### Overtime — euro + ore sulla stessa riga
+### Overtime: euros on the left, hours on the right
 
-- **Le due cifre del hero passano da stacked a side-by-side.** In 3.2 erano state messe una sopra l'altra (regola `.hero-amount + .hero-amount { margin-top: 4px }`) ma la lettura risultava verticale, quasi come "principale + appendice". Adesso le due metriche stanno sulla **stessa riga** dentro un wrapper `.hero-amounts` (flex con `align-items: baseline` e `gap: 8px 22px`).
-- `flex-wrap: wrap` mantiene il fallback per viewport molto stretti (sotto ~340px): se le due cifre non entrano su una riga sola, vanno a capo automaticamente con un gap minore. Su qualsiasi schermo > 340px stanno una accanto all'altra come voleva il design.
-- Il margin-top del primo `.hero-amount` viene azzerato dentro `.hero-amounts` (è il wrapper a tenere il margin-top di 14px verso il greeting sopra).
+* **`.hero-amounts` gets `justify-content: space-between`.** The two figures now live at the two ends of the hero box (euro amount on the left, hours on the right); the space in between lets the page's rhythm breathe and echoes the *Quiet Ledger* pattern of "margins as chosen silences". Horizontal gap reduced from 22px to 16px, since `space-between` sets the real spacing anyway.
 
 ### Internals
 
-- Versione bumped a `3.2.1`.
+* Version bumped to `3.2.2`.
 
 ---
 
-## [3.2] — 2026-05-14
+## [3.2.1] - 2026-05-14
 
-Correzioni alle scelte fatte in 3.1: la gerarchia visiva nel hero Overtime non comunicava la pariteticità delle due metriche, e la nuova default su `overtime` non si applicava ai profili già esistenti rendendola di fatto invisibile.
+### Overtime: euros + hours on the same line
 
-### Overtime — ore e euro entrambe protagoniste
-
-- **Le ore non pagate sono ora un secondo `.hero-amount` a piena scala**, non un sub-text. In 3.1 erano renderizzate in `.hero-amount-aux` (serif italic 15px) — leggibili ma chiaramente "didascalia". Adesso entrambi i numeri usano la stessa classe `.hero-amount`, stessa size `clamp(40px, 11vw, 56px)`, stesso peso, stessa logica `intero + ,decimali` con `.cents` ridotto. Comunica visivamente che "soldi dovuti" e "ore non pagate" hanno la stessa importanza.
-- Helper `buildHoursHtml(h)` per generare lo stesso mark-up `123<span class="cents">,5 h</span>` usato sia quando le ore stanno in primo piano (no tariffa) sia quando stanno sotto l'importo in euro.
-- Regola CSS `.hero-amount + .hero-amount { margin-top: 4px }` tiene i due numeri stretti come una coppia, non come headline+nota.
-- Rimossa la vecchia classe `.hero-amount-aux` (non più referenziata).
-
-### Migration retro-attiva — overtime default
-
-- **`runMigrations()` introdotta come step di bootstrap subito dopo `loadStore()`.** In 3.1 il nuovo default `expectedDefault:true` su `overtime` valeva solo per i mesi *mai creati*, ma `ensureYear` crea già tutti i 12 mesi dell'anno appena visiti la pagina — quindi un utente v3.0 che aveva già aperto l'app si trovava 12 mesi con `state: "not_expected"` salvati nel localStorage, immuni al cambio di default. La nuova feature era invisibile.
-- **Migration `v3_1_overtime_default`** scorre tutti i mesi di tutti i profili e converte a `"missing"` *solo* le celle overtime che soddisfano due condizioni: `state === "not_expected"` AND `hoursOverride == null`. La seconda condizione tutela le scelte attive dell'utente: se aveva impostato manualmente un override (magari proprio per controllare quel mese), il "not_expected" è una scelta consapevole e resta.
-- Il flag `store._migrations.v3_1_overtime_default = true` viene salvato la prima volta che la migration gira — al reload successivo non viene riapplicata. Niente effetti collaterali, niente loop infiniti.
-- Pattern estensibile: per migrazioni future basta aggiungere un nuovo `if(!store._migrations.<nome>)` dentro `runMigrations()`.
+* **The two hero figures go from stacked to side by side.** In 3.2 they had been placed one above the other (rule `.hero-amount + .hero-amount { margin-top: 4px }`) but they read vertically, almost like "main + appendix". Now the two metrics sit on the **same line** inside a `.hero-amounts` wrapper (flex with `align-items: baseline` and `gap: 8px 22px`).
+* `flex-wrap: wrap` keeps a fallback for very narrow viewports (below ~340px): if the two figures don't fit on one line, they wrap automatically with a smaller gap. On any screen > 340px they sit next to each other, as the design intended.
+* The margin-top of the first `.hero-amount` is reset inside `.hero-amounts` (the wrapper holds the 14px margin-top towards the greeting above).
 
 ### Internals
 
-- Versione bumped a `3.2`.
+* Version bumped to `3.2.1`.
 
 ---
 
-## [3.1] — 2026-05-14
+## [3.2] - 2026-05-14
 
-Tre interventi sulla pagina Overtime e sulla voce straordinari della pagina Salary, motivati dall'uso reale: la metrica principale era unilaterale, il default rendeva difficile vedere i conti, e mancava un totale annuale di straordinari.
+Corrections to the choices made in 3.1: the visual hierarchy in the Overtime hero didn't convey that the two metrics are on an equal footing, and the new default for `overtime` didn't apply to existing profiles, which made it effectively invisible.
 
-### Overtime — metrica doppia nel box principale
+### Overtime: hours and euros both in the lead
 
-- **Sotto l'importo in euro, riga con le ore non pagate.** Quando è impostata una tariffa, l'hero mostrava solo `€ 1.200,00`. Adesso accanto mostra anche `123,5 ore di straordinario non pagate`. La doppia metrica risponde a due domande diverse con una sola occhiata: *quanto* mi devono (euro) e *cosa* è stato lavorato senza compenso (ore). Nuovo stile `.hero-amount-aux` — serif italic 15px, ink-soft, tabular-nums.
-- Quando non c'è tariffa il box resta com'era (solo ore in primo piano).
-- Quando non c'è nulla da pagare, la riga aux scompare automaticamente.
+* **Unpaid hours are now a second full-scale `.hero-amount`**, not a sub-text. In 3.1 they were rendered in `.hero-amount-aux` (serif italic 15px): readable but clearly a "caption". Now both numbers use the same `.hero-amount` class, the same size `clamp(40px, 11vw, 56px)`, the same weight, the same `intero + ,decimali` logic (integer part + decimals) with a smaller `.cents`. It shows visually that "money owed" and "unpaid hours" matter equally.
+* Helper `buildHoursHtml(h)` to generate the same `123<span class="cents">,5 h</span>` markup, used both when the hours are in the foreground (no rate) and when they sit under the euro amount.
+* CSS rule `.hero-amount + .hero-amount { margin-top: 4px }` keeps the two numbers close together like a pair, not like headline + note.
+* Removed the old `.hero-amount-aux` class (no longer referenced).
 
-### Salary — default straordinari "missing"
+### Retroactive migration: overtime default
 
-- **`expectedDefault` su `overtime` passa da `false` a `true`**. Prima i nuovi mesi nascevano con stato `non spettato` per gli straordinari: l'utente doveva ogni volta passare a "mancante" manualmente affinché i conti della pagina Overtime considerassero quelle ore come da pagare. Adesso il default è *non ancora pagato* — coerente col fatto che, in questa app, lo straordinario è qualcosa che presumi di non aver ancora incassato finché non lo segni come ricevuto.
-- Migration `ensureYear` aggiornata di conseguenza per coerenza con la nuova default.
-- I mesi v3.0 esistenti restano col loro stato (l'utente potrebbe averli messi consapevolmente a "non spettato"). La nuova default vale solo per i mesi mai aperti.
-
-### Overtime — KPI annuo dedicato
-
-- **Terzo `.hero-stat` cambiato da "ore lavorate anno" (gross) a "Straord. {anno}" (paid).** Il valore precedente sommava *tutte* le ore loggate nell'anno — informazione di servizio ma non aiuta a rispondere alla domanda chiave dell'app ("quanti straordinari ho fatto?"). Ora il KPI somma le ore *oltre soglia* mese per mese: il numero reale di ore di straordinario annuale, indipendentemente da quante siano state ricevute.
+* **`runMigrations()` introduced as a bootstrap step right after `loadStore()`.** In 3.1 the new `expectedDefault:true` default on `overtime` only applied to months *never created*, but `ensureYear` already creates all 12 months of the year as soon as you visit the page, so a v3.0 user who had already opened the app had 12 months with `state: "not_expected"` saved in localStorage, immune to the change of default. The new feature was invisible.
+* **`v3_1_overtime_default` migration**: it goes through all the months of all profiles and converts to `"missing"` *only* the overtime cells that meet two conditions: `state === "not_expected"` AND `hoursOverride == null`. The second condition protects the user's active choices: if they had set an override by hand (perhaps precisely to control that month), the "not_expected" is a deliberate choice and stays.
+* The `store._migrations.v3_1_overtime_default = true` flag is saved the first time the migration runs, so it isn't reapplied at the next reload. No side effects, no infinite loops.
+* Extensible pattern: for future migrations, just add a new `if(!store._migrations.<nome>)` inside `runMigrations()`.
 
 ### Internals
 
-- Nuovo calcolo locale `thisYearOvertimeHours` in `renderPageOre` — itera `paidHoursForMonth` sui 12 mesi dell'anno corrente. Costo trascurabile, render già ricalcola tutto a ogni interazione.
-- Versione bumped a `3.1`.
+* Version bumped to `3.2`.
 
 ---
 
-## [3.0.1] — 2026-05-14
+## [3.1] - 2026-05-14
 
-Patch tipografica: una tagline dell'hero "Salary" conteneva un valore hard-coded che non rispecchiava più le impostazioni dell'utente.
+Three changes to the Overtime page and to the overtime item on the Salary page, prompted by real use: the main metric was one-sided, the default made the numbers hard to see, and there was no yearly overtime total.
+
+### Overtime: double metric in the main box
+
+* **Under the euro amount, a line with the unpaid hours.** When a rate is set, the hero only showed `€ 1.200,00`. Now it also shows `123,5 ore di straordinario non pagate` ("123.5 unpaid overtime hours") next to it. The double metric answers two different questions at a glance: *how much* I'm owed (euros) and *what* was worked without pay (hours). New `.hero-amount-aux` style: serif italic 15px, ink-soft, tabular-nums.
+* When there's no rate the box stays as it was (only the hours in the foreground).
+* When there's nothing to be paid, the aux line disappears automatically.
+
+### Salary: overtime default "missing"
+
+* **`expectedDefault` on `overtime` goes from `false` to `true`**. Before, new months were created with the state `non spettato` ("not due") for overtime: every time, the user had to switch it to "Missing" by hand for the Overtime page's numbers to count those hours as to be paid. Now the default is *not paid yet*, consistent with the fact that, in this app, overtime is something you assume you haven't been paid for until you mark it as received.
+* `ensureYear` migration updated accordingly, for consistency with the new default.
+* Existing v3.0 months keep their state (the user might have set them to "Not due" on purpose). The new default only applies to months never opened.
+
+### Overtime: dedicated yearly KPI
+
+* **Third `.hero-stat` changed from "hours worked this year" (gross) to "Overtime {year}" (paid).** The previous value added up *all* the hours logged in the year: useful information, but it doesn't help answer the app's key question ("how much overtime did I do?"). Now the KPI adds up the hours *above the threshold*, month by month: the real number of overtime hours in the year, regardless of how many have been received.
+
+### Internals
+
+* New local calculation `thisYearOvertimeHours` in `renderPageOre`: it runs `paidHoursForMonth` over the 12 months of the current year. Negligible cost, the render already recalculates everything at every interaction.
+* Version bumped to `3.1`.
+
+---
+
+## [3.0.1] - 2026-05-14
+
+Copy patch: a tagline in the "Salary" hero contained a hard-coded value that no longer matched the user's settings.
 
 ### Copy
 
-- **Tagline "Hai diritto di sognare. E di un ticket da {ticket}." resa dinamica.** Prima leggeva `"… ticket da 8 euro"` indipendentemente dal valore effettivo nelle impostazioni — battuta che perdeva il punto se l'utente aveva un ticket diverso. Adesso il valore arriva da `settings.ticketPerDay` del profilo attivo. La frase nell'array contiene `{ticket}` come placeholder, risolto a render-time.
+* **Tagline "You have the right to dream. And to a {ticket} meal voucher." made dynamic.** Before, it read `"… ticket da 8 euro"` ("… an 8 euro voucher") whatever the actual value in the settings: a joke that missed the point if the user had a voucher of a different value. Now the value comes from `settings.ticketPerDay` of the active profile. The sentence in the array contains `{ticket}` as a placeholder, resolved at render time.
 
 ### Internals
 
-- **Nuova helper `ticketPhrase(n)`** — formatta il numero per stare bene dentro una frase: `10` → `"10 euro"`, `8.50` → `"8,50 euro"`. Non si usa `eur()` perché `"€ 10,00"` rompe il ritmo della battuta.
-- **Nuova helper `interpolateTagline(text)`** — applica le sostituzioni di placeholder leggendo dal profilo attivo. Wrappa sia `pickStipTagline()` che `pickOreTagline()`, così future tagline su entrambe le pagine possono usare `{ticket}` (e altri placeholder che aggiungeremo) senza toccare la logica del picker.
-- Versione bumped a `3.0.1`.
+* **New helper `ticketPhrase(n)`**: formats the number so that it sits well inside a sentence: `10` → `"10 euro"`, `8.50` → `"8,50 euro"`. `eur()` isn't used because `"€ 10,00"` breaks the rhythm of the joke.
+* **New helper `interpolateTagline(text)`**: applies the placeholder substitutions, reading from the active profile. It wraps both `pickStipTagline()` and `pickOreTagline()`, so future taglines on both pages can use `{ticket}` (and other placeholders we'll add) without touching the picker logic.
+* Version bumped to `3.0.1`.
 
 ---
 
-## [3.0] — 2026-05-14
+## [3.0] - 2026-05-14
 
-Release stabile che chiude il ciclo di rework partito dalla 2.0. Niente nuove feature rispetto alla 2.5: solo un fix critico, una pulizia di codice morto e il consolidamento del design system come documento ufficiale. Il bump a 3.0 segnala che le sette iterazioni 2.x sono ormai integrate, l'UI è stata ridisegnata end-to-end (tab in inglese, sezioni settings, mensilità configurabili, calendario rifatto, input dinamici, logo rinforzato) e l'app è considerata pronta per l'uso quotidiano.
+Stable release that closes the rework cycle started with 2.0. No new features compared with 2.5: just a critical fix, a cleanup of dead code and the consolidation of the design system as an official document. The bump to 3.0 signals that the seven 2.x iterations are now integrated, the UI has been redesigned end to end (tabs in English, settings sections, configurable monthly payments, redone calendar, dynamic inputs, stronger logo) and the app is considered ready for daily use.
 
-### Fix critico
+### Critical fix
 
-- **Doppia dichiarazione `const EXTRA_SALARY_DEFAULT_MONTHS`** introdotta inavvertitamente in 2.5 durante un riordino del codice. Causava `SyntaxError: Identifier 'EXTRA_SALARY_DEFAULT_MONTHS' has already been declared` a parse-time, impedendo il caricamento dell'intero script. Risolto rimuovendo l'occorrenza duplicata. La costante vive ora solo accanto a `COMPONENTS` (dichiarazione semanticamente vicina a chi la usa). Node `--check` sul JS estratto: PASS.
+* **Double declaration of `const EXTRA_SALARY_DEFAULT_MONTHS`**, introduced by accident in 2.5 during a code reorganisation. It caused `SyntaxError: Identifier 'EXTRA_SALARY_DEFAULT_MONTHS' has already been declared` at parse time, preventing the whole script from loading. Fixed by removing the duplicate. The constant now lives only next to `COMPONENTS` (a declaration semantically close to what uses it). Node `--check` on the extracted JS: PASS.
 
-### Pulizia
+### Cleanup
 
-- **Rimossa la CSS rule morta `.empty-mark`** (~10 righe). Lo span con il "€" nel cerchio era stato eliminato dall'HTML in 2.2 ma la regola era rimasta orfana.
-- **Copy stale aggiornato**. Le frasi "mese per mese" rimaste in due punti (heroSub di Overtime quando non ci sono eventi, copy della empty card) erano residui pre-2.1 — l'app non ha più quel framing. Sostituite con varianti più asciutte.
+* **Removed the dead CSS rule `.empty-mark`** (~10 lines). The span with the "€" in the circle had been removed from the HTML in 2.2, but the rule had been left orphaned.
+* **Stale copy updated**. The "month by month" phrases left in two places (the Overtime heroSub when there are no entries, the empty card copy) were pre-2.1 leftovers: the app no longer has that framing. Replaced with leaner variants.
 
-### Documentazione
+### Documentation
 
-- **`DESIGN-SYSTEM.md` introdotto come documento di riferimento.** Estrazione completa dei token, dei componenti e dei pattern presenti nel codice, con motivazioni e collegamenti alla filosofia *Quiet Ledger*. Include una sezione "Regole di estensione" con 10 vincoli pratici per evitare drift visivo nelle iterazioni future.
+* **`DESIGN-SYSTEM.md` introduced as the reference document.** A complete extraction of the tokens, components and patterns in the code, with the reasons behind them and links to the *Quiet Ledger* philosophy. It includes an "Extension rules" section with 10 practical constraints to avoid visual drift in future iterations.
 
 ### Internals
 
-- Versione bumped a `3.0`.
+* Version bumped to `3.0`.
 
-### Garanzia di compatibilità
+### Compatibility guarantee
 
-- I dati v2.x in `localStorage` continuano a caricare senza migrazione esplicita (la chain `ensureProfile` → `ensureYear` → `defaultMonth` backfills tutti i campi nuovi con i default ragionevoli).
-- I CSV v2.x importano grazie al parser tollerante (header *prefisso*).
-- Il sync cloud non è toccato — gist esistenti restano leggibili.
+* v2.x data in `localStorage` keeps loading without an explicit migration (the `ensureProfile` → `ensureYear` → `defaultMonth` chain backfills all the new fields with sensible defaults).
+* v2.x CSVs import thanks to the tolerant parser (*prefix* header).
+* Cloud sync is untouched: existing gists stay readable.
 
 ---
 
-## [2.5] — 2026-05-14
+## [2.5] - 2026-05-14
 
-Rifinitura tipografica: input nelle righe componente dimensionati al contenuto e logo header rinforzato.
+Typographic refinement: inputs in the item rows sized to their content, and a stronger header logo.
 
-### Salary — input inline
+### Salary: inline inputs
 
-- **Width dinamica.** Gli input numerici nelle righe del mese (stipendio, 13a/14a/15a, bonus, rimborsi, giorni ticket, ore straordinario) avevano `width: 56px` fisso. Risultato: `1000,00` veniva tagliato a `1000,0(`, mentre `0,00` lasciava uno spazio enorme prima del simbolo `€`. Ora ogni input riceve `style="width: Nch"` calcolato su `max(len(value), len(placeholder), min)` via la nuova helper `inputWidthStyle(value, placeholder, min)`. Risultato: il campo si stringe attorno al numero e il `€` (o `giorni`, o `h × …`) gli sta sempre accanto senza buchi né troncamenti.
-- **`field-sizing: content`** dichiarato nel CSS per i browser moderni (Chrome 123+, Safari 17+, Firefox 122+): l'input si auto-espande mentre l'utente digita, senza bisogno di re-render. Fallback `min-width: 3ch / max-width: 14ch` per browser più vecchi. Padding orizzontale ridotto da `4px` a `2px` per recuperare spazio.
+* **Dynamic width.** The number inputs in the month rows (salary, 13th/14th/15th, bonus, refunds, voucher days, overtime hours) had a fixed `width: 56px`. Result: `1000,00` was cut to `1000,0(`, while `0,00` left a huge gap before the `€` symbol. Now each input gets `style="width: Nch"`, computed as `max(len(value), len(placeholder), min)` through the new helper `inputWidthStyle(value, placeholder, min)`. Result: the field shrinks around the number and the `€` (or `giorni`, "days", or `h × …`) always sits right next to it, with no gaps or truncation.
+* **`field-sizing: content`** declared in the CSS for modern browsers (Chrome 123+, Safari 17+, Firefox 122+): the input grows by itself as the user types, with no re-render needed. Fallback `min-width: 3ch / max-width: 14ch` for older browsers. Horizontal padding reduced from `4px` to `2px` to win back space.
 
 ### Header
 
-- **Logo "Where is my *Salary*" più grande e presente.** Dimensione passata da 19px a `clamp(24px, 5vw, 30px)`. Letter-spacing stretto e weight invariato; resta il pattern serif italic con accento sienna su *Salary*. Padding verticale del topbar leggermente aumentato (`14/12 → 20/16`) per dare aria al titolo ora che il topbar ospita meno elementi (niente più brand-mark, niente più profile pill, niente più "+ aggiungi profilo").
+* **"Where is my *Salary*" logo bigger and with more presence.** Size moved from 19px to `clamp(24px, 5vw, 30px)`. Tight letter-spacing and unchanged weight; the serif italic pattern with the sienna accent on *Salary* stays. Vertical padding of the topbar slightly increased (`14/12 → 20/16`) to give the title room, now that the topbar holds fewer elements (no more brand mark, no more profile pill, no more "+ add profile").
 
 ### Internals
 
-- Versione bumped a `2.5`.
+* Version bumped to `2.5`.
 
 ---
 
-## [2.4] — 2026-05-14
+## [2.4] - 2026-05-14
 
-Completamento della feature mensilità: l'importo della 13a/14a/15a è ora editabile mese per mese, come già lo era per la salary base.
+Completing the monthly payments feature: the 13th/14th/15th month pay amount can now be edited month by month, as the base salary already could.
 
-### Salary — override mensilità extra
+### Salary: extra monthly payment override
 
-- **Input editable accanto a Tredicesima / Quattordicesima / Quindicesima.** Stesso pattern dello stipendio mensile: campo numerico inline, valore vuoto = null sentinel ("eredita dalla salary base del mese"), valore numerico = override esplicito. Il placeholder mostra l'importo che verrebbe usato di default (override salary mensile → fallback `settings.salary`).
-- `defaultMonth()` ora inizializza `amount: null` per tutte le voci salary-like (salary + extraSalary).
-- `ensureYear` esegue migration retro-compatibile per mesi v2.3 che hanno solo `state` senza `amount`.
-- `expectedAmountFor` per salary13/14/15 ha una chain di fallback chiara: `cell.amount` (override per-mese) → `data.salary.amount` (override salary base) → `settings.salary`.
-- L'handler `.amount-input` riconosce `salary13/14/15` come salary-like e mantiene il null sentinel su input vuoto.
+* **Editable input next to 13th month pay / 14th month pay / 15th month pay.** Same pattern as the monthly salary: inline number field, empty value = null sentinel ("inherit from the month's base salary"), numeric value = explicit override. The placeholder shows the amount that would be used by default (monthly salary override → fallback `settings.salary`).
+* `defaultMonth()` now initialises `amount: null` for all the salary-like items (salary + extraSalary).
+* `ensureYear` runs a backward-compatible migration for v2.3 months that have only `state` and no `amount`.
+* `expectedAmountFor` for salary13/14/15 has a clear fallback chain: `cell.amount` (per-month override) → `data.salary.amount` (base salary override) → `settings.salary`.
+* The `.amount-input` handler recognises `salary13/14/15` as salary-like and keeps the null sentinel on empty input.
 
-### Backup CSV
+### CSV backup
 
-- **Tre colonne aggiuntive in `MESI`**: `salary13_importo`, `salary14_importo`, `salary15_importo`, in coda a tutte le altre. I file v2.3 (senza queste colonne) si caricano comunque grazie al parser tollerante (header *prefisso*) — gli override mancanti diventano `null`.
-- L'euristica `allDefault` che evita di esportare mesi tutti-default ora considera anche `cell.amount != null` per le voci extraSalary, così un mese con il solo override di una mensilità extra viene comunque persistito.
+* **Three extra columns in `MESI`**: `salary13_importo`, `salary14_importo`, `salary15_importo`, after all the others. v2.3 files (without these columns) still load thanks to the tolerant parser (*prefix* header): the missing overrides become `null`.
+* The `allDefault` heuristic, which avoids exporting months that are all defaults, now also considers `cell.amount != null` for the extraSalary items, so a month whose only change is an extra monthly payment override is still persisted.
 
 ### Internals
 
-- Versione bumped a `2.4`.
+* Version bumped to `2.4`.
 
 ---
 
-## [2.3] — 2026-05-14
+## [2.3] - 2026-05-14
 
-Due interventi: fix di un bug visivo del calendario e nuovo modello dati per le mensilità extra.
+Two changes: a fix for a visual bug in the calendar and a new data model for the extra monthly payments.
 
-### Overtime — calendario
+### Overtime: calendar
 
-- **Spaziatura prima riga corretta.** Il rendering precedente generava `N` celle "empty" (`<div class="cal-c empty">`) per allineare il primo giorno del mese al giorno della settimana giusto. Su alcuni browser, le celle vuote con `aspect-ratio: 1` collassavano ad altezza 0 / dimensione 0 e rompevano la prima riga del grid, lasciando uno spazio bianco enorme tra il primo giorno e i successivi. Ora la prima cella numerica usa `style="grid-column-start: N"` e non vengono più generate celle empty — soluzione più pulita e robusta al bug aspect-ratio. Rimossa anche la regola CSS `.cal-c.empty` e il selettore `:not(.empty)` nei click handler.
+* **First row spacing fixed.** The previous rendering generated `N` "empty" cells (`<div class="cal-c empty">`) to align the first day of the month with the right weekday. On some browsers the empty cells with `aspect-ratio: 1` collapsed to height 0 / size 0 and broke the first row of the grid, leaving a huge blank space between the first day and the following ones. Now the first number cell uses `style="grid-column-start: N"` and no empty cells are generated any more: a cleaner solution, robust to the aspect-ratio bug. Also removed the `.cal-c.empty` CSS rule and the `:not(.empty)` selector in the click handlers.
 
-### Salary — mensilità extra
+### Salary: extra monthly payments
 
-- **13a / 14a / 15a sono voci separate con tri-state proprio.** Prima la logica era: stipendio × `salaryMultiplierFor(mese)`. Significava che a dicembre con 14 mensilità l'importo "Stipendio" mostrava il doppio, ma non c'era modo di marcare *solo* la 13a come mancante quando la mensile era già arrivata. Adesso:
-  - Aggiunti tre componenti in `COMPONENTS`: `salary13` (🎄, paid in dicembre), `salary14` (🌞, giugno), `salary15` (✨, luglio).
-  - Compaiono come riga separata *solo* nel mese di pagamento e *solo* se `settings.mensilita` raggiunge la soglia. Il filtro è in `extraSalaryApplies(comp, settings, m0)`, applicato sia in `renderMonthCard` sia indirettamente in `expectedAmountFor` (ritorna 0 quando non applies, così totali e status restano corretti).
-  - Importo = uguale allo stipendio mensile (incluso eventuale override per-mese sulla salary base).
-  - Rimossa `salaryMultiplierFor()` — non serve più.
-  - `defaultMonth()` crea le tre celle con stato di default "missing" (cioè *attese* nel mese giusto). `ensureYear` esegue migration retro-compatibile.
+* **13th / 14th / 15th are separate items with their own tri-state.** Before, the logic was: salary × `salaryMultiplierFor(mese)`. That meant that in December, with 14 monthly payments, the "Salary" amount showed double, but there was no way to mark *only* the 13th as missing when the monthly salary had already arrived. Now:
+  * Added three components to `COMPONENTS`: `salary13` (🎄, paid in December), `salary14` (🌞, June), `salary15` (✨, July).
+  * They appear as a separate row *only* in the payment month and *only* if `settings.mensilita` reaches the threshold. The filter is in `extraSalaryApplies(comp, settings, m0)`, applied both in `renderMonthCard` and indirectly in `expectedAmountFor` (it returns 0 when the item doesn't apply, so totals and status stay correct).
+  * Amount = the same as the monthly salary (including any per-month override on the base salary).
+  * Removed `salaryMultiplierFor()`: no longer needed.
+  * `defaultMonth()` creates the three cells with the default state "missing" (i.e. *expected* in the right month). `ensureYear` runs a backward-compatible migration.
 
-### Backup CSV
+### CSV backup
 
-- **Tre colonne nuove in `MESI`**: `salary13_stato`, `salary14_stato`, `salary15_stato`. Parser tollerante (header *prefisso*) → file v2.2 senza queste colonne si caricano con stato "missing" di default.
+* **Three new columns in `MESI`**: `salary13_stato`, `salary14_stato`, `salary15_stato`. Tolerant parser (*prefix* header) → v2.2 files without these columns load with the default state "missing".
 
 ### Internals
 
-- Versione bumped a `2.3`.
+* Version bumped to `2.3`.
 
 ---
 
-## [2.2] — 2026-05-14
+## [2.2] - 2026-05-14
 
-Iterazione di rifinitura UX sulla v2.1: pulizia empty state, allineamento del form "Iniziamo da te" con il sheet impostazioni completo, riorganizzazione delle impostazioni in sezioni e rinaming dei tab in inglese per coerenza con il nome dell'app.
+A UX refinement iteration on v2.1: empty state cleanup, the "Let's start with you" form aligned with the full settings sheet, settings reorganised into sections, and tabs renamed in English for consistency with the app's name.
 
-### Generale
+### General
 
-- **Tab rinominati: "Salary" e "Overtime"**. Il primo richiama direttamente *Where is my Salary*; il secondo è scelto al posto di "Work time"/"Ore" perché evoca emozionalmente l'idea centrale dell'app — il lavoro extra che si fa senza che la busta paga lo veda. Coerente con il tono ironico-noir delle tagline.
-- **Empty state ripulito.** Rimosso il cerchio "€" sopra al saluto. La card ora è centrata verticalmente (flex column con `justify-content: center` e `min-height: 360px`), per dare più aria al copy e meno orpelli grafici.
+* **Tabs renamed: "Salary" and "Overtime"**. The first directly recalls *Where is my Salary*; the second was chosen over "Work time"/"Ore" ("Hours") because it emotionally evokes the central idea of the app: the extra work you do without the payslip seeing it. Consistent with the ironic, noir tone of the taglines.
+* **Empty state cleaned up.** Removed the "€" circle above the greeting. The card is now vertically centred (flex column with `justify-content: center` and `min-height: 360px`), to give the copy more room and cut down on graphic frills.
 
-### Impostazioni
+### Settings
 
-- **Tre sezioni esplicite con heading: "Salary" / "Overtime" / "Sistema"**. Implementate con un nuovo `.settings-section-title` (serif italic + linea tratteggiata sotto, accento sienna). Rende immediato capire dove si trova un determinato campo.
-- **Giorni lavorativi spostati prima di Ore contratto / Forfait / Tariffa**. La definizione dei giorni "che contano" è precondizione per i calcoli, quindi appare per prima nella sezione Overtime.
+* **Three explicit sections with headings: "Salary" / "Overtime" / "System"**. Implemented with a new `.settings-section-title` (serif italic + dashed line below, sienna accent). It makes it immediately clear where a given field is.
+* **Working days moved before Contract hours / CCNL allowance / Overtime rate**. Defining the days "that count" is a precondition for the calculations, so it comes first in the Overtime section.
 
 ### New profile sheet
 
-- **Modulo allineato al settings sheet completo.** Lo sheet "Iniziamo da te" ora chiede *tutti* i campi che prima erano accessibili solo dopo la creazione del profilo: mensilità annue, mese del fringe, bonus standard, ore contratto, forfait, tariffa straordinario e giorni lavorativi. Lo schema rispecchia esattamente quello delle impostazioni (con le stesse due sezioni Salary / Overtime), così l'utente alla prima apertura imposta tutto in un colpo solo senza dover poi ri-aprire le impostazioni.
-- **Tutte le validazioni `clamp()` ora vengono applicate anche al primo salvataggio** (prima alcuni campi finivano nel profilo senza il bound).
+* **Form aligned with the full settings sheet.** The "Let's start with you" sheet now asks for *all* the fields that used to be reachable only after creating the profile: payments per year, fringe month, standard bonus, contract hours, CCNL allowance, overtime rate and working days. The layout mirrors the settings exactly (with the same two sections, Salary / Overtime), so on first launch the user sets everything in one go, without having to reopen the settings afterwards.
+* **All the `clamp()` validations are now also applied on the first save** (before, some fields ended up in the profile without the bound).
 
 ### Internals
 
-- `openNewProfile()` ora popola il select `np-fringe-month` e resetta i workday checkbox.
-- `#btn-create-profile` handler costruisce settings con tutti i nuovi campi e applica `clamp(v, max)` su ogni numerico.
-- Versione bumped a `2.2`.
+* `openNewProfile()` now fills the `np-fringe-month` select and resets the workday checkboxes.
+* The `#btn-create-profile` handler builds the settings with all the new fields and applies `clamp(v, max)` to every number.
+* Version bumped to `2.2`.
 
 ---
 
-## [2.1] — 2026-05-13
+## [2.1] - 2026-05-13
 
-Release di pulizia visiva, semplificazione UX e correzioni sui calcoli ore. Nessuna migrazione dati distruttiva: i profili esistenti continuano a funzionare, i campi nuovi vengono aggiunti automaticamente con default ragionevoli.
+A release of visual cleanup, UX simplification and fixes to the hours calculations. No destructive data migration: existing profiles keep working, and new fields are added automatically with sensible defaults.
 
-### Generale
+### General
 
-- **Tabbar `Stipendio · Ore` nascosta sopra a sheet e modal.** Quando si apre il sheet impostazioni o qualsiasi finestra in sovraimpressione, il pill flottante in fondo schermo non resta più visibile sopra al backdrop. Implementato via classi `body.modal-open` (già esistente per i sheet) + `body.overlay-open` (nuova, aggiunta dentro `showConfirm` / `showChoice`).
-- **Rimossa emoji 🕐 dal tab "Ore".** Il box flottante ora è solo testo, coerente con il tono "carta" dell'app.
-- **Header semplificato.** Eliminato il quadratino "€" come logo e la riga "mese per mese · v2.0". Resta solo il titolo *Where is my Salary*. La versione è stata spostata in fondo alla pagina (`.app-version`).
-- **Rimosso il multi-profilo dall'UI.** La pillola di switch profilo e il pulsante "+ aggiungi profilo" non vengono più renderizzati. Lo store internamente rimane multi-profilo (per non rompere i dati esistenti) ma l'app usa sempre il primo profilo trovato. Il pulsante "Elimina profilo" nelle impostazioni è stato rinominato in **"Azzera dati"** con copy aggiornato.
+* **`Stipendio · Ore` ("Salary · Hours") tabbar hidden above sheets and modals.** When the settings sheet or any overlay window opens, the floating pill at the bottom of the screen no longer stays visible above the backdrop. Implemented via the `body.modal-open` class (already there for sheets) + `body.overlay-open` (new, added inside `showConfirm` / `showChoice`).
+* **Removed the 🕐 emoji from the "Ore" ("Hours") tab.** The floating box is now text only, consistent with the app's "paper" tone.
+* **Header simplified.** Removed the small "€" square used as a logo and the "month by month · v2.0" line. Only the *Where is my Salary* title remains. The version moved to the bottom of the page (`.app-version`).
+* **Multi-profile removed from the UI.** The profile switch pill and the "+ add profile" button are no longer rendered. The store stays multi-profile internally (so as not to break existing data), but the app always uses the first profile it finds. The "Delete profile" button in the settings was renamed **"Reset data"**, with updated copy.
 
-### Stipendio
+### Salary
 
-- **Mensilità annue configurabili (12–15).** Nuovo select nelle impostazioni. Default 12. Le mensilità extra arrivano in mesi fissi: **13a a dicembre, 14a a giugno, 15a a luglio**. La logica vive in `salaryMultiplierFor(settings, m0)` e in `EXTRA_SALARY_DEFAULT_MONTHS`. Per chi ha 14 mensilità, l'app ora calcola automaticamente lo stipendio doppio a giugno e dicembre (non serve toccare l'override manuale).
-- **Layout componenti più respirabile.** La riga voce/dettaglio/importo/tri-state è stata convertita da flexbox a CSS Grid con `grid-template-areas`. Su mobile (<480px) l'importo scende sotto la voce in modo da non comprimere il nome a metà.
-- **Niente più "—" tra voce e stato quando una voce non spetta.** Se lo stato è `not_expected`, la cella importo viene lasciata vuota (`.comp-amount:empty { display:none }`). Risultato: una riga "Bonus" non atteso non mostra più il trattino orfano accanto ai pulsanti tri-stato.
+* **Configurable payments per year (12-15).** New select in the settings. Default 12. The extra monthly payments arrive in fixed months: **13th in December, 14th in June, 15th in July**. The logic lives in `salaryMultiplierFor(settings, m0)` and in `EXTRA_SALARY_DEFAULT_MONTHS`. For those with 14 monthly payments, the app now automatically calculates a double salary in June and December (no need to touch the manual override).
+* **Roomier component layout.** The item/detail/amount/tri-state row was converted from flexbox to CSS Grid with `grid-template-areas`. On mobile (<480px) the amount drops below the item, so the name isn't squeezed in half.
+* **No more dash between item and state when an item isn't due.** If the state is `not_expected`, the amount cell is left empty (`.comp-amount:empty { display:none }`). Result: a "Bonus" row that isn't expected no longer shows the orphan dash next to the tri-state buttons.
 
-### Impostazioni
+### Settings
 
-- **Nuovo campo "Ore contratto (h/settimana)".** Default 40. Insieme al "Forfait straord." definisce la soglia oltre la quale le ore lavorate vengono pagate come straordinari. Esempio: contratto 40h + forfait 5h = 45h coperte dallo stipendio, il resto è straordinario.
-- **Semantica del forfait rivista.** Prima il forfait era l'unica soglia (tutte le ore loggate sopra il forfait erano straordinari). Adesso la formula è `paid = max(0, workH - (contratto + forfait)) + weekendH`. Il forfait default è ora 0 (chi aveva il vecchio 5 può continuare a usarlo; le ore di contratto vanno valorizzate a parte).
-- **Tariffa straordinario in campo dedicato.** Spostata fuori dalla riga forfait/contratto per dare più spazio agli hint.
+* **New "Contract hours (h/week)" field.** Default 40. Together with the "CCNL allowance" it defines the threshold beyond which worked hours are paid as overtime. Example: contract 40h + allowance 5h = 45h covered by the salary, the rest is overtime.
+* **Allowance semantics revised.** Before, the allowance was the only threshold (all logged hours above the allowance were overtime). Now the formula is `paid = max(0, workH - (contratto + forfait)) + weekendH`. The default allowance is now 0 (those who had the old 5 can keep using it; contract hours are set separately).
+* **Overtime rate in its own field.** Moved out of the allowance/contract row to give the hints more room.
 
-### Ore
+### Hours
 
-- **Box riassuntivo: valori allineati sulla stessa riga.** Le tre celle "settimana / mese / anno" hanno labels di lunghezza diversa (es. "Settimana corrente" va a capo, "2026 totale" no). Ora `.hero-stat` è flex column con `margin-top: auto` sul valore, così tutti e tre i numeri stanno alla stessa baseline anche quando le label sono a due righe.
-- **Check ore straordinarie corretto.** Tutti i call site di `paidHoursForMonth` (6 punti) passano ora il parametro `contractWeek` oltre al `forfaitWeek`. Anche `renderOreWeekView` usa la nuova soglia combinata.
-- **Spaziatura calendario uniforme.** Headers e celle stavano in due grid separati (`.cal-header` + `.cal-grid`): la prima riga di numeri appariva più staccata delle altre. Adesso entrambi vivono in un solo `.cal-table` con gap costante 4px.
+* **Summary box: values aligned on the same line.** The three "week / month / year" cells have labels of different lengths (in Italian, "Settimana corrente" wraps and "2026 totale" doesn't). Now `.hero-stat` is a flex column with `margin-top: auto` on the value, so all three numbers sit on the same baseline even when the labels take two lines.
+* **Overtime hours check fixed.** All the call sites of `paidHoursForMonth` (6 places) now pass the `contractWeek` parameter as well as `forfaitWeek`. `renderOreWeekView` also uses the new combined threshold.
+* **Uniform calendar spacing.** Headers and cells were in two separate grids (`.cal-header` + `.cal-grid`): the first row of numbers looked further apart than the others. Now both live in a single `.cal-table` with a constant 4px gap.
 
-### Backup CSV
+### CSV backup
 
-- **Schema esteso (compatibile all'indietro).** Aggiunte due colonne nella sezione `SETTINGS`: `contratto_settimana` e `mensilita`. Il parser accetta anche header *prefisso* (file vecchi senza le nuove colonne caricano correttamente con default `40h` / `12 mensilità`). I nuovi export includono tutte le colonne.
+* **Extended schema (backward compatible).** Added two columns to the `SETTINGS` section: `contratto_settimana` and `mensilita`. The parser also accepts a *prefix* header (old files without the new columns load correctly with the defaults `40h` / `12 mensilità`, "12 monthly payments"). New exports include all the columns.
 
 ### Internals
 
-- `defaultSettings()` ora restituisce `mensilita: 12`, `oreContrattoSett: 40`, `forfaitOreSett: 0`.
-- `ensureProfile()` esegue la migrazione difensiva dei tre nuovi campi su profili pre-esistenti.
-- Versione bumped a `2.1`.
+* `defaultSettings()` now returns `mensilita: 12`, `oreContrattoSett: 40`, `forfaitOreSett: 0`.
+* `ensureProfile()` runs the defensive migration of the three new fields on existing profiles.
+* Version bumped to `2.1`.
 
-### Note di compatibilità
+### Compatibility notes
 
-- Se hai un profilo dalla v2.0 con `forfaitOreSett: 5` (vecchio default), il calcolo straordinari potrebbe risultare diverso al primo caricamento. Soluzione consigliata: vai in **Impostazioni**, imposta "Ore contratto" a 40 (o quello che è il tuo contratto) e "Forfait" a 0 (o 5 se davvero hai un forfait CCNL oltre al contratto). Salva.
-- Il pulsante "Azzera dati" cancella tutto lo store. Se hai più profili (eredità v2.0) verranno tutti rimossi.
-
----
-
-## [2.0] — Pre-2026-05-13
-
-Prima versione tracciata in questo CHANGELOG. Funzionalità storiche (senza dettaglio cronologico):
-
-- App single-file HTML/CSS/JS vanilla, nessuna build, nessun bundler.
-- Tracking mensile di 7 voci: stipendio, welfare, fringe, buoni pasto, bonus, rimborso, straordinari.
-- Calcolo automatico giorni lavorativi italiani (festività nazionali + Pasquetta via algoritmo di Gauss/Meeus).
-- Sync opzionale via GitHub Gist (PAT con scope `gist`).
-- Backup CSV con separatore `;` e decimale `,` (convenzione italiana, leggibile in Excel/Numbers).
-- Sezione "Ore" con viste giorni/settimane/mesi/anni, calendario e calcolo forfait straordinario.
-- Multi-profilo (rimosso dall'UI in v2.1).
+* If you have a profile from v2.0 with `forfaitOreSett: 5` (the old default), the overtime calculation may come out different on the first load. Suggested fix: go to **Settings**, set "Contract hours" to 40 (or whatever your contract says) and "CCNL allowance" to 0 (or 5 if you really have a CCNL allowance on top of your contract). Save.
+* The "Reset data" button deletes the whole store. If you have several profiles (a v2.0 legacy) they will all be removed.
 
 ---
 
-## Come scrivere voci future
+## [2.0] - Pre-2026-05-13
 
-Una voce di changelog è utile *se contiene* il **cosa** + il **perché**. Ogni release deve permettere a qualcuno (anche a me fra 6 mesi) di rispondere a:
+First version tracked in this CHANGELOG. Historical features (without chronological detail):
 
-1. **Cosa è cambiato?** — descrizione concreta, riferimenti a funzioni/file (`paidHoursForMonth`, `index.html:1727`).
-2. **Perché è cambiato?** — il problema che si risolveva, o la richiesta utente.
-3. **Cosa devo sapere se aggiorno?** — eventuali breaking changes, migrazioni dati, default modificati.
+* Single-file app in HTML/CSS/vanilla JS, no build, no bundler.
+* Monthly tracking of 7 items: salary, welfare, fringe benefits, meal vouchers, bonus, refund, overtime.
+* Automatic calculation of Italian working days (national public holidays + Easter Monday via the Gauss/Meeus algorithm).
+* Optional sync via GitHub Gist (PAT with the `gist` scope).
+* CSV backup with `;` as separator and `,` as decimal mark (Italian convention, readable in Excel/Numbers).
+* "Ore" ("Hours") section with days/weeks/months/years views, calendar and CCNL overtime allowance calculation.
+* Multi-profile (removed from the UI in v2.1).
 
-Sezioni standard, in ordine: Generale, Stipendio, Ore, Impostazioni, Backup, Internals, Note di compatibilità. Lasciare fuori le sezioni vuote.
+---
 
-Non documentare ogni edit di stile: raggruppare le piccole modifiche di pulizia in una voce "Polish" se servono.
+## How to write future entries
+
+A changelog entry is useful *if it contains* the **what** + the **why**. Every release must let someone (me included, 6 months from now) answer:
+
+1. **What changed?** A concrete description, with references to functions/files (`paidHoursForMonth`, `index.html:1727`).
+2. **Why did it change?** The problem being solved, or the user's request.
+3. **What do I need to know if I update?** Any breaking changes, data migrations, changed defaults.
+
+Standard sections, in this order: General, Salary, Hours, Settings, Backup, Internals, Compatibility notes. Leave out empty sections.
+
+Don't document every style edit: group small cleanup changes into a "Polish" entry if needed.

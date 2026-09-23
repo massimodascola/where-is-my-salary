@@ -275,7 +275,7 @@ Ideas under consideration, not promises:
 
 ## Design philosophy
 
-The look follows a small visual philosophy called **Quiet Ledger** ([`quiet-ledger-philosophy.md`](quiet-ledger-philosophy.md), in Italian): warm paper as the main surface, serif italics as the voice, a single sienna accent used like a wax seal. A quiet nod to Luca Pacioli's *Summa de Arithmetica* (Venice, 1494), the treatise that codified double-entry bookkeeping. [`DESIGN-SYSTEM.md`](DESIGN-SYSTEM.md) is in Italian too, and so are the [`CHANGELOG.md`](CHANGELOG.md) entries before 3.8.0.
+The look follows a small visual philosophy called **Quiet Ledger** ([`quiet-ledger-philosophy.md`](quiet-ledger-philosophy.md)): warm paper as the main surface, serif italics as the voice, a single sienna accent used like a wax seal. A quiet nod to Luca Pacioli's *Summa de Arithmetica* (Venice, 1494), the treatise that codified double-entry bookkeeping. Colors, type and components are documented in [`DESIGN-SYSTEM.md`](DESIGN-SYSTEM.md); every release is described in [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 
