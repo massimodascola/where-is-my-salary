@@ -2316,7 +2316,7 @@
  *  Storage key: "stipendio.v1"
  * ============================================================ */
 
-const VERSION = "3.8.0";
+const VERSION = "3.9.0";
 
 const STORAGE_KEY = "stipendio.v1";
 const SYNC_KEY = "stipendio.sync.v1";
@@ -3828,6 +3828,10 @@ const $$ = sel => Array.from(document.querySelectorAll(sel));
 
 // Current tab — "stipendio" or "ore".
 let currentTab = "stipendio";
+// Date (YYYY-MM-DD) on which the "log today's hours" form last opened by
+// itself. Kept in memory only: the prompt shows once per day per app launch,
+// so closing it and switching tabs doesn't bring it back.
+let _todayPromptShownFor = null;
 // Ironic one-liners shown under the hero sub line (I18N "taglines_ore" and
 // "taglines_salary"). Chosen once per page load (refresh for a new one). Two
 // pools — one per tab — so the tone fits. The pick is kept as an index, so
@@ -4744,8 +4748,27 @@ $("#btn-ot-delete").onclick = async () => {
 
 // Tab bar wiring.
 $$(".tabbar .tab").forEach(btn => {
-  btn.onclick = () => switchTab(btn.dataset.tab);
+  btn.onclick = () => {
+    const wasOre = currentTab === "ore";
+    switchTab(btn.dataset.tab);
+    if(!wasOre && currentTab === "ore") maybePromptTodayEntry();
+  };
 });
+
+// Tapping into Overtime with nothing logged for today opens the new-entry
+// form on today's date. Only on a user tap on the tab (not on programmatic
+// switches), only on the working days set in the settings, and at most once
+// per day per launch.
+function maybePromptTodayEntry(){
+  const p = activeProfile();
+  if(!p) return;
+  const today = localDateStr(new Date());
+  if(!isWorkday(today, p.settings.workdays)) return;
+  if(_todayPromptShownFor === today) return;
+  if((p.overtime || []).some(e => e.data === today)) return;
+  _todayPromptShownFor = today;
+  openOvertimeForm(null);
+}
 
 // Click outside the open month card → close it.
 // Preserve clicks inside months, sheets, modals, topbar, tabbar, year picker.

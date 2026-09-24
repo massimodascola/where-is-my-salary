@@ -6,6 +6,19 @@ Entries are in reverse chronological order (newest first). Versions follow [SemV
 
 ---
 
+## [3.9.0] - 2026-09-24
+
+Opening the Overtime tab on a working day with nothing logged for today now opens the new-entry form by itself, so the day's hours get entered before they're forgotten.
+
+### Today's entry prompt
+
+* **When it opens**: on a tap on the Overtime tab, when the day is one of the working days set in the settings (Overtime section, Monday to Friday by default) and no entry of any kind (work, holiday, public holiday) exists for today. The form is the usual new entry: today's date, default times and break from the settings.
+* **When it doesn't**: on the Salary page, at weekends or on any day outside the working days, when today already has an entry, and on switches made by the app itself (for example when Overtime is turned off). Tapping the tab while already on Overtime does nothing.
+* **At most once per day per launch**: closing the form without saving and coming back to Overtime doesn't reopen it. It shows again the next time the app is opened, or the next day. The flag lives in memory only (`_todayPromptShownFor`): nothing is stored, synced or exported.
+* **Where**: `maybePromptTodayEntry()`, called by the tab bar handler only when the tap moves the page from Salary to Overtime.
+
+---
+
 ## [3.8.0] - 2026-09-23
 
 The app now speaks English as well as Italian, with a switch inside the app. English is the default for the public; the Italian interface stays exactly as it was. From this release the changelog is written in English; the older entries have been translated from Italian, and the originals remain in the git history.
